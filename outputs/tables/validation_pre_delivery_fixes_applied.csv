@@ -1,0 +1,2 @@
+fix_id,status,description,file
+FIX-001,APPLIED,Reworded KPI narrative line from 'supplier-attributed lost sales' to 'supplier-linked proxy lost sales' to reduce causal overclaim risk.,outputs/reports/executive_kpi_diagnostic_analysis.md

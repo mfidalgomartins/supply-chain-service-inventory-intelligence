@@ -1,0 +1,5 @@
+owner_function,intervention_status,intervention_count,avg_governance_score,total_expected_value_proxy
+Operations Intelligence,Monitor,303,20.618110328411845,40866577.924222134
+Procurement,Monitor,107,38.494172590684286,37502051.998371266
+Inventory Planning,Open,43,58.448600255289506,12127921.169086965
+Inventory Planning,Monitor,27,51.33371579290839,3202819.253307425

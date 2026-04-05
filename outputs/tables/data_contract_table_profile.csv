@@ -1,0 +1,11 @@
+table_name,path,row_count,column_count,file_size_bytes,sha256
+products,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/products.csv,120,9,8462,1ec16c0801270e9f7c2cfaab60f9ca8a65e5dc9c08ebb32481c7c22955f9d81a
+suppliers,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/suppliers.csv,12,7,696,978e5f95b92dd42673d85527557c53e243fe4fb139fa3f18363ac301dda3b25e
+warehouses,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/warehouses.csv,4,4,272,a754a69af45b7e7c7552367d7566ffb275422a9f28fab0875dd9898a514eeaa3
+inventory_snapshots,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/inventory_snapshots.csv,350880,9,18967366,e8d6152c8952931bd5b4f3c76551f2dc4f611999e58dc29756afe0ce7461586d
+demand_history,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/demand_history.csv,350880,10,21086114,d3a926519559c5d23258f738b567b6267fe4d3b975dd110d9180f59307ae8521
+purchase_orders,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/purchase_orders.csv,13369,10,1074945,baa33b6bfa4907c743cb8b21ee9251d677af59a8315af69affdd594b95269f63
+product_classification,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/product_classification.csv,120,3,1971,770ace72c1824ecaf01a27cc12a78251d1b8af42144cfb3b2c0340e081605584
+daily_product_warehouse_metrics,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/processed/daily_product_warehouse_metrics.csv,350880,21,40617740,1a1a0c8f0eed91d4275a5c16cfdc536ea939af640c8094e4f5a8ff97007cd00a
+supplier_performance_summary,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/processed/supplier_performance_summary.csv,12,7,1322,f3377b90c7c1e8eb734fed894a20d6c40045423f8c380cfcb0a1274b0d480869
+sku_risk_table,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/processed/sku_risk_table.csv,480,12,97950,a677279267b48573e430ae332bec389f2645499272bd36f5b74193982ceeea92

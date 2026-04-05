@@ -1,0 +1,7 @@
+state_name,state_label,status,criteria,implication,release_classification,blocker_fail_count,high_fail_count,high_warn_count
+technically_valid,Technically Valid,PASS,No FAIL checks in raw/processed/scoring/dashboard integrity controls.,Foundational data and metric logic are internally coherent.,decision-support only,0,0,0
+analytically_acceptable,Analytically Acceptable,PASS,Technical validity plus no analytical FAIL and no high-severity WARN.,Interpretations and prioritization outputs are fit for controlled internal analysis.,decision-support only,0,0,0
+decision_support_only,Decision-Support Only,PASS,Analytically acceptable with caveated proxy economics.,Suitable for leadership prioritization and directional planning discussions.,decision-support only,0,0,0
+screening_grade_only,Screening-Grade Only,FAIL,Technically valid but analytical rigor still below decision-support quality.,Use for triage/scoping only; no executive decision framing.,decision-support only,0,0,0
+not_committee_grade,Not Committee-Grade,PASS,Synthetic data + proxy assumptions prevent audit-grade committee sign-off.,Do not represent as statutory/committee-grade evidence.,decision-support only,0,0,0
+publish_blocked,Publish-Blocked,FAIL,Any blocker/high failure or high-severity warning blocks release publication.,"When PASS here, release cannot be promoted.",decision-support only,0,0,0

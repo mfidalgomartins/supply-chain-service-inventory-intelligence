@@ -1,0 +1,4 @@
+warehouse_id,warehouse_name,service_region,storage_cost_rate
+WH-LIS,Lisbon DC,South,0.022
+WH-PORTO,Porto DC,North,0.02
+WH-MAD,Madrid Hub,Iberia East,0.024

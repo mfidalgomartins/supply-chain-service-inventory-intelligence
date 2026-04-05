@@ -1,0 +1,5 @@
+warehouse_id,warehouse_name,region,storage_capacity_units
+WH-LIS,Lisbon Distribution Center,Portugal South,1850000
+WH-PORTO,Porto Distribution Center,Portugal North,1420000
+WH-MAD,Madrid Regional Hub,Spain Central,1650000
+WH-LYON,Lyon EU Gateway,France South-East,1120000

@@ -1,0 +1,10 @@
+child_table,child_column,parent_table,parent_column,missing_fk_rows,missing_fk_rate,status
+products,supplier_id,suppliers,supplier_id,0,0.0,PASS
+inventory_snapshots,product_id,products,product_id,0,0.0,PASS
+inventory_snapshots,warehouse_id,warehouses,warehouse_id,0,0.0,PASS
+demand_history,product_id,products,product_id,0,0.0,PASS
+demand_history,warehouse_id,warehouses,warehouse_id,0,0.0,PASS
+purchase_orders,supplier_id,suppliers,supplier_id,0,0.0,PASS
+purchase_orders,product_id,products,product_id,0,0.0,PASS
+purchase_orders,warehouse_id,warehouses,warehouse_id,0,0.0,PASS
+product_classification,product_id,products,product_id,0,0.0,PASS

@@ -1,0 +1,50 @@
+table_name,check_name,severity,status,observed,expected,details
+products,table_file_exists,CRITICAL,PASS,1,1,File found: /Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/products.csv
+products,required_columns_present,CRITICAL,PASS,0,0,All required columns must exist.
+products,unique_key_duplicates,HIGH,PASS,0,0,Grain uniqueness on product_id.
+products,critical_columns_nulls,HIGH,PASS,0,0,"No nulls allowed in critical fields: product_id, category, unit_cost, unit_price, supplier_id."
+products,non_negative_fields,HIGH,PASS,0,0,"No negatives allowed in fields: unit_cost, unit_price, shelf_life_days, lead_time_days."
+suppliers,table_file_exists,CRITICAL,PASS,1,1,File found: /Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/suppliers.csv
+suppliers,required_columns_present,CRITICAL,PASS,0,0,All required columns must exist.
+suppliers,unique_key_duplicates,HIGH,PASS,0,0,Grain uniqueness on supplier_id.
+suppliers,critical_columns_nulls,HIGH,PASS,0,0,"No nulls allowed in critical fields: supplier_id, reliability_score, average_lead_time_days."
+suppliers,non_negative_fields,HIGH,PASS,0,0,"No negatives allowed in fields: reliability_score, average_lead_time_days, lead_time_variability, minimum_order_qty."
+warehouses,table_file_exists,CRITICAL,PASS,1,1,File found: /Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/warehouses.csv
+warehouses,required_columns_present,CRITICAL,PASS,0,0,All required columns must exist.
+warehouses,unique_key_duplicates,HIGH,PASS,0,0,Grain uniqueness on warehouse_id.
+warehouses,critical_columns_nulls,HIGH,PASS,0,0,"No nulls allowed in critical fields: warehouse_id, region, storage_capacity_units."
+warehouses,non_negative_fields,HIGH,PASS,0,0,No negatives allowed in fields: storage_capacity_units.
+inventory_snapshots,table_file_exists,CRITICAL,PASS,1,1,File found: /Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/inventory_snapshots.csv
+inventory_snapshots,required_columns_present,CRITICAL,PASS,0,0,All required columns must exist.
+inventory_snapshots,unique_key_duplicates,HIGH,PASS,0,0,"Grain uniqueness on snapshot_date, warehouse_id, product_id."
+inventory_snapshots,critical_columns_nulls,HIGH,PASS,0,0,"No nulls allowed in critical fields: snapshot_date, warehouse_id, product_id, on_hand_units, inventory_value."
+inventory_snapshots,non_negative_fields,HIGH,PASS,0,0,"No negatives allowed in fields: on_hand_units, on_order_units, reserved_units, available_units, inventory_value, days_of_supply."
+demand_history,table_file_exists,CRITICAL,PASS,1,1,File found: /Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/demand_history.csv
+demand_history,required_columns_present,CRITICAL,PASS,0,0,All required columns must exist.
+demand_history,unique_key_duplicates,HIGH,PASS,0,0,"Grain uniqueness on date, warehouse_id, product_id."
+demand_history,critical_columns_nulls,HIGH,PASS,0,0,"No nulls allowed in critical fields: date, warehouse_id, product_id, units_demanded, units_fulfilled."
+demand_history,non_negative_fields,HIGH,PASS,0,0,"No negatives allowed in fields: units_demanded, units_fulfilled, units_lost_sales."
+purchase_orders,table_file_exists,CRITICAL,PASS,1,1,File found: /Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/purchase_orders.csv
+purchase_orders,required_columns_present,CRITICAL,PASS,0,0,All required columns must exist.
+purchase_orders,unique_key_duplicates,HIGH,PASS,0,0,Grain uniqueness on po_id.
+purchase_orders,critical_columns_nulls,HIGH,PASS,0,0,"No nulls allowed in critical fields: po_id, supplier_id, product_id, warehouse_id, ordered_units."
+purchase_orders,non_negative_fields,HIGH,PASS,0,0,"No negatives allowed in fields: ordered_units, received_units."
+product_classification,table_file_exists,CRITICAL,PASS,1,1,File found: /Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/product_classification.csv
+product_classification,required_columns_present,CRITICAL,PASS,0,0,All required columns must exist.
+product_classification,unique_key_duplicates,HIGH,PASS,0,0,Grain uniqueness on product_id.
+product_classification,critical_columns_nulls,HIGH,PASS,0,0,"No nulls allowed in critical fields: product_id, abc_class, criticality_level."
+daily_product_warehouse_metrics,table_file_exists,CRITICAL,PASS,1,1,File found: /Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/processed/daily_product_warehouse_metrics.csv
+daily_product_warehouse_metrics,required_columns_present,CRITICAL,PASS,0,0,All required columns must exist.
+daily_product_warehouse_metrics,unique_key_duplicates,HIGH,PASS,0,0,"Grain uniqueness on date, warehouse_id, product_id."
+daily_product_warehouse_metrics,critical_columns_nulls,HIGH,PASS,0,0,"No nulls allowed in critical fields: date, warehouse_id, product_id, fill_rate, inventory_value."
+daily_product_warehouse_metrics,non_negative_fields,HIGH,PASS,0,0,"No negatives allowed in fields: units_demanded, units_fulfilled, units_lost_sales, on_hand_units, on_order_units, available_units, days_of_supply, inventory_value."
+supplier_performance_summary,table_file_exists,CRITICAL,PASS,1,1,File found: /Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/processed/supplier_performance_summary.csv
+supplier_performance_summary,required_columns_present,CRITICAL,PASS,0,0,All required columns must exist.
+supplier_performance_summary,unique_key_duplicates,HIGH,PASS,0,0,Grain uniqueness on supplier_id.
+supplier_performance_summary,critical_columns_nulls,HIGH,PASS,0,0,"No nulls allowed in critical fields: supplier_id, on_time_delivery_rate, supplier_service_risk_proxy."
+supplier_performance_summary,non_negative_fields,HIGH,PASS,0,0,"No negatives allowed in fields: on_time_delivery_rate, average_delay_days, lead_time_variability, received_vs_ordered_fill_rate, supplier_service_risk_proxy."
+sku_risk_table,table_file_exists,CRITICAL,PASS,1,1,File found: /Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/processed/sku_risk_table.csv
+sku_risk_table,required_columns_present,CRITICAL,PASS,0,0,All required columns must exist.
+sku_risk_table,unique_key_duplicates,HIGH,PASS,0,0,"Grain uniqueness on product_id, warehouse_id, supplier_id."
+sku_risk_table,critical_columns_nulls,HIGH,PASS,0,0,"No nulls allowed in critical fields: product_id, warehouse_id, supplier_id, governance_priority_score, risk_tier."
+sku_risk_table,non_negative_fields,HIGH,PASS,0,0,"No negatives allowed in fields: service_risk_score, stockout_risk_score, excess_inventory_score, supplier_risk_score, working_capital_risk_score, governance_priority_score."

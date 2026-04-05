@@ -1,0 +1,9 @@
+metric,value
+overall_service_level,0.9836
+overall_stockout_rate,0.0164
+annualized_lost_revenue,3419033.85
+avg_inventory_value,13482.26
+total_excess_inventory_value,5604.1
+total_estimated_margin_recovery_12m,792215.11
+total_estimated_wc_release_12m,1681.23
+critical_risk_sku_location_count,1.0

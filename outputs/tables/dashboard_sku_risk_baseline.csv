@@ -1,0 +1,481 @@
+product_id,warehouse_id,supplier_id,service_risk_score,stockout_risk_score,excess_inventory_score,supplier_risk_score,working_capital_risk_score,governance_priority_score,risk_tier,main_risk_driver,recommended_action
+SKU-0016,WH-LIS,SUP-002,98.7791,98.7791,7.5807,96.0268,9.4759,63.9487,High,Service Risk,review reorder point and raise safety stock
+SKU-0016,WH-MAD,SUP-002,99.5879,99.5879,6.2925,96.0268,7.8657,63.7862,High,Service Risk,review reorder point and raise safety stock
+SKU-0016,WH-PORTO,SUP-002,98.9963,98.9963,6.8724,96.0268,8.5904,63.7546,High,Service Risk,review reorder point and raise safety stock
+SKU-0016,WH-LYON,SUP-002,98.9604,98.9604,5.8302,96.0268,7.2878,63.3056,High,Service Risk,review reorder point and raise safety stock
+SKU-0048,WH-MAD,SUP-003,94.5837,95.5813,7.2328,98.2581,9.041,62.4509,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0003,WH-MAD,SUP-002,95.3302,95.3302,4.768,96.0268,5.96,61.1949,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0003,WH-PORTO,SUP-002,95.0245,95.0245,4.687,96.0268,5.8588,61.0207,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0003,WH-LYON,SUP-002,94.8379,94.8379,4.322,96.0268,5.4025,60.7834,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0048,WH-LYON,SUP-003,90.6564,94.3297,6.046,98.2581,7.5575,60.7404,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0012,WH-MAD,SUP-003,93.4882,93.6125,2.722,98.2581,3.4025,59.8828,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0029,WH-LYON,SUP-002,91.7384,91.7384,7.4481,96.0268,3.4192,59.8302,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0012,WH-LYON,SUP-003,92.9355,92.9355,2.0171,98.2581,2.1024,59.2501,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0037,WH-LYON,SUP-003,92.1656,92.1656,2.5495,98.2581,3.1868,59.1755,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0037,WH-PORTO,SUP-003,86.1266,88.2974,9.5477,98.2581,5.7017,58.9068,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0031,WH-LYON,SUP-003,82.7315,95.2315,5.5355,98.2581,6.9194,58.825,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0037,WH-MAD,SUP-003,87.848,91.5286,4.1171,98.2581,5.1464,58.6497,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0077,WH-MAD,SUP-003,90.916,90.916,0.2702,98.2581,3.5799,58.1087,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0047,WH-MAD,SUP-003,81.8666,94.3666,4.6683,98.2581,5.8354,58.0673,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0077,WH-PORTO,SUP-003,91.0823,91.0823,0.7201,98.2581,1.9038,58.0585,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0047,WH-PORTO,SUP-003,79.3318,93.9039,6.3496,98.2581,7.937,58.0549,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0031,WH-PORTO,SUP-003,77.7434,90.0522,10.5716,98.2581,9.0335,57.9931,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0055,WH-MAD,SUP-002,82.5009,95.0009,4.2099,96.0268,5.2624,57.8118,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0047,WH-LYON,SUP-003,81.8035,94.3035,3.8339,98.2581,4.7924,57.692,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0046,WH-PORTO,SUP-002,88.4944,89.5992,3.8919,96.0268,0.0,57.2488,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0055,WH-LYON,SUP-002,81.7524,94.2524,3.6826,96.0268,4.6033,57.2487,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0005,WH-MAD,SUP-003,90.1518,90.1518,0.0,98.2581,0.0,57.1911,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0030,WH-LYON,SUP-003,86.828,86.828,6.3543,98.2581,0.0,57.1872,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0055,WH-PORTO,SUP-002,80.9048,93.4048,4.4372,96.0268,5.5465,57.1719,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0046,WH-LIS,SUP-002,89.4781,90.1001,2.1135,96.0268,0.0,57.1683,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0005,WH-LYON,SUP-003,89.694,89.694,0.6088,98.2581,0.0,57.1266,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0031,WH-MAD,SUP-003,76.6259,90.7295,7.1796,98.2581,8.9745,57.0515,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0046,WH-LYON,SUP-002,90.1977,90.1977,0.1984,96.0268,0.0,56.9028,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0046,WH-MAD,SUP-002,90.0774,90.0774,0.0,96.0268,0.0,56.7999,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0031,WH-LIS,SUP-003,71.8652,81.8326,17.4421,98.2581,10.7817,56.6676,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0048,WH-PORTO,SUP-003,83.1285,78.8765,8.1087,98.2581,10.1359,56.3901,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0030,WH-LIS,SUP-003,87.2747,87.2747,1.8399,98.2581,0.0,56.3093,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0030,WH-MAD,SUP-003,88.0107,88.0107,0.0,98.2581,0.0,56.2062,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0012,WH-PORTO,SUP-003,84.0792,78.9604,9.173,98.2581,4.5493,56.11,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0013,WH-PORTO,SUP-001,86.075,89.6376,1.9767,95.1584,0.0,56.078,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0030,WH-PORTO,SUP-003,87.5484,87.5484,0.0,98.2581,0.0,55.9936,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0055,WH-LIS,SUP-002,73.8353,89.2774,8.5512,96.0268,7.3631,55.8089,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0037,WH-LIS,SUP-003,80.2889,78.224,10.2777,98.2581,7.4692,55.7123,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0005,WH-PORTO,SUP-003,84.5676,87.1182,1.8399,98.2581,0.0,55.6251,High,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0049,WH-MAD,SUP-001,64.0485,71.5073,35.0,95.1584,0.0,54.7286,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0077,WH-LIS,SUP-003,82.5351,84.5395,1.249,98.2581,1.8186,54.6828,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0008,WH-LYON,SUP-004,92.0084,93.8304,6.0485,58.9776,7.5606,54.6713,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0060,WH-LYON,SUP-002,78.9981,91.4981,0.0,96.0268,1.0036,54.5939,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0077,WH-LYON,SUP-003,81.6962,75.6826,8.116,98.2581,4.7603,54.5929,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0060,WH-LIS,SUP-002,76.6914,89.8001,2.5609,96.0268,3.2011,54.589,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0060,WH-PORTO,SUP-002,78.9763,91.4763,0.2239,96.0268,0.5373,54.5723,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0060,WH-MAD,SUP-002,79.108,91.608,0.0,96.0268,0.2574,54.54,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0013,WH-LYON,SUP-001,84.1771,85.814,0.0,95.1584,0.0,54.307,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0012,WH-LIS,SUP-003,72.173,62.3141,26.8399,98.2581,6.4551,54.0972,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0098,WH-MAD,SUP-003,70.2645,90.2645,0.0,98.2581,9.5846,53.7848,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0049,WH-LIS,SUP-001,66.2161,69.267,30.7045,95.1584,0.0,53.725,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0098,WH-LYON,SUP-003,67.9801,89.0684,0.0,98.2581,11.4501,53.2346,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0023,WH-MAD,SUP-007,92.3689,93.6112,1.7273,56.9883,2.1591,52.598,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0013,WH-MAD,SUP-001,82.6299,78.6166,0.0,95.1584,0.0,52.3522,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0098,WH-PORTO,SUP-003,65.0815,89.1305,0.2392,98.2581,9.5105,52.3384,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0008,WH-MAD,SUP-004,86.9888,85.428,7.2723,58.9776,9.0904,52.1259,Medium,Service Risk,review reorder point and raise safety stock
+SKU-0118,WH-LYON,SUP-001,44.9211,27.9478,61.275,95.1584,42.5752,51.8402,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0010,WH-PORTO,SUP-001,70.4804,62.567,20.0319,95.1584,2.7331,51.0957,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0038,WH-MAD,SUP-001,77.3957,77.0754,0.0,95.1584,0.0,50.7569,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0024,WH-LYON,SUP-005,81.92,80.7836,7.4472,62.2282,8.719,50.3977,Medium,Service Risk,review reorder point and raise safety stock
+SKU-0058,WH-PORTO,SUP-001,69.0785,84.4752,0.0,95.1584,0.0,50.3887,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0080,WH-MAD,SUP-003,27.7919,6.9519,87.2927,98.2581,64.8197,50.3757,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0029,WH-MAD,SUP-002,70.8326,71.6607,5.0941,96.0268,5.2647,50.0891,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0115,WH-MAD,SUP-002,63.616,87.8303,0.0,96.0268,0.6305,50.0431,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0080,WH-LYON,SUP-003,20.0,0.0,88.1691,98.2581,83.8234,49.327,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0058,WH-LIS,SUP-001,67.9214,77.9507,2.5239,95.1584,0.0,49.2814,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0005,WH-LIS,SUP-003,71.5359,71.6152,2.5239,98.2581,0.0,49.251,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0001,WH-LYON,SUP-007,85.6235,88.9618,0.0,56.9883,0.0,49.2394,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0007,WH-LYON,SUP-005,83.4824,82.1338,2.5309,62.2282,3.1637,49.1121,Medium,Service Risk,review reorder point and raise safety stock
+SKU-0010,WH-LYON,SUP-001,69.2809,68.373,6.6259,95.1584,1.0234,48.6283,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0096,WH-MAD,SUP-002,56.1224,42.2986,37.0435,96.0268,10.8277,48.5457,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0038,WH-PORTO,SUP-001,69.589,66.7692,6.6279,95.1584,0.0,48.2066,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0080,WH-PORTO,SUP-003,22.1525,0.7644,87.9928,98.2581,70.1719,48.198,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0003,WH-LIS,SUP-002,62.3637,64.842,9.7278,96.0268,8.8339,48.1683,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0013,WH-LIS,SUP-001,70.7274,70.9811,0.7796,95.1584,0.9746,48.1393,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0007,WH-MAD,SUP-005,79.3948,78.9287,4.1319,62.2282,5.1648,48.0903,Medium,Service Risk,review reorder point and raise safety stock
+SKU-0098,WH-LIS,SUP-003,58.9995,75.1973,1.0902,98.2581,8.3357,47.8532,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0073,WH-LYON,SUP-001,59.0103,75.928,2.5509,95.1584,8.2037,47.8527,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0047,WH-LIS,SUP-003,57.8921,67.9059,7.1376,98.2581,8.922,47.5168,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0049,WH-LYON,SUP-001,48.1316,49.3822,38.7533,95.1584,3.7533,47.4673,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0029,WH-LIS,SUP-002,62.5725,56.661,13.4362,96.0268,7.3133,47.0957,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0001,WH-MAD,SUP-007,82.3962,81.5991,0.0,56.9883,0.0,46.845,Medium,Service Risk,review reorder point and raise safety stock
+SKU-0023,WH-LYON,SUP-007,81.3932,80.2846,1.2104,56.9883,1.513,46.8175,Medium,Service Risk,review reorder point and raise safety stock
+SKU-0010,WH-LIS,SUP-001,50.5888,44.008,37.418,95.1584,5.1428,46.7487,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0048,WH-LIS,SUP-003,63.3972,53.3748,9.2795,98.2581,11.5994,46.5301,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0107,WH-LYON,SUP-002,56.4649,75.3339,1.9856,96.0268,2.7395,46.3494,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0115,WH-PORTO,SUP-002,55.5758,69.6341,9.0903,96.0268,0.0,46.2037,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0080,WH-LIS,SUP-003,20.0,0.0,87.722,98.2581,61.9986,46.1911,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0115,WH-LYON,SUP-002,55.5989,65.0558,11.1423,96.0268,1.3767,45.8872,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0108,WH-LYON,SUP-003,16.9303,19.0877,79.8422,98.2581,45.8783,45.7942,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0073,WH-PORTO,SUP-001,54.2188,74.8759,1.0981,95.1584,4.6147,45.6202,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0058,WH-LYON,SUP-001,60.1309,68.6837,1.156,95.1584,0.0,45.0446,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0038,WH-LYON,SUP-001,63.9706,57.5016,7.3119,95.1584,0.0,44.9835,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0008,WH-PORTO,SUP-004,69.3444,70.8836,7.7866,58.9776,9.7332,44.9049,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0108,WH-PORTO,SUP-003,18.1667,17.8442,76.4819,98.2581,42.4982,44.8135,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0058,WH-MAD,SUP-001,57.7378,70.4808,0.0,95.1584,0.0,44.5882,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0010,WH-MAD,SUP-001,52.6687,56.0896,15.1434,95.1584,2.4364,44.1811,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0096,WH-PORTO,SUP-002,42.5271,28.4583,40.9808,96.0268,16.9574,44.041,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0023,WH-PORTO,SUP-007,73.2446,73.5775,2.5955,56.9883,3.2443,43.961,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0007,WH-PORTO,SUP-005,68.8947,70.1417,4.3851,62.2282,5.4813,43.7422,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0118,WH-MAD,SUP-001,34.4622,14.6667,57.2432,95.1584,32.574,43.6548,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0006,WH-LYON,SUP-007,75.063,74.304,0.0,56.9883,0.0,43.4801,Medium,Service Risk,review reorder point and raise safety stock
+SKU-0089,WH-LYON,SUP-002,37.7983,38.8524,39.6411,96.0268,6.3908,43.2814,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0100,WH-MAD,SUP-002,28.6835,33.3772,44.7966,96.0268,24.895,42.861,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0089,WH-PORTO,SUP-002,33.3579,41.9617,40.6077,96.0268,6.6113,42.8382,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0018,WH-LYON,SUP-004,71.789,72.2865,0.0,58.9776,0.0,42.5688,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0073,WH-MAD,SUP-001,49.5091,65.0819,1.5918,95.1584,5.2319,42.5401,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0074,WH-LYON,SUP-001,47.5374,62.4266,0.6088,95.1584,14.4348,42.5351,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0095,WH-LYON,SUP-003,6.2413,4.1291,85.9133,98.2581,60.1108,42.382,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0118,WH-PORTO,SUP-001,22.5382,1.0042,71.893,95.1584,50.9546,42.2821,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0018,WH-MAD,SUP-004,69.8314,70.7981,1.1368,58.9776,1.421,42.2433,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0087,WH-LYON,SUP-003,30.7648,37.6762,41.8357,98.2581,9.8102,42.1434,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0024,WH-MAD,SUP-005,60.2875,61.7793,8.6239,62.2282,10.361,41.5372,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0108,WH-LIS,SUP-003,18.3471,17.9946,63.9676,98.2581,30.0424,40.9043,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0096,WH-LYON,SUP-002,33.4932,14.0149,47.176,96.0268,26.6132,40.7131,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0049,WH-PORTO,SUP-001,35.5189,36.7896,36.1397,95.1584,1.1397,40.6394,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0085,WH-LYON,SUP-003,36.8106,28.2279,37.1919,98.2581,6.3551,40.5589,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0073,WH-LIS,SUP-001,43.4552,62.277,2.1608,95.1584,4.8239,40.5495,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0028,WH-MAD,SUP-008,62.5399,74.5054,0.0,56.5939,0.0,40.4558,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0029,WH-PORTO,SUP-002,48.8977,42.8421,12.7828,96.0268,6.1546,40.4545,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0038,WH-LIS,SUP-001,54.5611,51.9839,2.2735,95.1584,0.371,40.3541,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0001,WH-PORTO,SUP-007,67.42,68.3222,0.0,56.9883,0.0,40.3298,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0007,WH-LIS,SUP-005,58.9141,62.0606,6.0254,62.2282,7.5317,40.2498,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0086,WH-PORTO,SUP-004,66.1234,67.6551,0.0,58.9776,0.0,40.1902,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0118,WH-LIS,SUP-001,29.4987,12.7819,54.2578,95.1584,23.9923,40.0123,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0100,WH-LYON,SUP-002,18.1893,17.7533,53.3372,96.0268,38.3451,39.6958,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0095,WH-PORTO,SUP-003,1.2242,0.0,86.1609,98.2581,56.6894,39.534,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0061,WH-LYON,SUP-002,34.7415,17.203,35.552,96.0268,24.0789,39.3418,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0061,WH-MAD,SUP-002,39.2177,25.4902,26.5876,96.0268,17.1391,39.1649,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0087,WH-MAD,SUP-003,27.5696,39.6441,32.4265,98.2581,3.1561,38.9925,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0100,WH-PORTO,SUP-002,19.3586,21.0148,51.8862,96.0268,27.5163,38.9869,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0096,WH-LIS,SUP-002,40.1033,19.5666,36.5003,96.0268,5.4906,38.8225,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0115,WH-LIS,SUP-002,41.5966,60.2844,0.0,96.0268,0.0,38.6101,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0086,WH-MAD,SUP-004,62.1883,64.4445,0.0,58.9776,0.0,38.5394,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0095,WH-MAD,SUP-003,7.8818,9.1384,69.4987,98.2581,41.0375,38.3513,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0036,WH-MAD,SUP-001,37.0884,36.8984,18.9923,95.1584,9.2995,38.1043,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0093,WH-MAD,SUP-005,59.5457,62.6329,0.0,62.2282,0.0,38.0267,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0090,WH-LYON,SUP-004,51.5148,72.444,0.0,58.9776,0.0,37.7376,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0112,WH-PORTO,SUP-001,39.6203,28.208,27.2447,95.1584,0.8917,37.6035,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0112,WH-MAD,SUP-001,42.3714,25.9319,21.1749,95.1584,5.8495,37.0004,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0071,WH-PORTO,SUP-003,18.7084,18.0712,51.5679,98.2581,16.5679,36.9112,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0008,WH-LIS,SUP-004,49.0288,50.4936,9.3985,58.9776,11.7481,36.2123,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0107,WH-PORTO,SUP-002,34.1609,42.8997,10.8104,96.0268,4.2022,36.1837,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0093,WH-LYON,SUP-005,54.9702,58.6245,0.0,62.2282,0.0,36.0467,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0086,WH-LYON,SUP-004,56.2175,59.3858,0.0,58.9776,0.0,35.9935,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0090,WH-MAD,SUP-004,47.1627,68.9298,0.0,58.9776,0.0,35.92,Medium,Stockout Risk,expedite replenishment and rebalance stock across warehouses
+SKU-0018,WH-PORTO,SUP-004,54.1831,57.7633,1.5655,58.9776,1.9569,35.798,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0107,WH-MAD,SUP-002,34.1211,40.621,8.3347,96.0268,7.2255,35.5019,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0075,WH-LYON,SUP-002,0.6786,0.0,73.4315,96.0268,46.1507,35.2467,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0108,WH-MAD,SUP-003,2.1314,0.6806,72.6611,98.2581,38.7408,35.0132,Medium,Supplier Risk,investigate supplier reliability and qualify backup source
+SKU-0040,WH-LYON,SUP-007,50.0868,51.1461,6.2244,56.9883,7.7805,34.9743,Low,Supplier Risk,monitor only
+SKU-0095,WH-LIS,SUP-003,6.7333,4.5349,64.7386,98.2581,32.2773,34.9107,Low,Supplier Risk,monitor only
+SKU-0087,WH-LIS,SUP-003,22.7064,24.0318,37.1252,98.2581,2.6565,34.8747,Low,Supplier Risk,monitor only
+SKU-0089,WH-MAD,SUP-002,21.3443,27.2983,36.4645,96.0268,2.095,34.6301,Low,Supplier Risk,monitor only
+SKU-0051,WH-MAD,SUP-007,46.5082,62.1607,1.5987,56.9883,1.9983,34.6189,Low,Stockout Risk,monitor only
+SKU-0075,WH-MAD,SUP-002,13.386,13.7641,50.1019,96.0268,20.5825,34.3081,Low,Supplier Risk,monitor only
+SKU-0028,WH-LYON,SUP-008,47.9916,62.3907,0.0,56.5939,0.0,34.299,Low,Stockout Risk,monitor only
+SKU-0062,WH-LYON,SUP-001,32.344,15.1949,32.6197,95.1584,1.0036,34.2835,Low,Supplier Risk,monitor only
+SKU-0062,WH-PORTO,SUP-001,32.5745,22.1996,24.4118,95.1584,2.496,34.1354,Low,Supplier Risk,monitor only
+SKU-0002,WH-LYON,SUP-012,57.1961,59.948,0.0,44.9673,0.0,34.1104,Low,Stockout Risk,monitor only
+SKU-0021,WH-LYON,SUP-008,53.9706,53.4243,0.818,56.5939,1.0224,34.1008,Low,Supplier Risk,monitor only
+SKU-0068,WH-LYON,SUP-006,40.2674,63.1766,0.0,62.915,3.2421,34.0833,Low,Stockout Risk,monitor only
+SKU-0071,WH-LYON,SUP-003,6.2241,7.6758,61.3878,98.2581,26.3878,34.0213,Low,Supplier Risk,monitor only
+SKU-0085,WH-PORTO,SUP-003,28.6417,7.5878,37.7973,98.2581,6.7387,33.7301,Low,Supplier Risk,monitor only
+SKU-0040,WH-MAD,SUP-007,46.9363,46.3529,7.5329,56.9883,9.4162,33.7067,Low,Supplier Risk,monitor only
+SKU-0024,WH-LIS,SUP-005,38.5693,25.4819,29.8155,62.2282,12.2266,33.6866,Low,Supplier Risk,monitor only
+SKU-0006,WH-MAD,SUP-007,50.6129,54.2909,0.4676,56.9883,0.5846,33.4033,Low,Supplier Risk,monitor only
+SKU-0100,WH-LIS,SUP-002,13.2389,13.6395,46.0589,96.0268,18.8509,33.2664,Low,Supplier Risk,monitor only
+SKU-0112,WH-LIS,SUP-001,32.3477,19.7814,23.5894,95.1584,1.0241,33.1455,Low,Supplier Risk,monitor only
+SKU-0107,WH-LIS,SUP-002,21.7222,30.1569,20.5962,96.0268,6.1745,33.0197,Low,Supplier Risk,monitor only
+SKU-0069,WH-LYON,SUP-006,27.7642,11.5177,50.9686,62.915,20.7031,33.0023,Low,Supplier Risk,monitor only
+SKU-0045,WH-MAD,SUP-010,55.4392,58.0935,0.0,42.5558,0.0,32.8949,Low,Stockout Risk,monitor only
+SKU-0043,WH-MAD,SUP-005,39.0211,55.6493,3.1326,62.2282,3.9158,32.8644,Low,Supplier Risk,monitor only
+SKU-0112,WH-LYON,SUP-001,27.4415,8.851,35.6013,95.1584,4.74,32.4769,Low,Supplier Risk,monitor only
+SKU-0074,WH-LIS,SUP-001,27.9593,32.5397,10.4583,95.1584,4.3614,32.2149,Low,Supplier Risk,monitor only
+SKU-0021,WH-MAD,SUP-008,46.1801,49.3972,2.3425,56.5939,2.9281,31.9778,Low,Supplier Risk,monitor only
+SKU-0068,WH-MAD,SUP-006,37.0164,56.8644,0.0,62.915,3.6152,31.9666,Low,Supplier Risk,monitor only
+SKU-0089,WH-LIS,SUP-002,17.7592,22.0114,35.0,96.0268,0.0,31.8346,Low,Supplier Risk,monitor only
+SKU-0018,WH-LIS,SUP-004,42.8131,48.3763,3.4998,58.9776,4.3747,31.8068,Low,Supplier Risk,monitor only
+SKU-0075,WH-PORTO,SUP-002,8.4799,9.6678,51.5855,96.0268,17.2161,31.7308,Low,Supplier Risk,monitor only
+SKU-0113,WH-MAD,SUP-003,7.9837,5.493,49.4832,98.2581,24.387,31.646,Low,Supplier Risk,monitor only
+SKU-0074,WH-MAD,SUP-001,27.3251,38.8621,0.0,95.1584,8.8385,31.5704,Low,Supplier Risk,monitor only
+SKU-0085,WH-LIS,SUP-003,23.5079,5.5122,38.0945,98.2581,4.8717,31.5254,Low,Supplier Risk,monitor only
+SKU-0119,WH-LYON,SUP-001,18.2129,15.7189,29.0207,95.1584,14.5841,31.4129,Low,Supplier Risk,monitor only
+SKU-0035,WH-LYON,SUP-012,44.7444,59.7492,0.0,44.9673,0.0,31.0782,Low,Stockout Risk,monitor only
+SKU-0056,WH-LYON,SUP-007,41.7954,39.6879,7.6467,56.9883,9.5584,31.0538,Low,Supplier Risk,monitor only
+SKU-0078,WH-LYON,SUP-006,34.4738,14.715,35.2278,62.915,7.2008,30.9949,Low,Supplier Risk,monitor only
+SKU-0071,WH-LIS,SUP-003,8.6758,7.441,49.5234,98.2581,14.5234,30.9085,Low,Supplier Risk,monitor only
+SKU-0004,WH-LIS,SUP-006,20.0,0.0,60.3663,62.915,28.2521,30.8876,Low,Supplier Risk,monitor only
+SKU-0045,WH-PORTO,SUP-010,50.4929,53.9203,0.0,42.5558,0.0,30.7897,Low,Stockout Risk,monitor only
+SKU-0061,WH-PORTO,SUP-002,24.2496,3.8122,32.0943,96.0268,10.4669,30.7202,Low,Supplier Risk,monitor only
+SKU-0028,WH-LIS,SUP-008,39.5397,54.1527,0.3488,56.5939,0.436,30.6029,Low,Supplier Risk,monitor only
+SKU-0033,WH-LYON,SUP-005,39.6348,43.823,3.1777,62.2282,3.9721,30.4286,Low,Supplier Risk,monitor only
+SKU-0024,WH-PORTO,SUP-005,37.713,24.6903,18.4912,62.2282,10.8961,30.4028,Low,Supplier Risk,monitor only
+SKU-0113,WH-PORTO,SUP-003,0.0,0.0,54.4535,98.2581,34.5743,30.3633,Low,Supplier Risk,monitor only
+SKU-0043,WH-LYON,SUP-005,34.5197,51.7361,1.2787,62.2282,1.5984,30.1538,Low,Supplier Risk,monitor only
+SKU-0103,WH-LIS,SUP-001,18.576,25.15,17.5223,95.1584,4.897,30.1075,Low,Supplier Risk,monitor only
+SKU-0035,WH-MAD,SUP-012,42.238,57.8174,0.0,44.9673,0.0,30.0517,Low,Stockout Risk,monitor only
+SKU-0036,WH-PORTO,SUP-001,14.6147,6.4432,41.3116,95.1584,10.8649,29.9844,Low,Supplier Risk,monitor only
+SKU-0061,WH-LIS,SUP-002,20.4873,0.0,36.3992,96.0268,13.5722,29.9624,Low,Supplier Risk,monitor only
+SKU-0113,WH-LYON,SUP-003,3.7486,3.3397,48.2307,98.2581,25.2091,29.7914,Low,Supplier Risk,monitor only
+SKU-0053,WH-MAD,SUP-008,48.9474,40.3154,0.0,56.5939,0.0,29.6718,Low,Supplier Risk,monitor only
+SKU-0103,WH-MAD,SUP-001,23.6098,34.0154,3.124,95.1584,3.905,29.6715,Low,Supplier Risk,monitor only
+SKU-0001,WH-LIS,SUP-007,42.5215,46.2888,0.0,56.9883,0.0,29.5068,Low,Supplier Risk,monitor only
+SKU-0056,WH-MAD,SUP-007,38.2194,34.4955,8.6422,56.9883,10.8027,29.4663,Low,Supplier Risk,monitor only
+SKU-0085,WH-MAD,SUP-003,21.098,0.0,36.2553,98.2581,6.2166,29.447,Low,Supplier Risk,monitor only
+SKU-0036,WH-LYON,SUP-001,17.6551,11.2842,28.4347,95.1584,9.1327,29.4013,Low,Supplier Risk,monitor only
+SKU-0042,WH-LYON,SUP-008,38.027,50.6836,0.0,56.5939,0.0,29.3319,Low,Supplier Risk,monitor only
+SKU-0004,WH-PORTO,SUP-006,20.0,0.0,55.512,62.915,23.2427,29.3125,Low,Supplier Risk,monitor only
+SKU-0119,WH-PORTO,SUP-001,11.3581,9.8477,39.2232,95.1584,10.0135,29.2613,Low,Supplier Risk,monitor only
+SKU-0028,WH-PORTO,SUP-008,35.6735,52.2092,0.0,56.5939,0.0,29.1027,Low,Supplier Risk,monitor only
+SKU-0075,WH-LIS,SUP-002,0.6898,0.0,56.6093,96.0268,22.6129,28.9267,Low,Supplier Risk,monitor only
+SKU-0043,WH-PORTO,SUP-005,37.3979,39.1625,3.2195,62.2282,4.0244,28.8839,Low,Supplier Risk,monitor only
+SKU-0068,WH-PORTO,SUP-006,29.0949,52.3612,0.0,62.915,0.0,28.5686,Low,Supplier Risk,monitor only
+SKU-0113,WH-LIS,SUP-003,4.1309,2.2906,46.1402,98.2581,19.9357,28.5607,Low,Supplier Risk,monitor only
+SKU-0069,WH-LIS,SUP-006,27.58,6.7826,41.8601,62.915,7.8637,28.4683,Low,Supplier Risk,monitor only
+SKU-0042,WH-MAD,SUP-008,37.0186,47.5829,0.0,56.5939,0.0,28.4077,Low,Supplier Risk,monitor only
+SKU-0053,WH-LYON,SUP-008,42.1612,41.4399,0.0,56.5939,0.6305,28.3788,Low,Supplier Risk,monitor only
+SKU-0093,WH-PORTO,SUP-005,39.964,39.9097,0.0,62.2282,0.0,28.328,Low,Supplier Risk,monitor only
+SKU-0087,WH-PORTO,SUP-003,7.633,6.7193,41.9865,98.2581,7.5545,28.1046,Low,Supplier Risk,monitor only
+SKU-0011,WH-LIS,SUP-010,20.0,0.0,61.6155,42.5558,29.1392,27.9792,Low,Excess Inventory,monitor only
+SKU-0093,WH-LIS,SUP-005,41.2128,36.443,0.2166,62.2282,0.2707,27.9549,Low,Supplier Risk,monitor only
+SKU-0078,WH-MAD,SUP-006,26.2032,12.3321,35.0,62.915,4.7345,27.6032,Low,Supplier Risk,monitor only
+SKU-0004,WH-MAD,SUP-006,20.9204,0.1059,49.0918,62.915,16.6774,27.5372,Low,Supplier Risk,monitor only
+SKU-0071,WH-MAD,SUP-003,0.7191,0.0,51.5185,98.2581,16.5185,27.5229,Low,Supplier Risk,monitor only
+SKU-0036,WH-LIS,SUP-001,8.2685,0.0,44.8771,95.1584,12.3464,27.5123,Low,Supplier Risk,monitor only
+SKU-0097,WH-MAD,SUP-007,32.1834,43.3775,0.0,56.9883,7.7192,27.4659,Low,Supplier Risk,monitor only
+SKU-0069,WH-MAD,SUP-006,25.8901,7.5971,39.5427,62.915,5.1732,27.3467,Low,Supplier Risk,monitor only
+SKU-0039,WH-MAD,SUP-008,29.4502,44.0653,2.6301,56.5939,3.2877,26.9089,Low,Supplier Risk,monitor only
+SKU-0103,WH-PORTO,SUP-001,12.2437,17.3772,19.4392,95.1584,4.2152,26.8106,Low,Supplier Risk,monitor only
+SKU-0023,WH-LIS,SUP-007,31.6468,37.5384,4.3095,56.9883,5.3869,26.7603,Low,Supplier Risk,monitor only
+SKU-0111,WH-MAD,SUP-005,23.4767,40.9931,2.8061,62.2282,10.4806,26.7502,Low,Supplier Risk,monitor only
+SKU-0072,WH-LIS,SUP-008,20.0,0.0,51.2025,56.5939,17.5687,26.7311,Low,Supplier Risk,monitor only
+SKU-0103,WH-LYON,SUP-001,9.7444,17.4922,21.5804,95.1584,5.1594,26.6037,Low,Supplier Risk,monitor only
+SKU-0062,WH-MAD,SUP-001,23.9034,3.5356,20.171,95.1584,0.0,26.5811,Low,Supplier Risk,monitor only
+SKU-0051,WH-LYON,SUP-007,31.1663,43.1841,1.1605,56.9883,1.4507,26.5802,Low,Supplier Risk,monitor only
+SKU-0045,WH-LYON,SUP-010,40.4877,45.6772,0.0,42.5558,0.0,26.575,Low,Stockout Risk,monitor only
+SKU-0104,WH-LYON,SUP-008,35.2534,26.692,8.7958,56.5939,7.5997,26.563,Low,Supplier Risk,monitor only
+SKU-0009,WH-LIS,SUP-005,20.0,0.0,47.3404,62.2282,14.5408,26.5135,Low,Supplier Risk,monitor only
+SKU-0009,WH-MAD,SUP-005,30.0705,11.2214,23.4968,62.2282,7.9192,26.39,Low,Supplier Risk,monitor only
+SKU-0032,WH-LYON,SUP-009,41.0676,46.3091,0.0,39.6503,0.0,26.3883,Low,Stockout Risk,monitor only
+SKU-0019,WH-LYON,SUP-012,38.7846,44.5713,0.0,44.9673,0.0,26.3088,Low,Supplier Risk,monitor only
+SKU-0041,WH-PORTO,SUP-006,23.5592,24.931,20.0681,62.915,1.9234,26.291,Low,Supplier Risk,monitor only
+SKU-0002,WH-MAD,SUP-012,37.075,43.3785,1.4594,44.9673,1.8243,26.2417,Low,Supplier Risk,monitor only
+SKU-0067,WH-LYON,SUP-006,23.0211,47.1332,0.5154,62.915,0.6442,26.1747,Low,Supplier Risk,monitor only
+SKU-0078,WH-PORTO,SUP-006,26.3398,7.8705,35.0,62.915,1.0036,26.1403,Low,Supplier Risk,monitor only
+SKU-0004,WH-LYON,SUP-006,20.4865,0.0,44.9091,62.915,12.256,26.0118,Low,Supplier Risk,monitor only
+SKU-0074,WH-PORTO,SUP-001,12.8932,20.0148,8.2695,95.1584,9.2115,25.9973,Low,Supplier Risk,monitor only
+SKU-0069,WH-PORTO,SUP-006,20.2051,0.0,45.328,62.915,12.0778,25.9779,Low,Supplier Risk,monitor only
+SKU-0119,WH-MAD,SUP-001,6.3896,5.6338,28.973,95.1584,16.8717,25.9589,Low,Supplier Risk,monitor only
+SKU-0057,WH-LYON,SUP-005,28.8857,40.8108,0.0,62.2282,0.0,25.8674,Low,Supplier Risk,monitor only
+SKU-0015,WH-LYON,SUP-012,39.2519,41.2175,0.0,44.9673,0.0,25.6831,Low,Supplier Risk,monitor only
+SKU-0039,WH-LYON,SUP-008,30.9058,38.4364,1.7719,56.5939,2.2148,25.6637,Low,Supplier Risk,monitor only
+SKU-0051,WH-PORTO,SUP-007,29.349,37.099,2.4193,56.9883,3.0241,25.3277,Low,Supplier Risk,monitor only
+SKU-0006,WH-PORTO,SUP-007,34.6472,32.8138,1.35,56.9883,1.6875,25.2127,Low,Supplier Risk,monitor only
+SKU-0072,WH-PORTO,SUP-008,20.0,0.0,46.0867,56.5939,11.9943,25.0298,Low,Supplier Risk,monitor only
+SKU-0062,WH-LIS,SUP-001,21.2086,1.3636,18.2558,95.1584,0.0,24.9968,Low,Supplier Risk,monitor only
+SKU-0041,WH-MAD,SUP-006,21.828,28.06,12.9773,62.915,2.1228,24.8901,Low,Supplier Risk,monitor only
+SKU-0064,WH-LIS,SUP-005,20.1856,0.0,40.9859,62.2282,10.3515,24.8389,Low,Supplier Risk,monitor only
+SKU-0002,WH-PORTO,SUP-012,40.4664,33.3683,1.2157,44.9673,1.5197,24.7523,Low,Supplier Risk,monitor only
+SKU-0011,WH-PORTO,SUP-010,20.0,0.0,51.7209,42.5558,18.7985,24.7505,Low,Excess Inventory,monitor only
+SKU-0097,WH-LYON,SUP-007,23.3878,40.3605,0.0,56.9883,8.0923,24.7434,Low,Supplier Risk,monitor only
+SKU-0009,WH-PORTO,SUP-005,20.1194,0.0,41.7433,62.2282,8.4291,24.6862,Low,Supplier Risk,monitor only
+SKU-0033,WH-LIS,SUP-005,21.9016,26.3864,10.5342,62.2282,6.2508,24.4212,Low,Supplier Risk,monitor only
+SKU-0102,WH-LYON,SUP-009,32.5885,38.2769,0.0,39.6503,12.9424,24.3982,Low,Supplier Risk,monitor only
+SKU-0017,WH-MAD,SUP-008,31.8046,26.3683,4.5186,56.5939,5.6483,24.3644,Low,Supplier Risk,monitor only
+SKU-0019,WH-MAD,SUP-012,34.1585,39.4225,0.6834,44.9673,0.8542,24.3494,Low,Supplier Risk,monitor only
+SKU-0020,WH-LIS,SUP-008,20.2913,0.0,42.2709,56.5939,11.209,24.3204,Low,Supplier Risk,monitor only
+SKU-0020,WH-LYON,SUP-008,32.099,17.4854,10.2934,56.5939,7.8308,24.1723,Low,Supplier Risk,monitor only
+SKU-0119,WH-LIS,SUP-001,0.0,0.0,40.6951,95.1584,10.7341,24.0532,Low,Supplier Risk,monitor only
+SKU-0017,WH-LYON,SUP-008,34.7749,22.0455,4.2583,56.5939,5.3229,24.0182,Low,Supplier Risk,monitor only
+SKU-0021,WH-PORTO,SUP-008,34.1831,25.6378,2.659,56.5939,3.3238,24.0028,Low,Supplier Risk,monitor only
+SKU-0064,WH-PORTO,SUP-005,20.0,0.0,37.3865,62.2282,8.9675,23.9415,Low,Supplier Risk,monitor only
+SKU-0120,WH-PORTO,SUP-004,20.9448,3.6364,36.3987,58.9776,5.2368,23.8048,Low,Supplier Risk,monitor only
+SKU-0079,WH-LYON,SUP-010,24.7824,46.5836,0.0,42.5558,5.1076,23.7202,Low,Stockout Risk,monitor only
+SKU-0066,WH-MAD,SUP-012,23.5333,49.2723,0.0,44.9673,0.2574,23.7187,Low,Stockout Risk,monitor only
+SKU-0104,WH-PORTO,SUP-008,30.1755,13.3268,14.9318,56.5939,6.4245,23.7121,Low,Supplier Risk,monitor only
+SKU-0094,WH-LYON,SUP-007,20.5178,1.3636,27.8317,56.9883,22.2696,23.7009,Low,Supplier Risk,monitor only
+SKU-0067,WH-MAD,SUP-006,23.1271,33.6201,1.6098,62.915,2.0122,23.6814,Low,Supplier Risk,monitor only
+SKU-0104,WH-MAD,SUP-008,32.5316,24.4578,0.6862,56.5939,8.5769,23.6088,Low,Supplier Risk,monitor only
+SKU-0057,WH-MAD,SUP-005,23.5409,36.3351,0.0,62.2282,0.0,23.6,Low,Supplier Risk,monitor only
+SKU-0120,WH-MAD,SUP-004,22.3395,2.1746,34.1738,58.9776,5.3626,23.5187,Low,Supplier Risk,monitor only
+SKU-0056,WH-LIS,SUP-007,23.5415,2.1854,26.6543,56.9883,13.9181,23.4077,Low,Supplier Risk,monitor only
+SKU-0120,WH-LYON,SUP-004,20.1606,0.0,39.2136,58.9776,5.267,23.2804,Low,Supplier Risk,monitor only
+SKU-0040,WH-PORTO,SUP-007,28.8067,17.1446,7.9349,56.9883,9.9186,23.0965,Low,Supplier Risk,monitor only
+SKU-0011,WH-MAD,SUP-010,20.0,0.0,46.3262,42.5558,13.2812,23.007,Low,Excess Inventory,monitor only
+SKU-0033,WH-MAD,SUP-005,23.3411,25.4112,4.3103,62.2282,5.3878,22.9376,Low,Supplier Risk,monitor only
+SKU-0094,WH-LIS,SUP-007,20.0,0.0,35.0,56.9883,10.7039,22.9167,Low,Supplier Risk,monitor only
+SKU-0072,WH-MAD,SUP-008,20.0,0.0,39.0877,56.5939,5.2248,22.8223,Low,Supplier Risk,monitor only
+SKU-0011,WH-LYON,SUP-010,20.0,0.0,45.7486,42.5558,12.5584,22.8019,Low,Excess Inventory,monitor only
+SKU-0042,WH-PORTO,SUP-008,22.5169,37.7017,0.0,56.5939,0.0,22.7534,Low,Supplier Risk,monitor only
+SKU-0094,WH-PORTO,SUP-007,20.0,0.0,30.1573,56.9883,14.8079,22.6195,Low,Supplier Risk,monitor only
+SKU-0078,WH-LIS,SUP-006,20.5146,0.0,35.0,62.915,0.0,22.5208,Low,Supplier Risk,monitor only
+SKU-0072,WH-LYON,SUP-008,20.0,0.0,37.3883,56.5939,4.7351,22.4478,Low,Supplier Risk,monitor only
+SKU-0076,WH-MAD,SUP-008,20.5602,38.2663,0.0,56.5939,0.0,22.4081,Low,Supplier Risk,monitor only
+SKU-0120,WH-LIS,SUP-004,20.5227,0.0,32.794,58.9776,5.8608,22.3167,Low,Supplier Risk,monitor only
+SKU-0021,WH-LIS,SUP-008,28.3912,20.8285,4.207,56.5939,5.2587,22.1971,Low,Supplier Risk,monitor only
+SKU-0111,WH-LYON,SUP-005,14.2112,28.3632,2.118,62.2282,14.4706,22.1413,Low,Supplier Risk,monitor only
+SKU-0064,WH-MAD,SUP-005,20.3433,0.0,25.1347,62.2282,10.9702,22.1196,Low,Supplier Risk,monitor only
+SKU-0057,WH-PORTO,SUP-005,24.6929,28.1797,0.0,62.2282,0.0,22.0823,Low,Supplier Risk,monitor only
+SKU-0020,WH-PORTO,SUP-008,21.0504,0.0,29.0745,56.5939,10.1034,22.018,Low,Supplier Risk,monitor only
+SKU-0040,WH-LIS,SUP-007,28.936,10.4547,8.7798,56.9883,10.9747,22.0064,Low,Supplier Risk,monitor only
+SKU-0054,WH-LYON,SUP-009,34.5841,30.7507,1.1764,39.6503,1.4705,21.8976,Low,Supplier Risk,monitor only
+SKU-0104,WH-LIS,SUP-008,32.5142,19.8527,1.1479,56.5939,2.8115,21.8951,Low,Supplier Risk,monitor only
+SKU-0064,WH-LYON,SUP-005,22.3888,2.1755,16.7716,62.2282,13.7454,21.758,Low,Supplier Risk,monitor only
+SKU-0033,WH-PORTO,SUP-005,21.4872,19.1868,6.5158,62.2282,5.3318,21.6448,Low,Supplier Risk,monitor only
+SKU-0094,WH-MAD,SUP-007,20.7164,1.3636,17.2982,56.9883,21.8965,21.6072,Low,Supplier Risk,monitor only
+SKU-0006,WH-LIS,SUP-007,26.9412,21.7969,2.7197,56.9883,3.3997,21.508,Low,Supplier Risk,monitor only
+SKU-0090,WH-PORTO,SUP-004,17.5269,35.445,0.0,58.9776,0.0,21.4408,Low,Supplier Risk,monitor only
+SKU-0056,WH-PORTO,SUP-007,22.2024,11.5221,11.5929,56.9883,11.6782,21.3988,Low,Supplier Risk,monitor only
+SKU-0101,WH-LYON,SUP-004,28.8036,16.7474,0.0,58.9776,9.2115,21.3233,Low,Supplier Risk,monitor only
+SKU-0109,WH-LIS,SUP-008,20.1989,0.0,27.7051,56.5939,7.7008,21.1797,Low,Supplier Risk,monitor only
+SKU-0097,WH-PORTO,SUP-007,19.5528,30.2695,0.0,56.9883,4.3614,21.0807,Low,Supplier Risk,monitor only
+SKU-0015,WH-MAD,SUP-012,30.7604,27.3307,0.8923,44.9673,1.1154,20.9603,Low,Supplier Risk,monitor only
+SKU-0052,WH-MAD,SUP-012,23.6325,27.5776,4.4433,44.9673,5.5541,20.7776,Low,Supplier Risk,monitor only
+SKU-0117,WH-LYON,SUP-011,20.7225,0.0,35.0,33.8773,20.0311,20.7415,Low,Excess Inventory,monitor only
+SKU-0041,WH-LIS,SUP-006,9.8602,4.4504,33.8105,62.915,3.7115,20.609,Low,Supplier Risk,monitor only
+SKU-0086,WH-LIS,SUP-004,27.7459,20.4612,0.0,58.9776,0.0,20.5969,Low,Supplier Risk,monitor only
+SKU-0101,WH-MAD,SUP-004,27.7707,15.878,1.0628,58.9776,4.5706,20.4895,Low,Supplier Risk,monitor only
+SKU-0109,WH-PORTO,SUP-008,23.6511,1.8981,18.0842,56.5939,5.9346,20.3199,Low,Supplier Risk,monitor only
+SKU-0045,WH-LIS,SUP-010,28.7104,30.0691,0.0,42.5558,0.0,20.3146,Low,Supplier Risk,monitor only
+SKU-0027,WH-MAD,SUP-008,20.0908,22.3575,3.6141,56.5939,4.5176,20.2953,Low,Supplier Risk,monitor only
+SKU-0032,WH-MAD,SUP-009,29.7052,30.9293,0.0,39.6503,0.0,20.2777,Low,Supplier Risk,monitor only
+SKU-0102,WH-MAD,SUP-009,30.57,20.528,0.0,39.6503,14.4348,20.2179,Low,Supplier Risk,monitor only
+SKU-0027,WH-LYON,SUP-008,19.5348,24.0766,2.6173,56.5939,3.2717,20.1264,Low,Supplier Risk,monitor only
+SKU-0043,WH-LIS,SUP-005,17.0142,17.4829,4.9051,62.2282,6.1313,19.9218,Low,Supplier Risk,monitor only
+SKU-0068,WH-LIS,SUP-006,15.5905,27.1762,0.1994,62.915,0.5066,19.9057,Low,Supplier Risk,monitor only
+SKU-0041,WH-LYON,SUP-006,15.7993,18.4899,7.5899,62.915,0.8605,19.8681,Low,Supplier Risk,monitor only
+SKU-0009,WH-LYON,SUP-005,20.6969,0.0,16.363,62.2282,7.0389,19.8363,Low,Supplier Risk,monitor only
+SKU-0110,WH-LYON,SUP-007,27.8119,18.3498,0.0,56.9883,0.0,19.8299,Low,Supplier Risk,monitor only
+SKU-0017,WH-LIS,SUP-008,20.0,0.0,17.9218,56.5939,9.1584,19.4384,Low,Supplier Risk,monitor only
+SKU-0117,WH-MAD,SUP-011,21.1154,1.3636,33.5773,33.8773,8.8385,19.3363,Low,Supplier Risk,monitor only
+SKU-0020,WH-MAD,SUP-008,21.0863,3.6364,13.0893,56.5939,8.9317,19.3076,Low,Supplier Risk,monitor only
+SKU-0117,WH-PORTO,SUP-011,20.2181,0.0,35.0,33.8773,10.7039,19.2843,Low,Excess Inventory,monitor only
+SKU-0026,WH-LYON,SUP-011,23.2999,35.9425,0.0,33.8773,0.0,18.9197,Low,Stockout Risk,monitor only
+SKU-0035,WH-PORTO,SUP-012,16.4732,34.8901,0.0,44.9673,0.0,18.8241,Low,Supplier Risk,monitor only
+SKU-0099,WH-MAD,SUP-008,12.3941,28.97,0.0,56.5939,2.496,18.7524,Low,Supplier Risk,monitor only
+SKU-0109,WH-MAD,SUP-008,24.3367,8.4112,4.128,56.5939,7.2215,18.748,Low,Supplier Risk,monitor only
+SKU-0066,WH-LYON,SUP-012,10.7999,38.4107,0.0,44.9673,2.869,18.6388,Low,Supplier Risk,monitor only
+SKU-0067,WH-PORTO,SUP-006,13.8063,20.9965,1.1549,62.915,1.4436,18.4784,Low,Supplier Risk,monitor only
+SKU-0101,WH-PORTO,SUP-004,24.2091,10.6081,0.524,58.9776,4.6433,18.3562,Low,Supplier Risk,monitor only
+SKU-0014,WH-LYON,SUP-009,24.773,24.5676,1.5715,39.6503,1.9643,18.3466,Low,Supplier Risk,monitor only
+SKU-0109,WH-LYON,SUP-008,23.118,9.6863,0.8567,56.5939,8.7901,18.1706,Low,Supplier Risk,monitor only
+SKU-0065,WH-LYON,SUP-007,4.1026,8.2687,23.4537,56.9883,11.9003,18.0557,Low,Supplier Risk,monitor only
+SKU-0079,WH-MAD,SUP-010,13.3562,32.121,0.4827,42.5558,6.084,18.0486,Low,Supplier Risk,monitor only
+SKU-0101,WH-LIS,SUP-004,20.3296,0.0,12.4607,58.9776,4.9369,17.9973,Low,Supplier Risk,monitor only
+SKU-0099,WH-LYON,SUP-008,12.9713,24.8866,0.0,56.5939,2.1229,17.9404,Low,Supplier Risk,monitor only
+SKU-0065,WH-LIS,SUP-007,0.0,0.0,41.1581,56.9883,10.0708,17.9365,Low,Supplier Risk,monitor only
+SKU-0110,WH-MAD,SUP-007,24.5689,13.2681,0.0,56.9883,0.0,17.9337,Low,Supplier Risk,monitor only
+SKU-0106,WH-MAD,SUP-010,13.8711,28.0434,0.0,42.5558,10.7039,17.8061,Low,Supplier Risk,monitor only
+SKU-0065,WH-PORTO,SUP-007,0.4801,0.0,37.458,56.9883,12.284,17.7243,Low,Supplier Risk,monitor only
+SKU-0015,WH-LIS,SUP-012,24.5467,12.9741,5.8185,44.9673,2.4082,17.6738,Low,Supplier Risk,monitor only
+SKU-0032,WH-PORTO,SUP-009,28.2084,20.5584,0.0,39.6503,0.0,17.6369,Low,Supplier Risk,monitor only
+SKU-0117,WH-LIS,SUP-011,20.3148,0.0,28.7893,33.8773,6.2268,17.5686,Low,Supplier Risk,monitor only
+SKU-0053,WH-PORTO,SUP-008,24.6197,10.8979,0.0,56.5939,0.0,17.3613,Low,Supplier Risk,monitor only
+SKU-0102,WH-PORTO,SUP-009,26.6832,15.0306,0.0,39.6503,9.2115,17.3444,Low,Supplier Risk,monitor only
+SKU-0039,WH-LIS,SUP-008,9.1732,3.8868,20.7984,56.5939,6.2562,17.2817,Low,Supplier Risk,monitor only
+SKU-0035,WH-LIS,SUP-012,15.9706,27.6266,0.0,44.9673,0.0,17.1055,Low,Supplier Risk,monitor only
+SKU-0017,WH-PORTO,SUP-008,21.0651,3.6364,5.2649,56.5939,6.5812,17.0956,Low,Supplier Risk,monitor only
+SKU-0065,WH-MAD,SUP-007,0.0,0.0,33.6931,56.9883,11.1751,16.7474,Low,Supplier Risk,monitor only
+SKU-0039,WH-PORTO,SUP-008,13.0068,13.9749,3.0179,56.5939,3.7724,16.5036,Low,Supplier Risk,monitor only
+SKU-0054,WH-MAD,SUP-009,22.691,16.0691,2.6948,39.6503,3.3685,16.4434,Low,Supplier Risk,monitor only
+SKU-0063,WH-PORTO,SUP-007,9.5856,21.9525,0.0,56.9883,0.0,16.2482,Low,Supplier Risk,monitor only
+SKU-0019,WH-LIS,SUP-012,24.4584,10.6623,1.9889,44.9673,2.4862,16.2359,Low,Supplier Risk,monitor only
+SKU-0070,WH-LYON,SUP-012,23.2493,14.3714,0.0,44.9673,1.7498,16.1813,Low,Supplier Risk,monitor only
+SKU-0002,WH-LIS,SUP-012,24.6568,8.6383,2.813,44.9673,3.5162,16.1802,Low,Supplier Risk,monitor only
+SKU-0057,WH-LIS,SUP-005,15.2704,11.2408,0.0,62.2282,0.0,16.0944,Low,Supplier Risk,monitor only
+SKU-0022,WH-LIS,SUP-011,20.0,0.0,20.7221,33.8773,6.6738,16.0847,Low,Supplier Risk,monitor only
+SKU-0050,WH-LYON,SUP-009,17.7684,24.6,0.0,39.6503,0.0,16.0205,Low,Supplier Risk,monitor only
+SKU-0019,WH-PORTO,SUP-012,24.803,10.9515,1.043,44.9673,1.3038,15.9897,Low,Supplier Risk,monitor only
+SKU-0114,WH-PORTO,SUP-007,0.0,0.0,35.0,56.9883,3.9883,15.9765,Low,Supplier Risk,monitor only
+SKU-0014,WH-MAD,SUP-009,20.9639,15.0,3.0512,39.6503,3.814,15.9416,Low,Supplier Risk,monitor only
+SKU-0114,WH-LIS,SUP-007,0.0,0.0,35.7875,56.9883,2.3559,15.8897,Low,Supplier Risk,monitor only
+SKU-0092,WH-LIS,SUP-012,0.0,0.0,39.7095,44.9673,10.9945,15.8817,Low,Supplier Risk,monitor only
+SKU-0027,WH-LIS,SUP-008,7.9524,0.0,19.536,56.5939,6.5592,15.8755,Low,Supplier Risk,monitor only
+SKU-0015,WH-PORTO,SUP-012,23.3902,12.0356,0.9757,44.9673,1.2196,15.8612,Low,Supplier Risk,monitor only
+SKU-0088,WH-LIS,SUP-011,20.5799,0.0,16.0917,33.8773,10.8746,15.744,Low,Supplier Risk,monitor only
+SKU-0092,WH-PORTO,SUP-012,0.0,0.0,38.3196,44.9673,10.7494,15.5972,Low,Supplier Risk,monitor only
+SKU-0111,WH-LIS,SUP-005,3.5586,10.0835,4.7726,62.2282,9.2079,15.3906,Low,Supplier Risk,monitor only
+SKU-0027,WH-PORTO,SUP-008,8.471,5.9091,9.8312,56.5939,5.0301,15.3702,Low,Supplier Risk,monitor only
+SKU-0111,WH-PORTO,SUP-005,3.673,10.1652,3.39,62.2282,10.0913,15.3007,Low,Supplier Risk,monitor only
+SKU-0051,WH-LIS,SUP-007,9.9234,9.0595,4.275,56.9883,5.3437,15.267,Low,Supplier Risk,monitor only
+SKU-0092,WH-MAD,SUP-012,0.0,0.0,31.3842,44.9673,17.2121,15.2536,Low,Supplier Risk,monitor only
+SKU-0014,WH-LIS,SUP-009,20.4235,0.0,12.9343,39.6503,5.831,15.1663,Low,Supplier Risk,monitor only
+SKU-0110,WH-PORTO,SUP-007,21.4448,3.7735,0.0,56.9883,0.0,15.0951,Low,Supplier Risk,monitor only
+SKU-0114,WH-MAD,SUP-007,0.2458,0.0,29.4733,56.9883,3.9883,15.0554,Low,Supplier Risk,monitor only
+SKU-0076,WH-LYON,SUP-008,7.015,17.6935,0.0,56.5939,2.869,15.0329,Low,Supplier Risk,monitor only
+SKU-0083,WH-PORTO,SUP-008,7.8782,15.9244,0.0,56.5939,2.1229,14.7463,Low,Supplier Risk,monitor only
+SKU-0063,WH-LYON,SUP-007,9.3861,14.9595,0.0,56.9883,0.0,14.6619,Low,Supplier Risk,monitor only
+SKU-0053,WH-LIS,SUP-008,21.3466,1.3636,0.1984,56.5939,0.0,14.5258,Low,Supplier Risk,monitor only
+SKU-0097,WH-LIS,SUP-007,6.1909,12.2536,1.5898,56.9883,5.2294,14.4134,Low,Supplier Risk,monitor only
+SKU-0088,WH-LYON,SUP-011,20.9354,5.9091,4.6674,33.8773,10.9418,14.3969,Low,Supplier Risk,monitor only
+SKU-0059,WH-LYON,SUP-009,15.0526,19.9583,0.0,39.6503,0.0,14.3475,Low,Supplier Risk,monitor only
+SKU-0026,WH-MAD,SUP-011,13.604,25.7131,0.0,33.8773,0.0,14.3422,Low,Supplier Risk,monitor only
+SKU-0042,WH-LIS,SUP-008,10.3256,11.6217,0.4289,56.5939,0.5362,14.2679,Low,Supplier Risk,monitor only
+SKU-0052,WH-LIS,SUP-012,13.4883,5.2401,6.7,44.9673,7.4431,14.2348,Low,Supplier Risk,monitor only
+SKU-0099,WH-PORTO,SUP-008,6.6625,14.9988,0.3352,56.5939,0.6305,14.1225,Low,Supplier Risk,monitor only
+SKU-0090,WH-LIS,SUP-004,5.8107,14.2495,0.0,58.9776,0.0,13.9659,Low,Supplier Risk,monitor only
+SKU-0110,WH-LIS,SUP-007,20.1288,0.0,0.0,56.9883,0.0,13.949,Low,Supplier Risk,monitor only
+SKU-0114,WH-LYON,SUP-007,1.1431,0.0,21.8126,56.9883,3.6152,13.8935,Low,Supplier Risk,monitor only
+SKU-0116,WH-LYON,SUP-011,7.6931,29.5791,0.2517,33.8773,0.3146,13.8786,Low,Supplier Risk,monitor only
+SKU-0088,WH-MAD,SUP-011,22.5885,2.5014,5.8385,33.8773,7.5556,13.8509,Low,Supplier Risk,monitor only
+SKU-0092,WH-LYON,SUP-012,0.4217,0.0,22.0935,44.9673,16.8689,13.6597,Low,Supplier Risk,monitor only
+SKU-0070,WH-MAD,SUP-012,20.8014,5.9091,0.0,44.9673,0.6305,13.5754,Low,Supplier Risk,monitor only
+SKU-0052,WH-LYON,SUP-012,9.8392,11.2225,3.7101,44.9673,4.6376,13.5648,Low,Supplier Risk,monitor only
+SKU-0014,WH-PORTO,SUP-009,21.4968,3.6688,3.0066,39.6503,3.7582,13.5582,Low,Supplier Risk,monitor only
+SKU-0083,WH-LYON,SUP-008,4.4639,10.8207,0.0,56.5939,6.973,13.4831,Low,Supplier Risk,monitor only
+SKU-0067,WH-LIS,SUP-006,3.9069,5.8506,2.6847,62.915,3.3559,13.4053,Low,Supplier Risk,monitor only
+SKU-0106,WH-LYON,SUP-010,5.1057,16.0319,0.0,42.5558,11.8232,13.2165,Low,Supplier Risk,monitor only
+SKU-0054,WH-PORTO,SUP-009,21.4258,1.3636,2.9348,39.6503,3.6684,13.0042,Low,Supplier Risk,monitor only
+SKU-0054,WH-LIS,SUP-009,20.0454,0.0,4.4222,39.6503,5.5278,12.9902,Low,Supplier Risk,monitor only
+SKU-0070,WH-LIS,SUP-012,22.0043,1.9235,0.0,44.9673,0.6305,12.9872,Low,Supplier Risk,monitor only
+SKU-0083,WH-MAD,SUP-008,4.0157,10.4225,0.0,56.5939,4.7345,12.9746,Low,Supplier Risk,monitor only
+SKU-0022,WH-PORTO,SUP-011,20.7037,0.0,7.9688,33.8773,4.5831,12.9434,Low,Supplier Risk,monitor only
+SKU-0088,WH-PORTO,SUP-011,20.0005,0.0,6.3479,33.8773,8.3797,12.9171,Low,Supplier Risk,monitor only
+SKU-0070,WH-PORTO,SUP-012,21.0028,1.3636,0.0,44.9673,2.1229,12.8326,Low,Supplier Risk,monitor only
+SKU-0022,WH-LYON,SUP-011,20.8767,5.9091,2.1983,33.8773,2.7478,12.643,Low,Supplier Risk,monitor only
+SKU-0116,WH-MAD,SUP-011,6.3131,23.8699,0.963,33.8773,1.2038,12.5865,Low,Supplier Risk,monitor only
+SKU-0066,WH-PORTO,SUP-012,4.8805,18.289,0.0,44.9673,1.0036,12.5302,Low,Supplier Risk,monitor only
+SKU-0102,WH-LIS,SUP-009,20.0,0.0,0.4351,39.6503,9.0092,12.5098,Low,Supplier Risk,monitor only
+SKU-0079,WH-LIS,SUP-010,5.6448,14.1721,2.3557,42.5558,3.9482,12.3996,Low,Supplier Risk,monitor only
+SKU-0076,WH-PORTO,SUP-008,4.9112,9.0425,0.0,56.5939,0.0,12.223,Low,Supplier Risk,monitor only
+SKU-0022,WH-MAD,SUP-011,21.3692,1.3636,3.1848,33.8773,3.981,12.1706,Low,Supplier Risk,monitor only
+SKU-0059,WH-MAD,SUP-009,10.9261,14.326,0.0,39.6503,0.0,12.118,Low,Supplier Risk,monitor only
+SKU-0079,WH-PORTO,SUP-010,5.4878,14.0289,1.2361,42.5558,4.0411,12.0748,Low,Supplier Risk,monitor only
+SKU-0050,WH-PORTO,SUP-009,15.0986,8.7268,0.0,39.6503,0.0,11.8876,Low,Supplier Risk,monitor only
+SKU-0052,WH-PORTO,SUP-012,8.8042,1.3636,5.4018,44.9673,6.7522,11.8495,Low,Supplier Risk,monitor only
+SKU-0050,WH-LIS,SUP-009,11.2276,1.9033,9.0738,39.6503,1.5184,11.8477,Low,Supplier Risk,monitor only
+SKU-0063,WH-MAD,SUP-007,4.9512,6.6918,0.0,56.9883,0.0,11.7786,Low,Supplier Risk,monitor only
+SKU-0034,WH-MAD,SUP-012,10.0919,9.1531,0.0004,44.9673,0.0005,11.6307,Low,Supplier Risk,monitor only
+SKU-0106,WH-PORTO,SUP-010,4.7248,8.8779,0.0,42.5558,11.4501,11.499,Low,Supplier Risk,monitor only
+SKU-0034,WH-LIS,SUP-012,7.7371,0.0,8.8285,44.9673,2.4087,11.4422,Low,Supplier Risk,monitor only
+SKU-0032,WH-LIS,SUP-009,20.7657,0.0,0.2093,39.6503,0.2617,11.4147,Low,Supplier Risk,monitor only
+SKU-0063,WH-LIS,SUP-007,0.8619,0.0,9.3933,56.9883,0.8917,11.1923,Low,Supplier Risk,monitor only
+SKU-0034,WH-LYON,SUP-012,8.5338,8.1818,0.0,44.9673,0.0,11.0429,Low,Supplier Risk,monitor only
+SKU-0082,WH-LIS,SUP-010,0.0,0.0,21.6758,42.5558,1.3767,10.9033,Low,Supplier Risk,monitor only
+SKU-0044,WH-PORTO,SUP-011,11.2789,3.3016,4.1885,33.8773,5.2356,10.5919,Low,Supplier Risk,monitor only
+SKU-0083,WH-LIS,SUP-008,1.711,0.2869,2.2589,56.5939,3.8747,10.5805,Low,Supplier Risk,monitor only
+SKU-0106,WH-LIS,SUP-010,2.3006,6.8225,0.1914,42.5558,10.1969,10.3355,Low,Supplier Risk,monitor only
+SKU-0025,WH-MAD,SUP-011,13.0824,7.0774,0.4182,33.8773,0.5227,10.2907,Low,Supplier Risk,monitor only
+SKU-0050,WH-MAD,SUP-009,8.7709,8.1818,0.0434,39.6503,0.0543,10.2671,Low,Supplier Risk,monitor only
+SKU-0099,WH-LIS,SUP-008,0.6742,0.0,3.7553,56.5939,1.7102,10.1727,Low,Supplier Risk,monitor only
+SKU-0044,WH-LYON,SUP-011,8.4736,5.9091,3.2217,33.8773,4.0271,10.091,Low,Supplier Risk,monitor only
+SKU-0044,WH-LIS,SUP-011,7.6107,0.0,7.4036,33.8773,6.9545,9.9974,Low,Supplier Risk,monitor only
+SKU-0105,WH-LYON,SUP-010,1.7695,8.5959,0.0,42.5558,6.2268,9.9965,Low,Supplier Risk,monitor only
+SKU-0082,WH-PORTO,SUP-010,0.0371,0.0,16.2038,42.5558,1.7498,9.9817,Low,Supplier Risk,monitor only
+SKU-0091,WH-MAD,SUP-011,3.5757,10.1223,1.9443,33.8773,6.7918,9.9229,Low,Supplier Risk,monitor only
+SKU-0026,WH-PORTO,SUP-011,8.8269,10.4545,0.0,33.8773,0.0,9.8388,Low,Supplier Risk,monitor only
+SKU-0059,WH-PORTO,SUP-009,9.5526,4.1138,0.1885,39.6503,0.2356,9.6199,Low,Supplier Risk,monitor only
+SKU-0044,WH-MAD,SUP-011,8.4328,1.3636,4.3765,33.8773,5.4707,9.5605,Low,Supplier Risk,monitor only
+SKU-0034,WH-PORTO,SUP-012,7.8719,0.0,0.9438,44.9673,0.9319,9.441,Low,Supplier Risk,monitor only
+SKU-0116,WH-PORTO,SUP-011,5.5538,9.5059,1.1474,33.8773,1.4342,9.3207,Low,Supplier Risk,monitor only
+SKU-0076,WH-LIS,SUP-008,1.0487,0.0,0.0,56.5939,0.0,9.3067,Low,Supplier Risk,monitor only
+SKU-0105,WH-MAD,SUP-010,1.7095,1.6907,0.0,42.5558,9.9577,8.9852,Low,Supplier Risk,monitor only
+SKU-0081,WH-LYON,SUP-010,2.0524,6.5857,0.0,42.5558,1.3767,8.9431,Low,Supplier Risk,monitor only
+SKU-0059,WH-LIS,SUP-009,8.2384,0.0,1.2476,39.6503,1.5595,8.839,Low,Supplier Risk,monitor only
+SKU-0025,WH-LYON,SUP-011,8.2642,5.9091,0.0,33.8773,0.0,8.7038,Low,Supplier Risk,monitor only
+SKU-0105,WH-LIS,SUP-010,0.0,0.0,8.1372,42.5558,1.7554,8.5194,Low,Supplier Risk,monitor only
+SKU-0082,WH-MAD,SUP-010,0.0,0.0,4.5759,42.5558,5.4807,8.3999,Low,Supplier Risk,monitor only
+SKU-0025,WH-LIS,SUP-011,7.5,0.0,2.3075,33.8773,2.8844,8.178,Low,Supplier Risk,monitor only
+SKU-0084,WH-MAD,SUP-009,1.745,1.7875,0.0,39.6503,5.4807,7.9234,Low,Supplier Risk,monitor only
+SKU-0091,WH-LYON,SUP-011,1.8173,4.0817,1.0073,33.8773,6.3666,7.8876,Low,Supplier Risk,monitor only
+SKU-0025,WH-PORTO,SUP-011,7.9868,0.0,0.991,33.8773,1.2388,7.7485,Low,Supplier Risk,monitor only
+SKU-0066,WH-LIS,SUP-012,0.8134,1.3636,0.0,44.9673,0.0,7.69,Low,Supplier Risk,monitor only
+SKU-0084,WH-LYON,SUP-009,0.6167,1.3636,0.0,39.6503,5.4807,7.5594,Low,Supplier Risk,monitor only
+SKU-0082,WH-LYON,SUP-010,0.3844,0.0,0.0,42.5558,3.6152,7.4073,Low,Supplier Risk,monitor only
+SKU-0026,WH-LIS,SUP-011,8.1859,0.0,0.0,33.8773,0.0,7.385,Low,Supplier Risk,monitor only
+SKU-0081,WH-LIS,SUP-010,0.0,0.0,3.0711,42.5558,0.0,7.3617,Low,Supplier Risk,monitor only
+SKU-0081,WH-PORTO,SUP-010,1.6441,0.2766,0.0,42.5558,0.0,7.2644,Low,Supplier Risk,monitor only
+SKU-0116,WH-LIS,SUP-011,0.2203,3.6364,2.4714,33.8773,3.0893,7.1638,Low,Supplier Risk,monitor only
+SKU-0105,WH-PORTO,SUP-010,0.0,0.0,0.0,42.5558,2.496,7.1584,Low,Supplier Risk,monitor only
+SKU-0084,WH-PORTO,SUP-009,0.9251,0.0,0.0,39.6503,3.2421,7.02,Low,Supplier Risk,monitor only
+SKU-0084,WH-LIS,SUP-009,0.0,0.0,0.4883,39.6503,3.1063,6.8668,Low,Supplier Risk,monitor only
+SKU-0081,WH-MAD,SUP-010,0.1454,0.0,0.0,42.5558,0.0,6.8438,Low,Supplier Risk,monitor only
+SKU-0091,WH-LIS,SUP-011,0.0368,0.0,3.6866,33.8773,4.6082,6.7401,Low,Supplier Risk,monitor only
+SKU-0091,WH-PORTO,SUP-011,0.8241,0.0,2.5678,33.8773,3.8403,6.6674,Low,Supplier Risk,monitor only

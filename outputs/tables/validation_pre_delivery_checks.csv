@@ -1,0 +1,70 @@
+check_name,layer,method,status,severity,observed,expected,details
+rowcount_dense_demand_history,raw,Python,PASS,HIGH,350880,350880,Demand history should be dense daily grain (date x warehouse x product).
+rowcount_daily_equals_demand_history,processed,Python,PASS,HIGH,350880,350880,Processed daily metrics should preserve full transactional row coverage.
+rowcount_sku_risk_expected_grain,processed,Python,PASS,HIGH,480,480,SKU risk table should be one row per product-warehouse (single supplier per SKU master).
+duplicates_demand_history,raw,Python,PASS,HIGH,0,0,Duplicate key integrity check.
+duplicates_inventory_snapshots,raw,Python,PASS,HIGH,0,0,Duplicate key integrity check.
+duplicates_purchase_orders,raw,Python,PASS,HIGH,0,0,Duplicate key integrity check.
+duplicates_daily_product_warehouse_metrics,processed,Python,PASS,HIGH,0,0,Duplicate key integrity check.
+products_critical_nulls,raw,Python,PASS,HIGH,0,0,"Critical column null check for product_id, category, unit_cost, unit_price, supplier_id."
+suppliers_critical_nulls,raw,Python,PASS,HIGH,0,0,"Critical column null check for supplier_id, reliability_score, average_lead_time_days."
+daily_critical_nulls,processed,Python,PASS,HIGH,0,0,"Critical column null check for date, warehouse_id, product_id, units_demanded, units_fulfilled, fill_rate."
+sku_risk_critical_nulls,processed,Python,PASS,HIGH,0,0,"Critical column null check for product_id, warehouse_id, supplier_id, service_risk_score, stockout_risk_score, governance_priority_score, risk_tier."
+impossible_negative_values,raw,Python,PASS,CRITICAL,0,0,No negative units or values allowed in operational raw tables.
+fill_rate_logic_bounds_raw,raw,Python,PASS,CRITICAL,0,0,"Derived fill rate must stay within [0,1]."
+demand_balance_units,raw,Python,PASS,CRITICAL,0,0,Units fulfilled + lost sales must equal units demanded.
+stockout_flag_logic,raw,Python,PASS,CRITICAL,0,0,Stockout flag must align to lost sales > 0.
+lost_sales_revenue_consistency_daily,processed,Python,PASS,HIGH,0,0,lost_sales_revenue should reconcile to units_lost_sales * unit_price within rounding tolerance.
+inventory_value_consistency_raw,raw,Python,PASS,CRITICAL,0,0,Inventory value should reconcile to on-hand units * unit cost.
+available_units_consistency_raw,raw,Python,PASS,CRITICAL,0,0,available_units should equal on_hand_units - reserved_units.
+working_capital_proxy_overall_consistency,impact,Python,PASS,HIGH,0.000000,<= 1.000000,Recomputed trapped WC proxy should match impact summary.
+excess_inventory_proxy_overall_consistency,impact,Python,PASS,HIGH,0.000000,<= 1.000000,Recomputed excess inventory proxy should match impact summary.
+supplier_delay_proxy_consistency,impact,Python,PASS,HIGH,0.000000,<= 1.000000,Supplier delay impact proxy should reconcile to weighted delay factor formula.
+aggregation_lost_sales_sku_to_overall,impact,Python,PASS,HIGH,0.000000,<= 1.000000,Aggregated impact totals should reconcile to overall summary.
+aggregation_lost_sales_warehouse_to_overall,impact,Python,PASS,HIGH,0.000000,<= 1.000000,Aggregated impact totals should reconcile to overall summary.
+aggregation_lost_sales_supplier_to_overall,impact,Python,PASS,HIGH,0.000000,<= 1.000000,Aggregated impact totals should reconcile to overall summary.
+aggregation_lost_sales_category_to_overall,impact,Python,PASS,HIGH,0.000000,<= 1.000000,Aggregated impact totals should reconcile to overall summary.
+impact_opportunity_formula_consistency,impact,Python,PASS,HIGH,0.000000,<= 1.000000,"12M opportunity proxy must reconcile to the baseline sensitivity scenario (35% margin, 25% WC release, 50% slow-moving weight)."
+denominator_zero_demand_with_activity_raw,raw,Python,PASS,CRITICAL,0,0,No fulfilled or lost units allowed when demand denominator is zero.
+denominator_zero_demand_with_activity_daily,processed,Python,PASS,CRITICAL,0,0,Processed table denominator sanity should match raw logic.
+scoring_formula_consistency,scoring,Python,PASS,HIGH,0.000000,<= 0.050000,Governance score must reconcile to declared weighted formula.
+scoring_tier_consistency,scoring,Python,PASS,HIGH,0,0,risk_tier must align with governance_priority_score thresholds.
+scoring_main_driver_consistency,scoring,Python,PASS,MEDIUM,0,0,main_risk_driver should match max risk component.
+scoring_action_policy_non_low_not_monitor_only,scoring,Python,PASS,HIGH,0,0,Non-low risk tiers must map to active intervention actions.
+scoring_top25_stability_under_weight_perturbation,scoring,Python,PASS,MEDIUM,min_overlap=0.880,>= 0.650,Top governance queue should remain reasonably stable under small weighting perturbations.
+charts_required_files_present,visualization,Python,PASS,HIGH,0,0,All required executive chart PNG files should exist.
+charts_file_size_sanity,visualization,Python,PASS,LOW,0,0,Very small PNG files may indicate rendering issues.
+upgrade_outputs_required_tables_present,analytics,Python,PASS,HIGH,0,0,"Required upgrade tables (adapter, forecast, policy, stress, lane diagnostics, intervention, alerts, SQL gate) must exist."
+data_contract_blocking_failures,analytics,Python,PASS,HIGH,0,0,Data contract validation must have zero FAIL checks.
+data_contract_warning_sanity,analytics,Python,PASS,MEDIUM,0,0,Contract warnings should remain zero for release quality discipline.
+pipeline_orchestration_log_present,analytics,Python,PASS,LOW,1,1,Optional run-log from one-command orchestration should exist for production-style traceability.
+intervention_rank_order_consistency,analytics,Python,PASS,MEDIUM,1,1,Intervention register ranks must be monotonic and stable after sorting logic.
+intervention_status_priority_consistency,analytics,Python,PASS,HIGH,1,1,Open interventions should be prioritized before Monitor/Closed items in ranking order.
+dashboard_metric_reconciliation,dashboard,Python,PASS,HIGH,0.000000,<= 1.000000,Dashboard embedded fact should reconcile to processed daily totals.
+dashboard_required_components_present,dashboard,Python,PASS,HIGH,0,0,"Dashboard must contain required filters, charts, and drilldown table structure."
+dashboard_no_visible_technical_metadata,dashboard,Python,PASS,HIGH,0,0,Executive-facing dashboard should not expose technical build metadata in the visible layout.
+dashboard_layout_no_absolute_positioning,dashboard,Python,PASS,MEDIUM,0,0,Avoiding absolute positioning reduces overlap risk across responsive screen widths.
+dashboard_responsive_rule_presence,dashboard,Python,PASS,HIGH,0,0,Dashboard must retain explicit responsive layout rules for mobile/tablet/desktop safety.
+dashboard_payload_size_sanity,dashboard,Python,PASS,MEDIUM,5982889,<= 8500000 bytes (warn up to 10500000),Large HTML payloads degrade browser reliability and increase silent rendering failures.
+dashboard_frontend_governance_logic_forbidden,dashboard,Python,PASS,HIGH,0,0,"Critical risk-scoring logic must remain in governed backend datasets, not browser-side logic."
+dashboard_official_snapshot_present_and_reconciled,dashboard,Python,PASS,HIGH,0.000000,<= 0.000500,Dashboard official snapshot file must exist and reconcile to KPI baseline metrics.
+executive_summary_fill_rate_consistency,reporting,Python,PASS,HIGH,0.000009,<= 0.001000,Executive summary fill-rate narrative must reconcile to KPI baseline output.
+executive_summary_stockout_rate_consistency,reporting,Python,PASS,HIGH,0.000009,<= 0.001000,Executive summary stockout-rate narrative must reconcile to KPI baseline output.
+executive_summary_lost_sales_consistency,reporting,Python,PASS,MEDIUM,292.050000,<= 200000.000000,Executive summary lost-sales statement should stay aligned (allowing rounded million formatting).
+written_conclusion_overclaiming_risk,reporting,Python,PASS,MEDIUM,"causal_hits=0, mitigation_hits=23",mitigation_hits >= causal_hits,Heuristic check for causal overclaiming without proxy/assumption qualifiers.
+available_units_consistency,raw,SQL,PASS,HIGH,0.0,0,SQL validation query result.
+critical_null_fields,raw,SQL,PASS,HIGH,0.0,0,SQL validation query result.
+duplicate_keys_demand_history,raw,SQL,PASS,HIGH,0.0,0,SQL validation query result.
+duplicate_keys_inventory_snapshots,raw,SQL,PASS,HIGH,0.0,0,SQL validation query result.
+duplicate_keys_purchase_orders,raw,SQL,PASS,HIGH,0.0,0,SQL validation query result.
+fill_rate_out_of_bounds,raw,SQL,PASS,HIGH,0.0,0,SQL validation query result.
+impossible_negative_values,raw,SQL,PASS,HIGH,0.0,0,SQL validation query result.
+inventory_value_consistency,raw,SQL,PASS,HIGH,0.0,0,SQL validation query result.
+po_date_inconsistencies,raw,SQL,PASS,HIGH,0.0,0,SQL validation query result.
+stockout_logic_inconsistencies,raw,SQL,PASS,HIGH,0.0,0,SQL validation query result.
+zero_demand_denominator_sanity,raw,SQL,PASS,HIGH,0.0,0,SQL validation query result.
+daily_duplicate_keys,processed,SQL,PASS,HIGH,0,0,SQL validation query result.
+daily_fill_rate_bounds,processed,SQL,PASS,HIGH,0,0,SQL validation query result.
+daily_stockout_logic,processed,SQL,PASS,HIGH,0,0,SQL validation query result.
+dashboard_expected_grain,processed,SQL,PASS,HIGH,0,0,SQL validation query result.
+sku_score_bounds,processed,SQL,PASS,HIGH,0,0,SQL validation query result.

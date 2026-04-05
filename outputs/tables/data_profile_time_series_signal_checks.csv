@@ -1,0 +1,7 @@
+issue_name,observed_rows,expected_rows,gap_rows,severity,details
+demand_time_series_row_completeness,350880.0,350880.0,0.0,Info,Checks full daily cube coverage by date-warehouse-product for demand history.
+inventory_time_series_row_completeness,350880.0,350880.0,0.0,Info,Checks full daily cube coverage by date-warehouse-product for inventory snapshots.
+missing_supplier_signals_zero_po,0.0,0.0,0.0,Info,Suppliers with zero transactions have no observed lead-time or lateness signal.
+weak_supplier_signal_low_po_count,0.0,0.0,0.0,Info,Supplier comparisons are noisy when PO volume is too low.
+skewed_days_of_supply_distribution,9.368,8.0,1.368,Medium,High p99/p50 DOS ratio indicates heavy right tail and potential overstock outliers.
+skewed_inventory_value_distribution,12.36,15.0,-2.64,Info,Inventory value concentration can bias averages; use weighted and percentile views.

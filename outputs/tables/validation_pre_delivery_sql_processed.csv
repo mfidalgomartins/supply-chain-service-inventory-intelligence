@@ -1,0 +1,6 @@
+check_name,issue_count,status,method,layer
+daily_duplicate_keys,0,PASS,SQL,processed
+daily_fill_rate_bounds,0,PASS,SQL,processed
+daily_stockout_logic,0,PASS,SQL,processed
+dashboard_expected_grain,0,PASS,SQL,processed
+sku_score_bounds,0,PASS,SQL,processed

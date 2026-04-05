@@ -1,0 +1,188 @@
+# Methodology
+
+## Analytical Objective
+Build an operational decision system that quantifies where the company is simultaneously:
+- under-serving demand (service failures and lost sales), and
+- over-invested in inventory (excess and slow-moving stock),
+then prioritizes interventions by expected operational and financial value.
+
+Core business question:
+> Is the company balancing service level and inventory efficiently, or losing sales while tying up too much working capital?
+
+## Project Scope
+Included:
+- End-to-end synthetic data generation at daily grain for a multi-warehouse distribution network.
+- Source-adapter readiness layer for promoting real extracts over synthetic data when schema checks pass.
+- SQL-based analytical modeling for canonical daily and entity-level views.
+- Python-based feature engineering, probabilistic forecasting, scoring, diagnostics, optimization, intervention governance, anomaly alerts, impact estimation, visualization, and dashboard packaging.
+- Formal pre-delivery validation (SQL + Python checks) before executive outputs.
+
+Excluded:
+- Causal ML models for driver attribution and treatment-effect estimation.
+- Causal attribution claims for supplier delays and commercial outcomes.
+- ERP transaction posting logic and accounting treatment.
+
+## Data Generation Logic
+Implementation: `src/data_generation.py`
+
+Design choices:
+- Reproducible seed: `RANDOM_SEED = 42`.
+- Coverage window: `2024-01-01` to `2025-12-31` (731 days).
+- Network scale: 120 products, 12 suppliers, 4 warehouses.
+- Daily operational simulation across product-warehouse combinations.
+
+Embedded operational realism:
+- Heterogeneous supplier reliability, lead times, variability, and MOQ constraints.
+- ABC and criticality segmentation.
+- Category-level cost/price and shelf-life variation.
+- Seasonality and promotion lift in demand.
+- Warehouse-specific demand/planning profiles.
+- Chronic profiles for deliberate overstock and stockout behavior.
+- Purchase-order creation with late-delivery and under-receipt patterns.
+
+Current generated volume (latest run):
+- `products`: 120
+- `suppliers`: 12
+- `warehouses`: 4
+- `inventory_snapshots`: 350,880
+- `demand_history`: 350,880
+- `purchase_orders`: 13,369
+- `product_classification`: 120
+
+## Analytical Workflow
+1. Raw generation
+- Script: `src/data_generation.py`
+- Output: `/data/raw/*.csv`
+
+2. SQL transformations
+- Schema: `sql/01_schema.sql`
+- Intermediate views: `sql/02_intermediate_views.sql`
+- Core outputs materialized by `src/data_preparation.py`:
+  - `daily_product_warehouse_metrics`
+  - `supplier_performance_summary`
+  - `product_inventory_profile`
+  - `warehouse_service_profile`
+
+3. Python feature engineering
+- Script: `src/feature_engineering.py`
+- Recomputes behavior proxies from daily detail and writes `sku_risk_table` baseline.
+
+4. Data contract enforcement
+- Contract spec: `contracts/table_contracts.json`
+- Script: `src/data_contracts.py`
+- Output: `/outputs/tables/data_contract_check_results.csv`, `/outputs/tables/data_contract_table_profile.csv`, `/outputs/reports/data_contracts_summary.md`
+- Purpose: enforce required columns, grain uniqueness, critical-null, and non-negative rules before downstream scoring/reporting.
+
+5. Governance scoring layer
+- Script: `src/scoring.py`
+- Produces final scored outputs:
+  - `/data/processed/sku_risk_table.csv`
+  - `/data/processed/supplier_risk_table.csv`
+  - `/data/processed/segment_risk_table.csv`
+  - `/data/processed/governance_priority_master.csv`
+
+6. KPI and diagnostic analysis
+- Script: `src/kpi_diagnostic_analysis.py`
+- Output: `/outputs/reports/*.csv` + executive narrative markdown.
+
+7. Financial impact estimation
+- Script: `src/impact_analysis.py`
+- Output: `/outputs/tables/impact_*.csv`, `/outputs/charts/impact_*.png`, assumptions and narrative docs.
+
+8. Assumption sensitivity layer
+- Script: `src/sensitivity_analysis.py`
+- Output: sensitivity tables/charts (`/outputs/tables/sensitivity_*.csv`, `/outputs/charts/sensitivity_*.png`) and summary report.
+
+9. Visualization suite
+- Script: `src/visualization.py`
+- Output: `/outputs/charts/viz_*.png` and chart data in `/outputs/tables/viz_data_*.csv`.
+
+10. Executive dashboard
+- Script: `src/executive_dashboard.py`
+- Output: `/outputs/dashboard/index.html` (self-contained), plus dashboard fact/dim extracts in `/outputs/tables/`.
+
+11. Policy simulation layer
+- Script: `src/policy_simulation.py`
+- Output: policy scenario tables (`/outputs/tables/policy_simulation_*.csv`), frontier chart, and policy summary.
+
+12. Policy optimizer layer
+- Script: `src/policy_optimizer.py`
+- Output: budget-constrained lane policy selections and trade-off summary (`/outputs/tables/policy_optimizer_*.csv`).
+
+13. Monte Carlo uncertainty stress layer
+- Script: `src/monte_carlo_stress.py`
+- Output: lane/segment stress outputs (`/outputs/tables/stress_monte_carlo_*.csv`), stress charts, and summary report.
+
+14. Supplier lane diagnostics layer
+- Script: `src/supplier_lane_diagnostics.py`
+- Output: lane diagnostics tables (`/outputs/tables/supplier_lane_*.csv`), lane risk chart, and summary report.
+
+15. PO cohort diagnostics layer
+- Script: `src/po_cohort_diagnostics.py`
+- Output: supplier-warehouse cohort diagnostics and monthly risk decomposition (`/outputs/tables/po_cohort_*.csv`).
+
+16. Intervention governance tracker
+- Script: `src/intervention_tracker.py`
+- Output: owner-based intervention register and backlog summaries (`/outputs/tables/intervention_*.csv`).
+
+17. Anomaly detection layer
+- Script: `src/anomaly_alerts.py`
+- Output: spike alerts for warehouse service and supplier delay behavior (`/outputs/tables/anomaly_alerts*.csv`).
+
+18. Pre-delivery QA
+- Script: `src/pre_delivery_validation.py`
+- Output: validation tables + `/docs/validation_report.md` + release-state matrix (`/outputs/tables/validation_release_state_matrix.csv`) + release readiness summary (`/outputs/reports/release_readiness.md`).
+
+19. SQL and CI quality gates
+- Scripts: `src/sql_quality_gate.py`, `src/ci_quality_gate.py`
+- CI workflow: `.github/workflows/analytics-ci.yml`
+- Output: SQL gate checks (`/outputs/tables/ci_sql_validation_checks.csv`) and release gating status with explicit states:
+  - technically valid
+  - analytically acceptable
+  - decision-support only
+  - screening-grade only
+  - not committee-grade
+  - publish-blocked
+- Governance reference: `/docs/release_governance.md`
+
+## Key Assumptions
+Operational policy assumptions:
+- ABC DOS caps: A=20 days, B=30 days, C=45 days.
+- Stockout persistence evaluated monthly (active month has lost sales > 0).
+
+Scoring assumptions (`src/scoring.py`):
+- Fixed policy-anchored thresholds for component normalization.
+- Linear scaling for operational rates and log scaling for concentration shares.
+- Governance priority is a weighted multi-objective score (service, stockout, excess, supplier, working capital, dual imbalance).
+
+Impact assumptions (`src/impact_analysis.py`):
+- Trapped WC proxy gives incremental weight of 0.50 to non-overlapping slow-moving value.
+- 12M opportunity proxy uses:
+  - recoverable lost margin rate = 35%
+  - releasable trapped WC rate = 25%
+- Supplier delay impact is an associative severity proxy, not causal attribution.
+
+## Caveats
+- Synthetic data is policy-realistic but does not represent any specific company ledger.
+- Composite scores support prioritization and governance sequencing, not root-cause proof.
+- Opportunity estimates are directional proxies; they should be converted into business cases with planner and procurement constraints.
+- Inventory proxies depend on DOS behavior and may differ from liquidation/markdown outcomes.
+
+## Validation Approach
+Implementation: `src/pre_delivery_validation.py`
+
+Validation dimensions:
+- Row-count and grain sanity.
+- Duplicate keys and critical null checks.
+- Negative/impossible value checks.
+- Fill-rate, stockout, and lost-sales arithmetic consistency.
+- Working-capital proxy recomputation against reported outputs.
+- Supplier delay factor recomputation checks.
+- Aggregation reconciliation across SKU, warehouse, supplier, category, and overall totals.
+- Governance score formula and tier consistency checks.
+- Chart file existence and dashboard metric reconciliation checks.
+- Narrative overclaiming control (explicit observed vs proxy distinction).
+- Upgrade output presence checks (source adapter, probabilistic forecast, sensitivity, policy optimizer, stress testing, lane diagnostics, intervention tracker, anomaly alerts, SQL gate outputs).
+
+Latest status:
+- Generated on each pipeline run; see `/docs/validation_report.md` and `/outputs/reports/release_readiness.md` for current counts and release class.

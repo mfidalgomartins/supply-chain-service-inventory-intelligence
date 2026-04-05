@@ -1,0 +1,12 @@
+check_name,issue_count,status,method,layer
+available_units_consistency,0.0,PASS,SQL,raw
+critical_null_fields,0.0,PASS,SQL,raw
+duplicate_keys_demand_history,0.0,PASS,SQL,raw
+duplicate_keys_inventory_snapshots,0.0,PASS,SQL,raw
+duplicate_keys_purchase_orders,0.0,PASS,SQL,raw
+fill_rate_out_of_bounds,0.0,PASS,SQL,raw
+impossible_negative_values,0.0,PASS,SQL,raw
+inventory_value_consistency,0.0,PASS,SQL,raw
+po_date_inconsistencies,0.0,PASS,SQL,raw
+stockout_logic_inconsistencies,0.0,PASS,SQL,raw
+zero_demand_denominator_sanity,0.0,PASS,SQL,raw

@@ -1,0 +1,5 @@
+stockout_pattern,sku_warehouse_count,avg_stockout_rate,avg_active_month_ratio
+Systematic,119,0.168516943948123,0.7584033613445377
+Episodic High-Intensity,14,0.1027387086429368,0.38095238095238093
+Frequent Low-Intensity,91,0.04883330446612211,0.5054945054945056
+Low/Contained,256,0.01722959586154128,0.14892578125

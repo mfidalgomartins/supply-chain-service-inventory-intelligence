@@ -1,0 +1,13 @@
+supplier_id,supplier_name,supplier_region,reliability_score,average_lead_time_days,lead_time_variability,minimum_order_qty
+SUP-001,Supplier 1,Iberia,0.755,18,0.48,872
+SUP-002,Supplier 2,Central Europe,0.675,22,0.395,748
+SUP-003,Supplier 3,Central Europe,0.784,25,0.425,897
+SUP-004,Supplier 4,UK,0.826,15,0.192,499
+SUP-005,Supplier 5,Nordics,0.853,12,0.301,406
+SUP-006,Supplier 6,UK,0.846,15,0.258,457
+SUP-007,Supplier 7,Central Europe,0.93,13,0.214,347
+SUP-008,Supplier 8,UK,0.905,14,0.198,346
+SUP-009,Supplier 9,Central Europe,0.965,9,0.1,192
+SUP-010,Supplier 10,Iberia,0.954,10,0.127,214
+SUP-011,Supplier 11,Central Europe,0.956,9,0.076,164
+SUP-012,Supplier 12,Central Europe,0.937,8,0.165,137

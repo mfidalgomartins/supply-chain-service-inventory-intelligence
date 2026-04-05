@@ -1,0 +1,14 @@
+metric,value,definition
+analysis_days,731.0,Observed period length (days)
+annualization_factor,0.4993160054719562,365 / analysis_days
+lost_sales_revenue_observed,34779707.95,Observed lost sales value from stockout unmet demand
+excess_inventory_value_proxy_observed,310535363.3679913,Proxy value of inventory above ABC DOS policy caps
+trapped_working_capital_proxy_observed,321374092.61609834,Proxy of inefficient inventory capital (excess + incremental slow-moving)
+slow_moving_value_proxy_observed,30186592.380000003,Observed inventory value in slow-moving days
+supplier_delay_impact_proxy_observed,20209983.00257474,Proxy lost-sales value associated with supplier delay severity
+lost_sales_revenue_annualized,17366064.84507524,Annualized observed lost sales value from stockouts
+excess_inventory_value_proxy_annualized,155055277.19468787,Annualized proxy value of inventory above DOS policy caps
+trapped_working_capital_proxy_annualized,160467228.1872447,Annualized inefficient working-capital proxy
+slow_moving_value_proxy_annualized,15072648.725991793,Annualized slow-moving inventory value proxy
+supplier_delay_impact_proxy_annualized,10091167.983501751,Annualized supplier delay impact proxy
+opportunity_total_12m_proxy,42794128.23803553,Estimated 12-month value pool: margin recovery + WC release

@@ -1,0 +1,5 @@
+risk_name,issue_count,severity,details
+demand_rows_without_inventory_snapshot,0,Info,Left join drops service rows if inventory snapshot missing on same day-SKU-warehouse key.
+inventory_rows_without_demand_row,0,Info,Inventory-only rows can distort DOS averages if naively joined to demand facts.
+demand_region_vs_warehouse_region_mismatch,0,Info,Region attribute mismatch can cause wrong regional service rollups.
+po_supplier_vs_product_master_supplier_mismatch,0,Info,Supplier attribution for lead-time and service impact can be wrong if PO supplier differs from product master supplier.

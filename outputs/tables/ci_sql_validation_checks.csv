@@ -1,0 +1,12 @@
+check_name,issue_count,status
+available_units_consistency,0.0,PASS
+critical_null_fields,0.0,PASS
+duplicate_keys_demand_history,0.0,PASS
+duplicate_keys_inventory_snapshots,0.0,PASS
+duplicate_keys_purchase_orders,0.0,PASS
+fill_rate_out_of_bounds,0.0,PASS
+impossible_negative_values,0.0,PASS
+inventory_value_consistency,0.0,PASS
+po_date_inconsistencies,0.0,PASS
+stockout_logic_inconsistencies,0.0,PASS
+zero_demand_denominator_sanity,0.0,PASS

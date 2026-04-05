@@ -1,0 +1,121 @@
+product_id,product_name,category,unit_cost,unit_price,shelf_life_days,supplier_id,lead_time_days,target_service_level
+SKU-0001,Beverages Product 1,Beverages,4.61,9.45,358,SUP-007,13,0.976
+SKU-0002,Snacks Product 2,Snacks,11.04,22.68,227,SUP-012,8,0.993
+SKU-0003,Personal Care Product 3,Personal Care,25.61,45.44,879,SUP-002,23,0.982
+SKU-0004,Household Product 4,Household,23.45,45.06,512,SUP-006,15,0.97
+SKU-0005,Frozen Product 5,Frozen,4.58,8.82,634,SUP-003,23,0.976
+SKU-0006,Dairy Product 6,Dairy,8.22,11.06,17,SUP-007,15,0.995
+SKU-0007,Pet Care Product 7,Pet Care,24.03,42.17,355,SUP-005,13,0.982
+SKU-0008,Health Product 8,Health,48.88,101.97,388,SUP-004,15,0.99
+SKU-0009,Beverages Product 9,Beverages,15.31,33.37,527,SUP-005,13,0.984
+SKU-0010,Snacks Product 10,Snacks,6.07,14.51,196,SUP-001,18,0.995
+SKU-0011,Personal Care Product 11,Personal Care,19.71,33.11,1012,SUP-010,11,0.982
+SKU-0012,Household Product 12,Household,9.56,18.54,434,SUP-003,23,0.971
+SKU-0013,Frozen Product 13,Frozen,6.75,9.46,307,SUP-001,15,0.98
+SKU-0014,Dairy Product 14,Dairy,7.86,11.01,35,SUP-009,9,0.977
+SKU-0015,Pet Care Product 15,Pet Care,5.43,10.25,285,SUP-012,7,0.981
+SKU-0016,Health Product 16,Health,57.87,103.44,1060,SUP-002,23,0.992
+SKU-0017,Beverages Product 17,Beverages,15.91,30.92,463,SUP-008,13,0.971
+SKU-0018,Snacks Product 18,Snacks,9.33,20.42,351,SUP-004,14,0.976
+SKU-0019,Personal Care Product 19,Personal Care,7.56,11.93,441,SUP-012,8,0.966
+SKU-0020,Household Product 20,Household,25.1,42.74,970,SUP-008,14,0.98
+SKU-0021,Frozen Product 21,Frozen,9.96,13.01,433,SUP-008,13,0.992
+SKU-0022,Dairy Product 22,Dairy,9.83,21.35,31,SUP-011,9,0.977
+SKU-0023,Pet Care Product 23,Pet Care,18.94,37.61,608,SUP-007,13,0.976
+SKU-0024,Health Product 24,Health,28.3,47.72,565,SUP-005,12,0.993
+SKU-0025,Beverages Product 25,Beverages,12.51,27.21,427,SUP-011,9,0.951
+SKU-0026,Snacks Product 26,Snacks,2.89,5.65,273,SUP-011,10,0.961
+SKU-0027,Personal Care Product 27,Personal Care,22.67,49.07,434,SUP-008,13,0.95
+SKU-0028,Household Product 28,Household,18.45,34.15,896,SUP-008,14,0.974
+SKU-0029,Frozen Product 29,Frozen,14.12,24.45,621,SUP-002,21,0.962
+SKU-0030,Dairy Product 30,Dairy,4.38,6.27,24,SUP-003,26,0.965
+SKU-0031,Pet Care Product 31,Pet Care,33.76,60.81,688,SUP-003,25,0.97
+SKU-0032,Health Product 32,Health,15.56,29.98,400,SUP-009,9,0.97
+SKU-0033,Beverages Product 33,Beverages,16.71,35.9,427,SUP-005,11,0.915
+SKU-0034,Snacks Product 34,Snacks,8.49,16.96,270,SUP-012,8,0.958
+SKU-0035,Personal Care Product 35,Personal Care,19.58,25.29,431,SUP-012,8,0.962
+SKU-0036,Household Product 36,Household,28.83,66.8,452,SUP-001,20,0.97
+SKU-0037,Frozen Product 37,Frozen,15.44,22.73,625,SUP-003,24,0.962
+SKU-0038,Dairy Product 38,Dairy,9.05,18.7,25,SUP-001,17,0.942
+SKU-0039,Pet Care Product 39,Pet Care,9.94,23.24,298,SUP-008,14,0.928
+SKU-0040,Health Product 40,Health,33.05,59.33,506,SUP-007,13,0.952
+SKU-0041,Beverages Product 41,Beverages,8.66,12.99,223,SUP-006,13,0.933
+SKU-0042,Snacks Product 42,Snacks,7.44,15.31,251,SUP-008,14,0.959
+SKU-0043,Personal Care Product 43,Personal Care,16.06,33.68,838,SUP-005,12,0.959
+SKU-0044,Household Product 44,Household,19.32,26.72,405,SUP-011,10,0.955
+SKU-0045,Frozen Product 45,Frozen,3.05,6.71,330,SUP-010,9,0.97
+SKU-0046,Dairy Product 46,Dairy,9.96,21.29,44,SUP-002,21,0.957
+SKU-0047,Pet Care Product 47,Pet Care,24.19,34.79,316,SUP-003,24,0.963
+SKU-0048,Health Product 48,Health,35.79,60.9,725,SUP-003,25,0.954
+SKU-0049,Beverages Product 49,Beverages,2.91,4.42,249,SUP-001,17,0.967
+SKU-0050,Snacks Product 50,Snacks,8.32,16.81,190,SUP-009,9,0.953
+SKU-0051,Personal Care Product 51,Personal Care,22.33,49.79,635,SUP-007,13,0.939
+SKU-0052,Household Product 52,Household,23.56,34.26,734,SUP-012,9,0.961
+SKU-0053,Frozen Product 53,Frozen,2.93,4.6,371,SUP-008,14,0.928
+SKU-0054,Dairy Product 54,Dairy,9.7,20.85,35,SUP-009,8,0.961
+SKU-0055,Pet Care Product 55,Pet Care,41.42,65.5,705,SUP-002,25,0.925
+SKU-0056,Health Product 56,Health,68.63,118.27,446,SUP-007,14,0.941
+SKU-0057,Beverages Product 57,Beverages,2.97,4.09,466,SUP-005,12,0.929
+SKU-0058,Snacks Product 58,Snacks,3.96,7.78,176,SUP-001,18,0.954
+SKU-0059,Personal Care Product 59,Personal Care,9.32,20.79,992,SUP-009,10,0.985
+SKU-0060,Household Product 60,Household,9.82,13.23,1013,SUP-002,23,0.928
+SKU-0061,Frozen Product 61,Frozen,12.69,30.42,660,SUP-002,19,0.903
+SKU-0062,Dairy Product 62,Dairy,3.46,4.4,35,SUP-001,17,0.904
+SKU-0063,Pet Care Product 63,Pet Care,15.17,34.61,407,SUP-007,11,0.91
+SKU-0064,Health Product 64,Health,22.97,37.23,622,SUP-005,12,0.948
+SKU-0065,Beverages Product 65,Beverages,17.92,36.3,272,SUP-007,12,0.891
+SKU-0066,Snacks Product 66,Snacks,6.88,12.03,316,SUP-012,9,0.855
+SKU-0067,Personal Care Product 67,Personal Care,16.14,25.98,399,SUP-006,14,0.899
+SKU-0068,Household Product 68,Household,16.91,21.17,402,SUP-006,16,0.879
+SKU-0069,Frozen Product 69,Frozen,16.23,35.99,523,SUP-006,16,0.854
+SKU-0070,Dairy Product 70,Dairy,2.2,3.92,20,SUP-012,8,0.901
+SKU-0071,Pet Care Product 71,Pet Care,5.67,7.81,570,SUP-003,27,0.924
+SKU-0072,Health Product 72,Health,18.09,38.69,1044,SUP-008,13,0.9
+SKU-0073,Beverages Product 73,Beverages,15.05,24.32,310,SUP-001,19,0.909
+SKU-0074,Snacks Product 74,Snacks,5.14,6.54,289,SUP-001,16,0.934
+SKU-0075,Personal Care Product 75,Personal Care,7.02,14.37,485,SUP-002,23,0.901
+SKU-0076,Household Product 76,Household,7.93,18.1,431,SUP-008,14,0.878
+SKU-0077,Frozen Product 77,Frozen,14.21,31.43,379,SUP-003,27,0.921
+SKU-0078,Dairy Product 78,Dairy,7.36,15.34,12,SUP-006,16,0.897
+SKU-0079,Pet Care Product 79,Pet Care,24.01,41.28,690,SUP-010,10,0.892
+SKU-0080,Health Product 80,Health,61.26,140.87,468,SUP-003,23,0.858
+SKU-0081,Beverages Product 81,Beverages,13.75,29.57,522,SUP-010,9,0.892
+SKU-0082,Snacks Product 82,Snacks,1.74,4.13,257,SUP-010,10,0.935
+SKU-0083,Personal Care Product 83,Personal Care,13.52,26.26,785,SUP-008,13,0.918
+SKU-0084,Household Product 84,Household,14.52,34.09,1048,SUP-009,8,0.871
+SKU-0085,Frozen Product 85,Frozen,11.78,21.07,491,SUP-003,26,0.88
+SKU-0086,Dairy Product 86,Dairy,4.22,8.99,20,SUP-004,15,0.905
+SKU-0087,Pet Care Product 87,Pet Care,15.92,30.02,427,SUP-003,22,0.883
+SKU-0088,Health Product 88,Health,44.22,92.66,471,SUP-011,9,0.869
+SKU-0089,Beverages Product 89,Beverages,4.11,9.37,519,SUP-002,20,0.901
+SKU-0090,Snacks Product 90,Snacks,8.96,19.97,258,SUP-004,14,0.911
+SKU-0091,Personal Care Product 91,Personal Care,22.55,41.61,1004,SUP-011,10,0.897
+SKU-0092,Household Product 92,Household,18.94,44.44,472,SUP-012,8,0.877
+SKU-0093,Frozen Product 93,Frozen,13.26,23.67,368,SUP-005,12,0.893
+SKU-0094,Dairy Product 94,Dairy,3.05,7.04,35,SUP-007,12,0.927
+SKU-0095,Pet Care Product 95,Pet Care,39.14,68.64,384,SUP-003,25,0.899
+SKU-0096,Health Product 96,Health,17.44,34.48,909,SUP-002,23,0.88
+SKU-0097,Beverages Product 97,Beverages,17.21,28.3,321,SUP-007,13,0.915
+SKU-0098,Snacks Product 98,Snacks,11.91,22.17,300,SUP-003,24,0.917
+SKU-0099,Personal Care Product 99,Personal Care,21.13,38.78,895,SUP-008,15,0.899
+SKU-0100,Household Product 100,Household,24.69,49.47,1028,SUP-002,23,0.908
+SKU-0101,Frozen Product 101,Frozen,14.29,19.99,666,SUP-004,15,0.912
+SKU-0102,Dairy Product 102,Dairy,9.61,18.75,21,SUP-009,9,0.9
+SKU-0103,Pet Care Product 103,Pet Care,19.5,44.0,701,SUP-001,17,0.916
+SKU-0104,Health Product 104,Health,28.71,43.95,1033,SUP-008,13,0.911
+SKU-0105,Beverages Product 105,Beverages,9.79,17.38,432,SUP-010,10,0.908
+SKU-0106,Snacks Product 106,Snacks,10.54,15.21,177,SUP-010,10,0.879
+SKU-0107,Personal Care Product 107,Personal Care,13.06,31.32,574,SUP-002,22,0.926
+SKU-0108,Household Product 108,Household,28.51,44.51,505,SUP-003,25,0.892
+SKU-0109,Frozen Product 109,Frozen,11.41,23.27,635,SUP-008,13,0.925
+SKU-0110,Dairy Product 110,Dairy,5.28,6.91,34,SUP-007,14,0.878
+SKU-0111,Pet Care Product 111,Pet Care,32.58,70.75,295,SUP-005,12,0.902
+SKU-0112,Health Product 112,Health,11.27,14.09,903,SUP-001,17,0.895
+SKU-0113,Beverages Product 113,Beverages,15.8,34.71,379,SUP-003,24,0.928
+SKU-0114,Snacks Product 114,Snacks,9.38,16.74,249,SUP-007,11,0.86
+SKU-0115,Personal Care Product 115,Personal Care,7.8,17.13,493,SUP-002,22,0.919
+SKU-0116,Household Product 116,Household,34.24,77.17,697,SUP-011,8,0.893
+SKU-0117,Frozen Product 117,Frozen,15.02,19.23,380,SUP-011,9,0.877
+SKU-0118,Dairy Product 118,Dairy,6.4,10.84,40,SUP-001,19,0.908
+SKU-0119,Pet Care Product 119,Pet Care,12.46,28.39,605,SUP-001,19,0.897
+SKU-0120,Health Product 120,Health,44.32,65.36,1073,SUP-004,14,0.93
