@@ -37,7 +37,7 @@ The system is organized in modular layers:
 2. **Source adapter layer** (`src/source_adapter.py`) introduces real-source readiness checks, schema templates, and refresh-manifest traceability.
 3. **SQL modeling layer** (`sql/`) defines schema, intermediate views, KPI queries, and validation logic.
 4. **Analytical modeling layer** (`src/data_preparation.py`, `src/feature_engineering.py`) builds processed decision tables.
-5. **Data-contract layer** (`contracts/table_contracts.json`, `src/data_contracts.py`) enforces schema/grain/null/non-negative contracts before downstream analytics.
+5. **Data-contract layer** (`configs/table_contracts.json`, `src/data_contracts.py`) enforces schema/grain/null/non-negative contracts before downstream analytics.
 6. **Probabilistic forecast layer** (`src/probabilistic_forecast.py`) replaces static lane demand assumptions with forecast distributions.
 7. **Scoring layer** (`src/scoring.py`) computes interpretable risk and governance priority scores.
 8. **Impact layer** (`src/impact_analysis.py`) estimates business-value exposure and opportunity proxies.
@@ -224,63 +224,28 @@ python3 -m venv .venv
 
 ## 15) Repository Structure
 ```text
-supply-chain-service-level-inventory-intelligence-system/
+supply-chain-service-inventory-intelligence/
+├── README.md
+├── requirements.txt
+├── .gitignore
+├── src/
 ├── data/
 │   ├── raw/
 │   └── processed/
-├── notebooks/
-│   └── supply_chain_service_level_inventory_intelligence.ipynb
 ├── sql/
-│   ├── 01_schema.sql
-│   ├── 02_intermediate_views.sql
-│   ├── 03_kpi_queries.sql
-│   └── 04_validation_queries.sql
-├── contracts/
-│   └── table_contracts.json
-├── src/
-│   ├── data_generation.py
-│   ├── data_preparation.py
-│   ├── feature_engineering.py
-│   ├── data_contracts.py
-│   ├── probabilistic_forecast.py
-│   ├── scoring.py
-│   ├── kpi_diagnostic_analysis.py
-│   ├── impact_analysis.py
-│   ├── sensitivity_analysis.py
-│   ├── visualization.py
-│   ├── source_adapter.py
-│   ├── policy_simulation.py
-│   ├── policy_optimizer.py
-│   ├── monte_carlo_stress.py
-│   ├── supplier_lane_diagnostics.py
-│   ├── po_cohort_diagnostics.py
-│   ├── intervention_tracker.py
-│   ├── anomaly_alerts.py
-│   ├── executive_dashboard.py
-│   ├── pre_delivery_validation.py
-│   ├── sql_quality_gate.py
-│   ├── ci_quality_gate.py
-│   └── run_pipeline.py
-├── .github/workflows/
-│   └── analytics-ci.yml
+├── docs/
+├── tests/
 ├── outputs/
 │   ├── charts/
 │   ├── dashboard/
 │   ├── reports/
 │   └── tables/
-├── archive/
-│   └── legacy_artifacts/
-├── docs/
-│   ├── methodology.md
-│   ├── data_model.md
-│   ├── metric_dictionary.md
-│   ├── scoring_framework.md
-│   ├── impact_assumptions.md
-│   ├── release_governance.md
-│   └── validation_report.md
-├── tests/
-├── requirements.txt
-└── README.md
+├── notebooks/
+│   └── supply_chain_service_level_inventory_intelligence.ipynb
+├── configs/
+│   └── table_contracts.json
+└── .github/workflows/
+    └── analytics-ci.yml
 ```
 
 ## 16) Future Improvements
@@ -295,7 +260,7 @@ supply-chain-service-level-inventory-intelligence-system/
 - `src/run_pipeline.py` is the authoritative execution path for reproducible builds.
 - `outputs/dashboard/index.html` is the single official dashboard artifact for release review.
 - `docs/metric_dictionary.md` is the authoritative metric source; `docs/metric_definitions.md` is a legacy pointer only.
-- Legacy generated artifacts were moved to `archive/legacy_artifacts/` to keep the active review surface clean.
+- Legacy wrappers are retained only for backward compatibility and kept minimal to avoid logic divergence.
 - Legacy entry-point names (`src/analyze.py`, `src/build_dashboard.py`, `src/generate_data.py`, `src/validate.py`, `src/run_sql_analysis.py`) are now compatibility wrappers that route to authoritative modules to prevent logic divergence.
 
 ---

@@ -157,7 +157,7 @@ Built via `src/sql_quality_gate.py`.
 | validation_release_state_matrix | `/outputs/tables/validation_release_state_matrix.csv` | `state_name` | Explicit release-state governance matrix (technical, analytical, decision-support, screening, committee, publish gate) |
 
 ## Data Contract Outputs
-Built via `src/data_contracts.py` using `contracts/table_contracts.json`.
+Built via `src/data_contracts.py` using `configs/table_contracts.json`.
 
 | Table | File | Grain | Purpose |
 |---|---|---|---|

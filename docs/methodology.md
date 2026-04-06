@@ -68,7 +68,7 @@ Current generated volume (latest run):
 - Recomputes behavior proxies from daily detail and writes `sku_risk_table` baseline.
 
 4. Data contract enforcement
-- Contract spec: `contracts/table_contracts.json`
+- Contract spec: `configs/table_contracts.json`
 - Script: `src/data_contracts.py`
 - Output: `/outputs/tables/data_contract_check_results.csv`, `/outputs/tables/data_contract_table_profile.csv`, `/outputs/reports/data_contracts_summary.md`
 - Purpose: enforce required columns, grain uniqueness, critical-null, and non-negative rules before downstream scoring/reporting.

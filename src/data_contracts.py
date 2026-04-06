@@ -14,7 +14,7 @@ except ModuleNotFoundError:
     from config import PROJECT_ROOT
 
 
-CONTRACT_FILE = PROJECT_ROOT / "contracts" / "table_contracts.json"
+CONTRACT_FILE = PROJECT_ROOT / "configs" / "table_contracts.json"
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
 OUTPUT_REPORTS_DIR = PROJECT_ROOT / "outputs" / "reports"
 
