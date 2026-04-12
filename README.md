@@ -2,6 +2,8 @@
 
 A decision‑grade supply chain analytics system built to expose the trade‑off between service performance and inventory capital. It models how stockouts, supplier instability, and excess inventory interact—and turns that into a ranked action list leadership can use.
 
+Live dashboard: https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/
+
 ## The problem this solves
 Most distribution teams fail in both directions at once: service breaks create lost sales while excess stock traps cash. Without an integrated view, planning, procurement, and finance optimize locally and miss the portfolio trade‑off.
 
