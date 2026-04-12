@@ -1,6 +1,0 @@
-table_name,date_column,min_date,max_date,distinct_dates,expected_days,missing_days
-inventory_snapshots,snapshot_date,2024-01-01,2025-12-31,731,731,0
-demand_history,date,2024-01-01,2025-12-31,731,731,0
-purchase_orders,order_date,2024-01-01,2025-12-31,731,731,0
-purchase_orders,expected_arrival_date,2024-01-13,2026-01-26,744,745,1
-purchase_orders,actual_arrival_date,2024-01-08,2026-02-16,756,771,15

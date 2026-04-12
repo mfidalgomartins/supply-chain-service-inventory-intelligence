@@ -1,8 +1,0 @@
-table_name,source_mode,source_path,status,row_count,expected_column_count,observed_column_count,column_match_rate,freshness_hours,used_external_source
-demand_history,synthetic,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/demand_history.csv,READY,350880,10,10,1.0,0.00015075083333333333,0
-inventory_snapshots,synthetic,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/inventory_snapshots.csv,READY,350880,9,9,1.0,0.0003309058333333333,0
-product_classification,synthetic,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/product_classification.csv,READY,120,3,3,1.0,0.00014339,0
-products,synthetic,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/products.csv,READY,120,9,9,1.0,0.0005400583333333333,0
-purchase_orders,synthetic,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/purchase_orders.csv,READY,13369,10,10,1.0,0.00014336416666666665,0
-suppliers,synthetic,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/suppliers.csv,READY,12,7,7,1.0,0.0005401472222222222,0
-warehouses,synthetic,/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/data/raw/warehouses.csv,READY,4,4,4,1.0,0.0005402158333333334,0

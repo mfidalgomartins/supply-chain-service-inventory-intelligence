@@ -16,7 +16,6 @@ except ModuleNotFoundError:
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
 OUTPUT_CHARTS_DIR = PROJECT_ROOT / "outputs" / "charts"
 OUTPUT_REPORTS_DIR = PROJECT_ROOT / "outputs" / "reports"
-DOCS_DIR = PROJECT_ROOT / "docs"
 
 
 @dataclass(frozen=True)
@@ -376,83 +375,6 @@ def create_charts(
     plt.close()
 
 
-def write_assumptions_log(annualization_factor: float) -> None:
-    DOCS_DIR.mkdir(parents=True, exist_ok=True)
-
-    lines = [
-        "# Impact Assumptions Log",
-        "",
-        "This document separates observed metrics from proxy estimates used for business-impact prioritization.",
-        "",
-        "## Observed Metrics",
-        "- Lost sales revenue: directly observed from `daily_product_warehouse_metrics.lost_sales_revenue`.",
-        "- Inventory value: directly observed from `daily_product_warehouse_metrics.inventory_value`.",
-        "- Slow-moving days: observed when `available_units > 0` and `units_fulfilled = 0`.",
-        "",
-        "## Proxy Formulas",
-        "- Excess inventory value proxy: `inventory_value * max(days_of_supply - dos_cap, 0) / max(days_of_supply, 1)` where DOS caps are A=20, B=30, C=45 days.",
-        "- Trapped working-capital proxy: `excess_inventory_value_proxy + 0.50 * max(slow_moving_value_proxy - excess_inventory_value_proxy, 0)`.",
-        "- Lost sales margin proxy: `lost_sales_revenue * gross_margin_rate` where `gross_margin_rate = (unit_price - unit_cost) / unit_price` from product master.",
-        "- Supplier delay impact proxy: `lost_sales_revenue * supplier_delay_factor`.",
-        "- Supplier delay factor: `0.45*(1-OTD) + 0.35*min(avg_delay_days/7,1) + 0.20*min(lead_time_variability/10,1)`.",
-        "",
-        "## 12-Month Opportunity Assumptions",
-        f"- Annualization factor: `{annualization_factor:.6f}` (365 / observed_days).",
-        f"- Recoverable margin from service interventions: `{ASSUMPTIONS.recoverable_lost_margin_rate_12m:.0%}` of annualized lost-sales margin proxy.",
-        f"- Releasable working capital from inventory actions: `{ASSUMPTIONS.releasable_trapped_wc_rate_12m:.0%}` of annualized trapped WC proxy.",
-        "",
-        "## Caveats",
-        "- Proxy values are prioritization signals, not accounting-recognized P&L outcomes.",
-        "- Excess and slow-moving exposures are behavior-based estimates and may over/understate liquidation reality by SKU lifecycle.",
-        "- Supplier delay impact is associative, not a causal decomposition.",
-        "- Opportunity estimates should be validated with planner constraints, contract terms, and implementation feasibility.",
-    ]
-
-    (DOCS_DIR / "impact_assumptions.md").write_text("\n".join(lines), encoding="utf-8")
-
-
-def write_executive_narrative(
-    overall: pd.DataFrame,
-    sku: pd.DataFrame,
-    warehouse: pd.DataFrame,
-    supplier: pd.DataFrame,
-    category: pd.DataFrame,
-) -> None:
-    OUTPUT_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-
-    m = dict(zip(overall["metric"], overall["value"]))
-
-    top_sku = sku.iloc[0]
-    top_wh = warehouse.iloc[0]
-    top_supplier = supplier.iloc[0]
-    top_category = category.iloc[0]
-
-    lines = [
-        "# Executive Financial Impact Narrative",
-        "",
-        "The current operating model shows a dual-value leakage pattern: material revenue loss from stockouts and substantial capital lock-up in inefficient inventory.",
-        "",
-        "## Financial Impact Snapshot",
-        f"- Observed lost sales exposure: **EUR {m['lost_sales_revenue_observed']:,.0f}**.",
-        f"- Observed excess inventory value proxy: **EUR {m['excess_inventory_value_proxy_observed']:,.0f}**.",
-        f"- Observed trapped working-capital proxy: **EUR {m['trapped_working_capital_proxy_observed']:,.0f}**.",
-        f"- Observed slow-moving concentration proxy: **EUR {m['slow_moving_value_proxy_observed']:,.0f}**.",
-        f"- Supplier delay impact proxy: **EUR {m['supplier_delay_impact_proxy_observed']:,.0f}**.",
-        f"- Estimated 12-month opportunity proxy (margin recovery + WC release): **EUR {m['opportunity_total_12m_proxy']:,.0f}**.",
-        "",
-        "## Prioritization by Business Value",
-        f"- Highest SKU opportunity: **{top_sku['product_id']} ({top_sku['product_name']})** with estimated 12M proxy value **EUR {top_sku['opportunity_total_12m_proxy']:,.0f}**.",
-        f"- Highest warehouse opportunity: **{top_wh['warehouse_id']} ({top_wh['warehouse_name']})** with estimated 12M proxy value **EUR {top_wh['opportunity_total_12m_proxy']:,.0f}**.",
-        f"- Highest supplier opportunity: **{top_supplier['supplier_id']} ({top_supplier['supplier_name']})** with estimated 12M proxy value **EUR {top_supplier['opportunity_total_12m_proxy']:,.0f}**.",
-        f"- Highest category opportunity: **{top_category['category']}** with estimated 12M proxy value **EUR {top_category['opportunity_total_12m_proxy']:,.0f}**.",
-        "",
-        "## Decision Note",
-        "Values above are intentionally conservative proxies to prioritize interventions. Final budget cases should be refined with lane-level constraints, procurement terms, and execution timelines.",
-    ]
-
-    (OUTPUT_REPORTS_DIR / "impact_executive_narrative.md").write_text("\n".join(lines), encoding="utf-8")
-
-
 def run_impact_analysis() -> None:
     OUTPUT_TABLES_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -481,14 +403,10 @@ def run_impact_analysis() -> None:
     opportunity.to_csv(OUTPUT_TABLES_DIR / "impact_opportunity_priority.csv", index=False)
 
     create_charts(overall, sku, warehouse, supplier, category)
-    write_assumptions_log(annualization_factor)
-    write_executive_narrative(overall, sku, warehouse, supplier, category)
 
     print("Impact analysis complete.")
     print(f"Tables written to: {OUTPUT_TABLES_DIR}")
     print(f"Charts written to: {OUTPUT_CHARTS_DIR}")
-    print(f"Assumptions log: {DOCS_DIR / 'impact_assumptions.md'}")
-    print(f"Executive narrative: {OUTPUT_REPORTS_DIR / 'impact_executive_narrative.md'}")
 
 
 if __name__ == "__main__":

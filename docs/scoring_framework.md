@@ -13,7 +13,6 @@ Output tables:
 - `/data/processed/supplier_risk_table.csv`
 - `/data/processed/segment_risk_table.csv`
 - `/data/processed/governance_priority_master.csv`
-- Operationalized in `/outputs/tables/intervention_register.csv` for owner-based action tracking.
 
 ## Entity Grains
 - SKU level: `product_id + warehouse_id + supplier_id + category + region`
@@ -180,7 +179,4 @@ Examples by driver:
 - Treat scores as prioritization logic, not causal proof.
 
 ## Operationalization Layer
-Implemented by `src/intervention_tracker.py`:
-- Maps each scored entity to `intervention_type`, `owner_function`, and `due_date` based on tier SLA.
-- Converts risk severity into `required_score_reduction` and expected-value proxies.
-- Produces action register and owner backlog summaries for S&OP governance cadence.
+Governance actions should be logged outside this repo (S&OP or ticketing tools) using the score table as the weekly intake list.

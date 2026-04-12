@@ -73,79 +73,11 @@ Built via `src/scoring.py`.
 Mirrored reporting extracts are written to `/outputs/tables/` with `scoring_*.csv` names.
 
 ## Impact Outputs
-Built via `src/impact_analysis.py`.
+Built via `src/impact_analysis.py`. Curated impact summaries are stored in `/outputs/tables/`:
+- `impact_overall_summary.csv` (portfolio-level exposure snapshot)
+- `impact_opportunity_priority.csv` (top business-value priorities)
 
-| Table | File | Grain | Purpose |
-|---|---|---|---|
-| impact_by_sku | `/outputs/tables/impact_by_sku.csv` | `product_id + product_name + warehouse_id + category + supplier_id` | SKU-level financial exposure and opportunity proxy |
-| impact_by_warehouse | `/outputs/tables/impact_by_warehouse.csv` | `warehouse_id + region` | Warehouse-level financial exposure and opportunity proxy |
-| impact_by_supplier | `/outputs/tables/impact_by_supplier.csv` | `supplier_id` | Supplier-linked exposure and opportunity proxy |
-| impact_by_category | `/outputs/tables/impact_by_category.csv` | `category` | Category-level value concentration and trade-off exposure |
-| impact_overall_summary | `/outputs/tables/impact_overall_summary.csv` | metric row | Overall observed and annualized proxy metrics |
-| impact_opportunity_priority | `/outputs/tables/impact_opportunity_priority.csv` | mixed entity list | Top prioritized opportunities across entity types |
-
-## Policy Simulation Outputs
-Built via `src/policy_simulation.py`.
-
-| Table | File | Grain | Purpose |
-|---|---|---|---|
-| policy_simulation_sku_scenarios | `/outputs/tables/policy_simulation_sku_scenarios.csv` | `scenario_name + product_id + warehouse_id` | Forecast-driven policy simulation by lane under alternative reorder assumptions |
-| policy_simulation_frontier | `/outputs/tables/policy_simulation_frontier.csv` | `scenario_name` | Service vs inventory frontier summary for policy selection |
-
-## Source Adapter and Forecast Outputs
-Built via `src/source_adapter.py` and `src/probabilistic_forecast.py`.
-
-| Table | File | Grain | Purpose |
-|---|---|---|---|
-| source_adapter_readiness | `/outputs/tables/source_adapter_readiness.csv` | `table_name` | Readiness and schema-compatibility checks for external source promotion |
-| source_refresh_manifest | `/outputs/tables/source_refresh_manifest.csv` | `artifact_path` | Artifact freshness manifest for refresh traceability |
-| demand_forecast_lane_daily | `/outputs/tables/demand_forecast_lane_daily.csv` | `forecast_date + product_id + warehouse_id` | 30-day lane forecast distribution (q10/q50/q90) |
-| demand_forecast_lane_summary | `/outputs/tables/demand_forecast_lane_summary.csv` | `product_id + warehouse_id + supplier_id` | Lane-level forecast uncertainty summary used by policy simulation |
-
-## Policy Optimizer Outputs
-Built via `src/policy_optimizer.py`.
-
-| Table | File | Grain | Purpose |
-|---|---|---|---|
-| policy_optimizer_lane_selection | `/outputs/tables/policy_optimizer_lane_selection.csv` | `budget_uplift + product_id + warehouse_id + supplier_id` | Lane-level scenario selection under capital budget constraints |
-| policy_optimizer_budget_summary | `/outputs/tables/policy_optimizer_budget_summary.csv` | `budget_uplift` | Portfolio-level service and lost-sales improvement across budget tiers |
-
-## Assumption Sensitivity Outputs
-Built via `src/sensitivity_analysis.py`.
-
-| Table | File | Grain | Purpose |
-|---|---|---|---|
-| sensitivity_opportunity_grid | `/outputs/tables/sensitivity_opportunity_grid.csv` | `recoverable_margin_rate + releasable_wc_rate + slow_moving_incremental_weight` | Sensitivity grid for 12M opportunity proxy under alternate assumptions |
-| sensitivity_opportunity_tornado | `/outputs/tables/sensitivity_opportunity_tornado.csv` | `factor` | Assumption influence summary (high-low opportunity swing) |
-
-## Monte Carlo Stress Outputs
-Built via `src/monte_carlo_stress.py`.
-
-| Table | File | Grain | Purpose |
-|---|---|---|---|
-| stress_monte_carlo_lane_results | `/outputs/tables/stress_monte_carlo_lane_results.csv` | `supplier_id + warehouse_id + category + product_id` | Simulated lane-level downside service risk under demand/lead-time uncertainty |
-| stress_monte_carlo_segment_results | `/outputs/tables/stress_monte_carlo_segment_results.csv` | `supplier_id + warehouse_id + category` | Segment-level stress concentration for governance queueing |
-
-## Supplier Lane Diagnostics Outputs
-Built via `src/supplier_lane_diagnostics.py`.
-
-| Table | File | Grain | Purpose |
-|---|---|---|---|
-| supplier_lane_diagnostics | `/outputs/tables/supplier_lane_diagnostics.csv` | `supplier_id + warehouse_id + category` | Lane-level supplier diagnostics linking execution risk with downstream service outcomes |
-| supplier_lane_supplier_summary | `/outputs/tables/supplier_lane_supplier_summary.csv` | `supplier_id` | Roll-up view of supplier lane risk concentration |
-
-## PO Cohort, Intervention, and Alert Outputs
-Built via `src/po_cohort_diagnostics.py`, `src/intervention_tracker.py`, and `src/anomaly_alerts.py`.
-
-| Table | File | Grain | Purpose |
-|---|---|---|---|
-| po_cohort_diagnostics | `/outputs/tables/po_cohort_diagnostics.csv` | `supplier_id + warehouse_id + cohort_month` | Monthly cohort-level supplier execution and downstream service linkage |
-| po_cohort_lane_summary | `/outputs/tables/po_cohort_lane_summary.csv` | `supplier_id + warehouse_id` | Persistent cohort risk roll-up at lane level |
-| intervention_register | `/outputs/tables/intervention_register.csv` | `intervention_id` | Action register with owners, due dates, expected value proxy, and closure evidence requirements |
-| intervention_summary_by_owner | `/outputs/tables/intervention_summary_by_owner.csv` | `owner_function + intervention_status` | Backlog concentration by owner and status |
-| intervention_summary_by_driver | `/outputs/tables/intervention_summary_by_driver.csv` | `main_risk_driver + intervention_type` | Root-driver concentration for governance cadence |
-| anomaly_alerts | `/outputs/tables/anomaly_alerts.csv` | `alert_id` | Point-in-time operational spikes with severity and recommended immediate actions |
-| anomaly_alerts_summary | `/outputs/tables/anomaly_alerts_summary.csv` | `entity_type + entity_id + severity` | Alert persistence and severity concentration |
+No additional diagnostic layers are generated beyond the core impact summaries in this release.
 
 ## SQL Quality Gate Output
 Built via `src/sql_quality_gate.py`.
@@ -153,7 +85,6 @@ Built via `src/sql_quality_gate.py`.
 | Table | File | Grain | Purpose |
 |---|---|---|---|
 | ci_sql_validation_checks | `/outputs/tables/ci_sql_validation_checks.csv` | `check_name` | SQL quality-gate results used by CI and release controls |
-| pipeline_run_log | `/outputs/tables/pipeline_run_log.csv` | `run_timestamp_utc + script_name` | Orchestration trace log with step-level runtime and status |
 | validation_release_state_matrix | `/outputs/tables/validation_release_state_matrix.csv` | `state_name` | Explicit release-state governance matrix (technical, analytical, decision-support, screening, committee, publish gate) |
 
 ## Data Contract Outputs
@@ -199,12 +130,8 @@ Runtime HTML payload:
 
 ## Lineage Summary
 `data/raw/*.csv`
--> source adapter readiness checks (`source_adapter_readiness`)
 -> SQL views (`daily_product_warehouse_metrics`, `supplier_performance_summary`, `product_inventory_profile`, `warehouse_service_profile`)
--> probabilistic forecast enrichment (`demand_forecast_lane_*`)
 -> feature engineering and scoring (`sku_risk_table`, `supplier_risk_table`, `segment_risk_table`, `governance_priority_master`)
--> KPI diagnostics and impact outputs
--> assumption sensitivity analysis
--> policy simulation + policy optimizer + Monte Carlo stress + supplier/PO diagnostics
--> intervention tracker + anomaly alerts
--> visualizations + dashboard + validation + CI quality gates.
+-> KPI diagnostics + impact outputs
+-> visualizations + dashboard + validation + CI quality gates
+-> curated impact summaries and governance outputs for decision-support review.

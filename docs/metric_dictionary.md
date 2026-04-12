@@ -10,11 +10,6 @@ Primary implementation references:
 - `src/feature_engineering.py`
 - `src/scoring.py`
 - `src/impact_analysis.py`
-- `src/probabilistic_forecast.py`
-- `src/policy_optimizer.py`
-- `src/intervention_tracker.py`
-- `src/anomaly_alerts.py`
-- `src/sensitivity_analysis.py`
 
 ## Service Metrics
 | Metric | Definition | Formula | Grain | Notes |
@@ -54,6 +49,7 @@ Primary implementation references:
 | `working_capital_at_risk` | Working-capital exposure shown in executive views. | Aggregated `trapped_working_capital_proxy` over selected scope | Dashboard/filter scope, impact outputs | Proxy estimate, not accounting balance sheet line item. |
 | `gross_margin_rate` | Product-level gross margin ratio. | `(unit_price - unit_cost) / unit_price`, floor at 0 | Product | Used to convert lost sales to margin proxy. |
 | `lost_sales_margin_proxy` | Margin value associated with lost sales. | `lost_sales_revenue * gross_margin_rate` | Daily SKU-warehouse and aggregated | Proxy for recoverable margin opportunity. |
+| `opportunity_total_12m_proxy` | Total 12M value proxy under current assumptions. | `(annual_lost_sales_margin_proxy * recoverable_margin_rate) + (annual_trapped_wc_proxy_scenario * releasable_wc_rate)` | Executive scope | Used for directional prioritization, not booking. |
 
 ## Governance and Scoring Metrics
 | Metric | Definition | Formula | Grain | Notes |
@@ -67,34 +63,6 @@ Primary implementation references:
 | `risk_tier` | Priority classification band. | `Low <=35`, `Medium (35,55]`, `High (55,75]`, `Critical >75` | Scoring entities | Used for intervention queueing. |
 | `main_risk_driver` | Dominant risk component for routing ownership. | `argmax(service, stockout, excess, supplier, working_capital)` | Scoring entities | Drives recommended action mapping. |
 
-## Policy Simulation and Stress Metrics
-| Metric | Definition | Formula | Grain | Notes |
-|---|---|---|---|---|
-| `estimated_service_level` | Forecasted service under policy scenario. | `Phi((reorder_point - demand_mean*lead_time) / (demand_std*sqrt(lead_time)))` | Scenario x SKU x warehouse | Policy simulation output from `src/policy_simulation.py`. |
-| `expected_inventory_value` | Forecasted inventory value under scenario policy. | `expected_on_hand_units * unit_cost` | Scenario x SKU x warehouse | Used to build service-vs-capital frontier. |
-| `prob_stockout` | Simulated stockout probability under uncertainty. | `mean(demand_during_lead_time > available_position)` across Monte Carlo iterations | Supplier x warehouse x category x SKU | Monte Carlo downside risk metric. |
-| `expected_service_level` (stress) | Mean simulated service under uncertainty. | `mean(min(available_position / demand_during_lead_time, 1))` | Supplier x warehouse x category x SKU | Captures resilience under volatility. |
-| `supplier_lane_risk_score` | Composite lane-level supplier risk score. | Weighted combination of downstream stockout, fill gap, supplier risk proxy, excess day rate, and lost-sales concentration | Supplier x warehouse x category | Used for lane-level procurement and S&OE exception management. |
-
-## Forecast, Optimization, and Operational Governance Metrics
-| Metric | Definition | Formula | Grain | Notes |
-|---|---|---|---|---|
-| `forecast_q10`, `forecast_q50`, `forecast_q90` | Probabilistic demand forecast band by lane-date. | EWMA level x day-of-week seasonality with normal residual spread; q10/q50/q90 from z-scores | Forecast date + SKU + warehouse | Generated in `src/probabilistic_forecast.py`. |
-| `uncertainty_band_rate` | Relative forecast uncertainty width. | `(sum(q90) - sum(q10)) / sum(q50)` over forecast horizon | SKU + warehouse + supplier | Higher values indicate unstable demand signal. |
-| `benefit_proxy` (optimizer) | Policy upgrade benefit proxy under capital constraint. | `0.70*lost_sales_improvement + 0.30*(service_improvement*1,000,000)` weighted by ABC priority | Scenario + SKU + warehouse | Decision ranking signal, not accounting value. |
-| `benefit_cost_ratio` | Efficiency of policy upgrade per unit capital. | `benefit_proxy / max(delta_inventory, 1)` | Scenario + SKU + warehouse | Used for greedy budget allocation. |
-| `service_uplift` (optimizer) | Incremental weighted service level versus baseline. | `weighted_selected_service - weighted_base_service` | Budget scenario | Evaluates marginal policy return by capital tier. |
-| `lost_sales_improvement` (optimizer) | Lost-sales reduction under selected policy set. | `base_lost_sales - selected_lost_sales` | Budget scenario | Reported as directional economic benefit proxy. |
-| `expected_value_proxy` (intervention) | Combined value signal for intervention prioritization. | `expected_margin_recovery_proxy + expected_wc_release_proxy` | Intervention ID | Used for owner backlog sequencing. |
-| `required_score_reduction` | Score movement needed to meet target tier. | `max(governance_priority_score - target_governance_score, 0)` | Intervention ID | Used for closure criteria. |
-| `z_score` (alerts) | Magnitude of metric spike versus rolling baseline. | `(metric_value - baseline_mean) / baseline_std` | Alert ID | Supports severity assignment (`Medium/High/Critical`). |
-
-## Sensitivity Metrics
-| Metric | Definition | Formula | Grain | Notes |
-|---|---|---|---|---|
-| `opportunity_total_12m_proxy` (sensitivity) | Total 12M value under a specific assumption set. | `(annual_lost_sales_margin_proxy * recoverable_margin_rate) + (annual_trapped_wc_proxy_scenario * releasable_wc_rate)` | Assumption scenario row | Used to communicate uncertainty band, not a single-point commitment. |
-| `annual_trapped_wc_proxy_scenario` | Working-capital proxy under configurable slow-moving overlap weight. | `annual_excess_inventory_proxy + slow_moving_incremental_weight * annual_slow_non_excess_proxy` | Assumption scenario row | Prevents false precision from fixed overlap assumptions. |
-| `swing` (tornado) | Modeled impact range of each assumption factor. | `high_opportunity - low_opportunity` | Assumption factor | Used to identify assumptions that most influence executive value claims. |
 
 ## Handling Rules for KPI Construction
 - Do not average binary flags (`stockout_flag`, `slow_moving_day`, `excess_day`) without stating the denominator and interpretation.

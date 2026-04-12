@@ -25,23 +25,13 @@ PLOT_ENV = {
 
 STEPS: list[tuple[str, dict[str, str]]] = [
     ("data_generation.py", {}),
-    ("source_adapter.py", {}),
     ("data_preparation.py", {}),
     ("feature_engineering.py", {}),
     ("data_contracts.py", {}),
-    ("probabilistic_forecast.py", PLOT_ENV),
     ("scoring.py", {}),
     ("kpi_diagnostic_analysis.py", {}),
     ("impact_analysis.py", PLOT_ENV),
-    ("sensitivity_analysis.py", PLOT_ENV),
     ("visualization.py", PLOT_ENV),
-    ("policy_simulation.py", PLOT_ENV),
-    ("policy_optimizer.py", PLOT_ENV),
-    ("monte_carlo_stress.py", PLOT_ENV),
-    ("supplier_lane_diagnostics.py", PLOT_ENV),
-    ("po_cohort_diagnostics.py", PLOT_ENV),
-    ("intervention_tracker.py", PLOT_ENV),
-    ("anomaly_alerts.py", PLOT_ENV),
     ("executive_dashboard.py", {}),
     ("sql_quality_gate.py", {}),
     ("pre_delivery_validation.py", {}),
@@ -68,28 +58,6 @@ def _write_run_log(run_log: pd.DataFrame) -> None:
     OUTPUT_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
     run_log.to_csv(OUTPUT_TABLES_DIR / "pipeline_run_log.csv", index=False)
-
-    pass_count = int((run_log["status"] == "PASS").sum())
-    fail_count = int((run_log["status"] == "FAIL").sum())
-    total_sec = float(run_log["duration_sec"].sum())
-
-    slowest = run_log.sort_values("duration_sec", ascending=False).head(3)
-    lines = [
-        "# Pipeline Run Summary",
-        "",
-        f"- Generated at: **{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}**",
-        f"- Steps: **{len(run_log)}**",
-        f"- Passed: **{pass_count}**",
-        f"- Failed: **{fail_count}**",
-        f"- Total runtime: **{total_sec:.1f} sec**",
-        "",
-        "## Slowest Steps",
-    ]
-
-    for row in slowest.itertuples(index=False):
-        lines.append(f"- `{row.script_name}`: {row.duration_sec:.1f} sec ({row.status})")
-
-    (OUTPUT_REPORTS_DIR / "pipeline_run_summary.md").write_text("\n".join(lines), encoding="utf-8")
 
 
 def main() -> None:

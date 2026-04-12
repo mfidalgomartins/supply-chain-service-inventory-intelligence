@@ -1,5 +1,0 @@
-artifact_path,exists,modified_utc,age_hours,size_kb
-/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/outputs/tables/validation_pre_delivery_checks.csv,1,2026-04-02 12:45:26,0.18558968805555556,8.45703125
-/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/outputs/tables/dashboard_monthly_sku_fact.csv,1,2026-04-02 12:53:33,0.05030327861111111,1361.333984375
-/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/outputs/dashboard/index.html,1,2026-04-02 12:53:33,0.050289103055555555,5837.0791015625
-/Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system/outputs/reports/executive_summary.md,1,2026-03-28 22:57:38,109.98222944472222,5.5009765625

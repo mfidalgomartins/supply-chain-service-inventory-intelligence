@@ -21,14 +21,7 @@ REQUIRED_FILES = [
     PROJECT_ROOT / "docs" / "release_governance.md",
     PROJECT_ROOT / "outputs" / "reports" / "executive_kpi_diagnostic_analysis.md",
     PROJECT_ROOT / "outputs" / "reports" / "executive_summary.md",
-    PROJECT_ROOT / "outputs" / "reports" / "source_adapter_readiness.md",
     PROJECT_ROOT / "outputs" / "reports" / "data_contracts_summary.md",
-    PROJECT_ROOT / "outputs" / "reports" / "probabilistic_forecast_summary.md",
-    PROJECT_ROOT / "outputs" / "reports" / "policy_optimizer_summary.md",
-    PROJECT_ROOT / "outputs" / "reports" / "sensitivity_summary.md",
-    PROJECT_ROOT / "outputs" / "reports" / "po_cohort_diagnostics_summary.md",
-    PROJECT_ROOT / "outputs" / "reports" / "intervention_tracker_summary.md",
-    PROJECT_ROOT / "outputs" / "reports" / "anomaly_alerts_summary.md",
     PROJECT_ROOT / "outputs" / "reports" / "release_readiness.md",
 ]
 

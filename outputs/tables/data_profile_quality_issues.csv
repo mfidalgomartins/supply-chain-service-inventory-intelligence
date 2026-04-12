@@ -1,2 +1,0 @@
-issue_category,severity,object_name,issue,issue_count,recommended_rule
-time_series_or_signal,Medium,skewed_days_of_supply_distribution,High p99/p50 DOS ratio indicates heavy right tail and potential overstock outliers.,9.368,Use coverage thresholds and minimum sample gates in KPI dashboards.

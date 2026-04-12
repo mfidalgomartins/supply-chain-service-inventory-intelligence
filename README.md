@@ -32,25 +32,17 @@ Financially:
 - inefficient inventory positioning traps working capital that could be redeployed
 
 ## 5) Project Architecture
-The system is organized in modular layers:
+The system is organized in focused, decision-grade layers:
 1. **Data generation layer** (`src/data_generation.py`) produces multi-table synthetic operations data.
-2. **Source adapter layer** (`src/source_adapter.py`) introduces real-source readiness checks, schema templates, and refresh-manifest traceability.
-3. **SQL modeling layer** (`sql/`) defines schema, intermediate views, KPI queries, and validation logic.
-4. **Analytical modeling layer** (`src/data_preparation.py`, `src/feature_engineering.py`) builds processed decision tables.
-5. **Data-contract layer** (`configs/table_contracts.json`, `src/data_contracts.py`) enforces schema/grain/null/non-negative contracts before downstream analytics.
-6. **Probabilistic forecast layer** (`src/probabilistic_forecast.py`) replaces static lane demand assumptions with forecast distributions.
-7. **Scoring layer** (`src/scoring.py`) computes interpretable risk and governance priority scores.
-8. **Impact layer** (`src/impact_analysis.py`) estimates business-value exposure and opportunity proxies.
-9. **Sensitivity layer** (`src/sensitivity_analysis.py`) stress-tests business-value outputs under assumption ranges.
-10. **Visualization layer** (`src/visualization.py`) generates publication-quality PNG charts.
-11. **Policy simulation layer** (`src/policy_simulation.py`) builds service-vs-working-capital policy frontiers under alternate reorder assumptions.
-12. **Policy optimizer layer** (`src/policy_optimizer.py`) allocates limited inventory capital to lane-level policy upgrades.
-13. **Monte Carlo stress layer** (`src/monte_carlo_stress.py`) stress-tests lane service under demand and lead-time uncertainty.
-14. **Supplier lane + PO cohort diagnostics** (`src/supplier_lane_diagnostics.py`, `src/po_cohort_diagnostics.py`) quantifies persistent execution risk by lane and cohort.
-15. **Intervention tracker layer** (`src/intervention_tracker.py`) converts risk scores into owner-based action registers with due dates.
-16. **Anomaly alert layer** (`src/anomaly_alerts.py`) flags sudden warehouse and supplier instability spikes.
-17. **Executive dashboard layer** (`src/executive_dashboard.py`) creates a single self-contained HTML dashboard with version stamp and dataset fingerprint.
-18. **Pre-delivery + CI quality-gate layer** (`src/pre_delivery_validation.py`, `src/sql_quality_gate.py`, `src/ci_quality_gate.py`) enforces SQL/Python data-quality and release checks.
+2. **SQL modeling layer** (`sql/`) defines schema, intermediate views, KPI queries, and validation logic.
+3. **Analytical modeling layer** (`src/data_preparation.py`, `src/feature_engineering.py`) builds processed decision tables.
+4. **Data-contract layer** (`configs/table_contracts.json`, `src/data_contracts.py`) enforces schema/grain/null/non-negative contracts before downstream analytics.
+5. **Scoring layer** (`src/scoring.py`) computes interpretable risk and governance priority scores.
+6. **KPI + diagnostics layer** (`src/kpi_diagnostic_analysis.py`) produces operational summaries and comparisons.
+7. **Impact layer** (`src/impact_analysis.py`) estimates business-value exposure and opportunity proxies.
+8. **Visualization layer** (`src/visualization.py`) generates publication-quality PNG charts.
+9. **Executive dashboard layer** (`src/executive_dashboard.py`) creates a single self-contained HTML dashboard for leadership review.
+10. **Pre-delivery + CI quality-gate layer** (`src/pre_delivery_validation.py`, `src/sql_quality_gate.py`, `src/ci_quality_gate.py`) enforces SQL/Python data-quality and release checks.
 
 ## 6) Dataset Design
 Synthetic data models a multi-warehouse distribution network with daily granularity and realistic operational variation.
@@ -86,7 +78,7 @@ Processed analytical tables:
 Primary KPI families:
 - service health: fill rate, stockout rate, lost sales value
 - inventory efficiency: days of supply distribution, excess exposure, slow-moving exposure
-- working-capital stress: inventory concentration and trapped-capital proxies
+- working-capital exposure: inventory concentration and trapped-capital proxies
 - supplier execution: on-time delivery, delay, lead-time variability
 - trade-off diagnostics: service vs inventory policy imbalance zones
 
@@ -114,7 +106,6 @@ A single self-contained executive dashboard is generated at:
 
 Audience-ready sections include:
 - executive header + filters + methodology panel
-- financial assumption sliders for recoverable margin, releasable working capital, and slow-moving incremental weighting
 - KPI scorecards
 - automatic leadership callouts
 - trend analysis (service, stockout, lost sales, inventory)
@@ -134,10 +125,6 @@ From the latest generated outputs:
 - most pressured warehouse: **WH-LYON**
 - highest supplier risk exposure: **SUP-002**
 - largest loss-concentration category: **Health**
-- policy optimizer best tested budget: **+15% capital**, **+4.53pp service uplift**, **EUR 10.38M lost-sales recovery**
-- intervention register backlog: **480 items** with **43 open high-priority interventions**
-- anomaly watchlist: **428 alerts** with top critical spike at **SUP-011 delay-duration**
-- sensitivity range (assumption grid): opportunity spans approx. **EUR 20.45M to EUR 64.35M**
 
 These values are scenario outputs from synthetic data and are intended for methodological demonstration and governance prioritization logic.
 
@@ -146,13 +133,13 @@ These values are scenario outputs from synthetic data and are intended for metho
 2. Launch supplier corrective plans on high-risk suppliers with weak OTD and high downstream stockout linkage.
 3. Execute category-level working-capital release actions where excess and slow-moving exposure are concentrated.
 4. Manage service-vs-capital trade-offs through explicit policy bands (target fill rate + DOS guardrails).
-5. Operationalize a weekly governance cadence using score movement and intervention closure metrics.
+5. Operationalize a weekly governance cadence using score movement and SKU-level resolution tracking.
 
 ## 13) Validation and Caveats
 Formal pre-delivery validation is documented in:
 - [`docs/validation_report.md`](docs/validation_report.md)
 
-Current QA status (latest run):
+Current QA status:
 - generated by `src/pre_delivery_validation.py` and `src/ci_quality_gate.py`
 - includes SQL/Python integrity checks, scoring stability checks, dashboard governance checks, report-to-metric reconciliation, and release-state classification
 - outputs:
@@ -190,27 +177,13 @@ python3 -m venv .venv
 # 5) Run impact analysis
 .venv/bin/python src/impact_analysis.py
 
-# 6) Run assumption sensitivity analysis
-.venv/bin/python src/sensitivity_analysis.py
-
-# 7) Generate visualization suite
+# 6) Generate visualization suite
 .venv/bin/python src/visualization.py
 
-# 8) Run policy simulation and stress diagnostics
-.venv/bin/python src/probabilistic_forecast.py
-.venv/bin/python src/policy_simulation.py
-.venv/bin/python src/policy_optimizer.py
-.venv/bin/python src/monte_carlo_stress.py
-.venv/bin/python src/supplier_lane_diagnostics.py
-.venv/bin/python src/po_cohort_diagnostics.py
-.venv/bin/python src/intervention_tracker.py
-.venv/bin/python src/anomaly_alerts.py
-
-# 9) Build executive dashboard
+# 7) Build executive dashboard
 .venv/bin/python src/executive_dashboard.py
 
-# 10) Run source adapter readiness + formal quality gates
-.venv/bin/python src/source_adapter.py
+# 8) Run formal quality gates
 .venv/bin/python src/sql_quality_gate.py
 .venv/bin/python src/pre_delivery_validation.py
 .venv/bin/python src/ci_quality_gate.py
@@ -240,8 +213,6 @@ supply-chain-service-inventory-intelligence/
 │   ├── dashboard/
 │   ├── reports/
 │   └── tables/
-├── notebooks/
-│   └── supply_chain_service_level_inventory_intelligence.ipynb
 ├── configs/
 │   └── table_contracts.json
 └── .github/workflows/
@@ -249,19 +220,15 @@ supply-chain-service-inventory-intelligence/
 ```
 
 ## 16) Future Improvements
-1. Add closed-loop intervention outcomes (before/after score migration and realized P&L impact tracking).
-2. Extend policy optimizer to multi-period capital budgets with seasonal constraints and MOQ/transport cost penalties.
-3. Add probabilistic forecast model benchmarking (ETS vs Croston vs baseline EWMA) with backtest diagnostics.
-4. Introduce shipment-level transportation and lane-cost data for end-to-end service-cost optimization.
-5. Wire source adapter to cloud object storage + orchestration metadata (e.g., dbt/Airflow run status integration).
-6. Add near-real-time alert routing integration (Slack/Teams webhook and ticket auto-creation).
+1. Introduce shipment-level transportation and lane-cost data for end-to-end service-cost optimization.
+2. Add closed-loop outcome tracking once a real execution system is connected (before/after KPI migration).
+3. Wire source ingestion to orchestration metadata (dbt/Airflow run status integration).
 
 ## 17) Repository Governance Notes
 - `src/run_pipeline.py` is the authoritative execution path for reproducible builds.
 - `outputs/dashboard/index.html` is the single official dashboard artifact for release review.
-- `docs/metric_dictionary.md` is the authoritative metric source; `docs/metric_definitions.md` is a legacy pointer only.
-- Legacy wrappers are retained only for backward compatibility and kept minimal to avoid logic divergence.
-- Legacy entry-point names (`src/analyze.py`, `src/build_dashboard.py`, `src/generate_data.py`, `src/validate.py`, `src/run_sql_analysis.py`) are now compatibility wrappers that route to authoritative modules to prevent logic divergence.
+- `docs/metric_dictionary.md` is the authoritative metric source for KPIs and scoring logic.
+- The curated `/outputs` structure keeps review artifacts focused on executive evidence, governed metrics, and release checks.
 
 ---
 This project is intentionally built as an internal-grade analytics product, not a notebook-only demo, to demonstrate senior-level analytics engineering, operational reasoning, and executive communication.

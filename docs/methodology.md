@@ -12,9 +12,8 @@ Core business question:
 ## Project Scope
 Included:
 - End-to-end synthetic data generation at daily grain for a multi-warehouse distribution network.
-- Source-adapter readiness layer for promoting real extracts over synthetic data when schema checks pass.
 - SQL-based analytical modeling for canonical daily and entity-level views.
-- Python-based feature engineering, probabilistic forecasting, scoring, diagnostics, optimization, intervention governance, anomaly alerts, impact estimation, visualization, and dashboard packaging.
+- Python-based feature engineering, scoring, diagnostics, impact estimation, visualization, and dashboard packaging.
 - Formal pre-delivery validation (SQL + Python checks) before executive outputs.
 
 Excluded:
@@ -40,7 +39,7 @@ Embedded operational realism:
 - Chronic profiles for deliberate overstock and stockout behavior.
 - Purchase-order creation with late-delivery and under-receipt patterns.
 
-Current generated volume (latest run):
+Current generated volume:
 - `products`: 120
 - `suppliers`: 12
 - `warehouses`: 4
@@ -81,59 +80,20 @@ Current generated volume (latest run):
   - `/data/processed/segment_risk_table.csv`
   - `/data/processed/governance_priority_master.csv`
 
-6. KPI and diagnostic analysis
-- Script: `src/kpi_diagnostic_analysis.py`
-- Output: `/outputs/reports/*.csv` + executive narrative markdown.
+6. KPI, impact, and diagnostic analysis
+- Scripts: `src/kpi_diagnostic_analysis.py`, `src/impact_analysis.py`, `src/visualization.py`
+- Core outputs are curated in `/outputs/` (executive summaries, KPI tables, and charts).
 
-7. Financial impact estimation
-- Script: `src/impact_analysis.py`
-- Output: `/outputs/tables/impact_*.csv`, `/outputs/charts/impact_*.png`, assumptions and narrative docs.
-
-8. Assumption sensitivity layer
-- Script: `src/sensitivity_analysis.py`
-- Output: sensitivity tables/charts (`/outputs/tables/sensitivity_*.csv`, `/outputs/charts/sensitivity_*.png`) and summary report.
-
-9. Visualization suite
-- Script: `src/visualization.py`
-- Output: `/outputs/charts/viz_*.png` and chart data in `/outputs/tables/viz_data_*.csv`.
-
-10. Executive dashboard
+7. Executive dashboard
 - Script: `src/executive_dashboard.py`
 - Output: `/outputs/dashboard/index.html` (self-contained), plus dashboard fact/dim extracts in `/outputs/tables/`.
 
-11. Policy simulation layer
-- Script: `src/policy_simulation.py`
-- Output: policy scenario tables (`/outputs/tables/policy_simulation_*.csv`), frontier chart, and policy summary.
-
-12. Policy optimizer layer
-- Script: `src/policy_optimizer.py`
-- Output: budget-constrained lane policy selections and trade-off summary (`/outputs/tables/policy_optimizer_*.csv`).
-
-13. Monte Carlo uncertainty stress layer
-- Script: `src/monte_carlo_stress.py`
-- Output: lane/segment stress outputs (`/outputs/tables/stress_monte_carlo_*.csv`), stress charts, and summary report.
-
-14. Supplier lane diagnostics layer
-- Script: `src/supplier_lane_diagnostics.py`
-- Output: lane diagnostics tables (`/outputs/tables/supplier_lane_*.csv`), lane risk chart, and summary report.
-
-15. PO cohort diagnostics layer
-- Script: `src/po_cohort_diagnostics.py`
-- Output: supplier-warehouse cohort diagnostics and monthly risk decomposition (`/outputs/tables/po_cohort_*.csv`).
-
-16. Intervention governance tracker
-- Script: `src/intervention_tracker.py`
-- Output: owner-based intervention register and backlog summaries (`/outputs/tables/intervention_*.csv`).
-
-17. Anomaly detection layer
-- Script: `src/anomaly_alerts.py`
-- Output: spike alerts for warehouse service and supplier delay behavior (`/outputs/tables/anomaly_alerts*.csv`).
-
-18. Pre-delivery QA
+8. Pre-delivery QA
 - Script: `src/pre_delivery_validation.py`
-- Output: validation tables + `/docs/validation_report.md` + release-state matrix (`/outputs/tables/validation_release_state_matrix.csv`) + release readiness summary (`/outputs/reports/release_readiness.md`).
+- Output: validation tables + `/docs/validation_report.md` + release-state matrix (`/outputs/tables/validation_release_state_matrix.csv`)
+  + release readiness summary (`/outputs/reports/release_readiness.md`).
 
-19. SQL and CI quality gates
+9. SQL and CI quality gates
 - Scripts: `src/sql_quality_gate.py`, `src/ci_quality_gate.py`
 - CI workflow: `.github/workflows/analytics-ci.yml`
 - Output: SQL gate checks (`/outputs/tables/ci_sql_validation_checks.csv`) and release gating status with explicit states:
@@ -182,7 +142,7 @@ Validation dimensions:
 - Governance score formula and tier consistency checks.
 - Chart file existence and dashboard metric reconciliation checks.
 - Narrative overclaiming control (explicit observed vs proxy distinction).
-- Upgrade output presence checks (source adapter, probabilistic forecast, sensitivity, policy optimizer, stress testing, lane diagnostics, intervention tracker, anomaly alerts, SQL gate outputs).
+- Output presence checks for core KPI, scoring, impact, and dashboard artifacts.
 
 Latest status:
 - Generated on each pipeline run; see `/docs/validation_report.md` and `/outputs/reports/release_readiness.md` for current counts and release class.

@@ -197,8 +197,9 @@ def _plot_stockout_trend(monthly: pd.DataFrame) -> None:
 
 def _plot_fill_rate_by_warehouse(warehouse: pd.DataFrame) -> None:
     df = warehouse.sort_values("fill_rate", ascending=True).copy()
+    df["warehouse_label"] = df["warehouse_name"].apply(lambda x: x if len(x) <= 22 else f"{x[:19]}...")
     fig, ax = plt.subplots(figsize=(10.2, 5.4))
-    sns.barplot(data=df, y="warehouse_name", x="fill_rate", color="#2C5282", ax=ax)
+    sns.barplot(data=df, y="warehouse_label", x="fill_rate", color="#2C5282", ax=ax)
     ax.axvline(0.95, linestyle="--", color="#4A5568", linewidth=1.2, label="95% target reference")
     ax.set_title("Service Imbalance by Warehouse Highlights Execution Hotspots")
     ax.set_xlabel("Fill Rate")
@@ -206,6 +207,7 @@ def _plot_fill_rate_by_warehouse(warehouse: pd.DataFrame) -> None:
     ax.xaxis.set_major_formatter(FuncFormatter(_pct))
     ax.grid(axis="x", alpha=0.25)
     ax.legend(loc="lower right", frameon=False)
+    ax.tick_params(axis="y", labelsize=9)
     fig.tight_layout()
     fig.savefig(OUTPUT_CHARTS_DIR / "viz_03_fill_rate_by_warehouse.png", dpi=220)
     plt.close(fig)

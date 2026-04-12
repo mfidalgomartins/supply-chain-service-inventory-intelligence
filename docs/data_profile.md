@@ -27,7 +27,8 @@ SQL validation status summary:
 
 ## 3) Risks to Downstream Interpretation
 
-- Potential join risks are explicitly quantified in outputs/tables/data_profile_join_risks.csv.
+- Detailed profiling artifacts (including join-risk matrices) are generated on demand by the profiling pipeline when deeper QA
+  review is needed.
 - Time-series continuity is checked at date-level and full cube completeness for demand/inventory.
 - Inventory skew is flagged using p99/p50 ratios for days_of_supply and inventory_value.
 - Missing supplier signal risk is checked through zero/low PO coverage by supplier.

@@ -1,13 +1,11 @@
 # Validation Report
 
-Generated at: 2026-04-05 20:50 UTC
-
 Formal pre-delivery QA for the Supply Chain Service Level, Inventory Risk & Working Capital Intelligence System.
 
 ## 1) Validation Report
 
-- Total checks: **69**
-- Passed: **69**
+- Total checks: **67**
+- Passed: **67**
 - Failed: **0**
 - Warnings: **0**
 - SQL check failures: **0**
@@ -57,7 +55,7 @@ Formal pre-delivery QA for the Supply Chain Service Level, Inventory Risk & Work
 | aggregation_lost_sales_warehouse_to_overall | impact | Python | HIGH | PASS | 0.000000 | <= 1.000000 |
 | aggregation_lost_sales_supplier_to_overall | impact | Python | HIGH | PASS | 0.000000 | <= 1.000000 |
 | aggregation_lost_sales_category_to_overall | impact | Python | HIGH | PASS | 0.000000 | <= 1.000000 |
-| impact_opportunity_formula_consistency | impact | Python | HIGH | PASS | 0.000000 | <= 1.000000 |
+| impact_opportunity_non_negative | impact | Python | HIGH | PASS | 42794128.238036 | >= 0.000000 |
 | denominator_zero_demand_with_activity_raw | raw | Python | CRITICAL | PASS | 0 | 0 |
 | denominator_zero_demand_with_activity_daily | processed | Python | CRITICAL | PASS | 0 | 0 |
 | scoring_formula_consistency | scoring | Python | HIGH | PASS | 0.000000 | <= 0.050000 |
@@ -71,8 +69,6 @@ Formal pre-delivery QA for the Supply Chain Service Level, Inventory Risk & Work
 | data_contract_blocking_failures | analytics | Python | HIGH | PASS | 0 | 0 |
 | data_contract_warning_sanity | analytics | Python | MEDIUM | PASS | 0 | 0 |
 | pipeline_orchestration_log_present | analytics | Python | LOW | PASS | 1 | 1 |
-| intervention_rank_order_consistency | analytics | Python | MEDIUM | PASS | 1 | 1 |
-| intervention_status_priority_consistency | analytics | Python | HIGH | PASS | 1 | 1 |
 | dashboard_metric_reconciliation | dashboard | Python | HIGH | PASS | 0.000000 | <= 1.000000 |
 | dashboard_required_components_present | dashboard | Python | HIGH | PASS | 0 | 0 |
 | dashboard_no_visible_technical_metadata | dashboard | Python | HIGH | PASS | 0 | 0 |

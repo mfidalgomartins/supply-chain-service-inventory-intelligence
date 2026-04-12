@@ -244,16 +244,6 @@ def _prepare_dashboard_data() -> dict:
         },
     }
 
-    sensitivity_path = OUTPUT_TABLES_DIR / "sensitivity_opportunity_grid.csv"
-    if sensitivity_path.exists():
-        sens = pd.read_csv(sensitivity_path)
-        if not sens.empty and "opportunity_total_12m_proxy" in sens.columns:
-            data_payload["meta"]["sensitivity_range"] = {
-                "min_opportunity": float(sens["opportunity_total_12m_proxy"].min()),
-                "max_opportunity": float(sens["opportunity_total_12m_proxy"].max()),
-                "scenario_count": int(len(sens)),
-            }
-
     OUTPUT_TABLES_DIR.mkdir(parents=True, exist_ok=True)
     monthly_sku.to_csv(OUTPUT_TABLES_DIR / "dashboard_monthly_sku_fact.csv", index=False)
     suppliers.to_csv(OUTPUT_TABLES_DIR / "dashboard_supplier_dim.csv", index=False)
@@ -389,9 +379,9 @@ def _build_html(data_payload: dict) -> str:
     }
 
     .container {
-      max-width: 1700px;
+      max-width: 1720px;
       margin: 0 auto;
-      padding: 24px 24px 30px;
+      padding: 26px 26px 34px;
     }
 
     .header {
@@ -399,8 +389,8 @@ def _build_html(data_payload: dict) -> str:
       border: 1px solid var(--border);
       box-shadow: var(--shadow-md);
       border-radius: var(--radius-lg);
-      padding: 22px 24px 18px;
-      margin-bottom: 18px;
+      padding: 24px 24px 20px;
+      margin-bottom: 20px;
     }
 
     .header-top {
@@ -412,19 +402,19 @@ def _build_html(data_payload: dict) -> str:
 
     .title {
       margin: 0;
-      font-size: clamp(1.2rem, 1.75vw, 1.85rem);
-      letter-spacing: 0.1px;
-      line-height: 1.2;
+      font-size: clamp(1.3rem, 1.95vw, 2rem);
+      letter-spacing: 0.08px;
+      line-height: 1.16;
       color: var(--title-ink);
-      font-weight: 700;
+      font-weight: 760;
     }
 
     .subtitle {
       margin-top: 8px;
       color: var(--muted);
-      font-size: 0.93rem;
-      line-height: 1.45;
-      max-width: 980px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      max-width: 1020px;
     }
 
     .consistency-alert {
@@ -439,11 +429,29 @@ def _build_html(data_payload: dict) -> str:
       line-height: 1.4;
     }
 
+    .no-data-alert {
+      display: none;
+      margin-top: 10px;
+      padding: 9px 11px;
+      border-radius: 9px;
+      border: 1px solid #e8d7a8;
+      background: #fff9e9;
+      color: #6d4f00;
+      font-size: 0.79rem;
+      line-height: 1.4;
+    }
+
+    [data-theme="dark"] .no-data-alert {
+      border-color: #665327;
+      background: #3b341f;
+      color: #f5dda0;
+    }
+
     .filters {
       margin-top: 16px;
       display: grid;
-      grid-template-columns: repeat(8, minmax(132px, 1fr));
-      gap: 11px;
+      grid-template-columns: repeat(8, minmax(138px, 1fr));
+      gap: 12px;
       align-items: end;
     }
 
@@ -462,11 +470,11 @@ def _build_html(data_payload: dict) -> str:
       width: 100%;
       border: 1px solid var(--border);
       border-radius: 9px;
-      padding: 8px 10px;
+      padding: 9px 10px;
       background: var(--input-bg);
       color: var(--ink);
-      font-size: 0.84rem;
-      min-height: 37px;
+      font-size: 0.85rem;
+      min-height: 39px;
     }
 
     .methodology-toggle {
@@ -481,6 +489,36 @@ def _build_html(data_payload: dict) -> str:
       width: 100%;
     }
     .methodology-toggle:hover { filter: brightness(1.03); }
+
+    .print-toggle {
+      background: var(--ok);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8rem;
+      width: 100%;
+    }
+    .print-toggle:hover { filter: brightness(1.04); }
+
+    .reset-toggle {
+      background: transparent;
+      color: var(--ink);
+      border: 1px dashed var(--border);
+      border-radius: 9px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8rem;
+      width: 100%;
+    }
+    .reset-toggle:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
 
     .theme-toggle {
       background: transparent;
@@ -553,43 +591,44 @@ def _build_html(data_payload: dict) -> str:
     }
 
     .section {
-      margin-bottom: 16px;
+      margin-bottom: 18px;
       background: var(--panel);
       border: 1px solid var(--border);
       box-shadow: var(--shadow-sm);
       border-radius: var(--radius-md);
-      padding: 16px 16px 14px;
+      padding: 18px 18px 16px;
     }
 
     .section-head {
-      margin-bottom: 11px;
+      margin-bottom: 13px;
     }
 
     .section h2 {
       margin: 0 0 2px;
-      font-size: 1rem;
+      font-size: 1.04rem;
       color: var(--section-title-ink);
-      letter-spacing: 0.2px;
+      letter-spacing: 0.16px;
+      font-weight: 730;
     }
 
     .section-sub {
       color: var(--muted);
-      font-size: 0.81rem;
-      line-height: 1.38;
+      font-size: 0.83rem;
+      line-height: 1.42;
     }
 
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(8, minmax(130px, 1fr));
-      gap: 12px;
+      gap: 13px;
     }
 
     .kpi {
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
       background: var(--panel-alt);
-      padding: 10px 11px;
-      min-height: 90px;
+      padding: 11px 12px;
+      min-height: 96px;
       box-shadow: var(--kpi-inset-shadow);
       border-top: 3px solid var(--border-strong-soft);
     }
@@ -604,8 +643,8 @@ def _build_html(data_payload: dict) -> str:
 
     .kpi .value {
       margin-top: 8px;
-      font-size: 1.25rem;
-      font-weight: 700;
+      font-size: 1.3rem;
+      font-weight: 760;
       color: var(--kpi-value-ink);
       line-height: 1.15;
     }
@@ -613,52 +652,62 @@ def _build_html(data_payload: dict) -> str:
     .callout-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(180px, 1fr));
-      gap: 12px;
+      gap: 13px;
     }
 
     .callout {
       border: 1px solid var(--border-soft);
       border-left: 4px solid var(--accent);
       border-radius: 10px;
-      padding: 11px 12px;
+      padding: 12px 13px;
       background: var(--panel-soft);
-      min-height: 94px;
-      font-size: 0.85rem;
-      line-height: 1.42;
+      min-height: 102px;
+      font-size: 0.86rem;
+      line-height: 1.47;
       color: var(--callout-ink);
     }
 
     .chart-grid-2 {
       display: grid;
       grid-template-columns: repeat(2, minmax(320px, 1fr));
-      gap: 12px;
+      gap: 14px;
     }
 
     .chart-grid-3 {
       display: grid;
       grid-template-columns: repeat(3, minmax(280px, 1fr));
-      gap: 12px;
+      gap: 14px;
     }
 
     .chart-card {
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
       background: var(--panel-alt);
-      padding: 8px 8px 4px;
-      min-height: 320px;
+      padding: 8px 10px 8px;
+      min-height: 340px;
       overflow: hidden;
     }
 
-    .chart-card.tall { min-height: 390px; }
-    .chart-card.short { min-height: 290px; }
+    .chart-card.tall { min-height: 410px; }
+    .chart-card.short { min-height: 315px; }
+    .chart-card > .js-plotly-plot,
+    .chart-card > .plot-container {
+      width: 100% !important;
+      height: 100% !important;
+      min-height: inherit;
+    }
+
+    .section.tradeoff .chart-card.tall {
+      min-height: 430px;
+    }
 
     .narrative {
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
-      padding: 13px 14px;
+      padding: 14px 15px;
       background: var(--narrative-bg);
-      font-size: 0.88rem;
-      line-height: 1.55;
+      font-size: 0.89rem;
+      line-height: 1.58;
       color: var(--ink);
     }
 
@@ -743,6 +792,8 @@ def _build_html(data_payload: dict) -> str:
       .callout-grid { grid-template-columns: 1fr 1fr; }
       .chart-grid-3 { grid-template-columns: 1fr 1fr; }
       .assumption-grid { grid-template-columns: repeat(2, minmax(170px, 1fr)); }
+      .chart-card.short { min-height: 330px; }
+      .chart-card.tall { min-height: 420px; }
     }
 
     @media (max-width: 820px) {
@@ -754,6 +805,85 @@ def _build_html(data_payload: dict) -> str:
       .chart-grid-2, .chart-grid-3 { grid-template-columns: 1fr; }
       .assumption-grid { grid-template-columns: 1fr; }
       .table-controls input { min-width: 100%; }
+      .chart-card,
+      .chart-card.short,
+      .chart-card.tall {
+        min-height: 345px;
+      }
+    }
+
+    @media print {
+      :root,
+      [data-theme="dark"] {
+        --bg: #ffffff;
+        --bg-grad-a: #ffffff;
+        --bg-grad-b: #ffffff;
+        --bg-grad-c: #ffffff;
+        --panel: #ffffff;
+        --panel-alt: #ffffff;
+        --panel-soft: #ffffff;
+        --narrative-bg: #ffffff;
+        --ink: #111111;
+        --muted: #444444;
+        --title-ink: #111111;
+        --section-title-ink: #111111;
+        --kpi-value-ink: #111111;
+        --border: #d8d8d8;
+        --border-soft: #e2e2e2;
+        --shadow-sm: none;
+        --shadow-md: none;
+      }
+
+      body {
+        background: #ffffff !important;
+        color: #111111 !important;
+      }
+
+      .container {
+        max-width: none;
+        padding: 0;
+      }
+
+      .header,
+      .section {
+        box-shadow: none !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .filters,
+      .assumption-panel,
+      .methodology-panel,
+      .consistency-alert,
+      .table-controls {
+        display: none !important;
+      }
+
+      .section {
+        margin-bottom: 12px;
+      }
+
+      .chart-grid-2,
+      .chart-grid-3 {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .chart-card,
+      .chart-card.short,
+      .chart-card.tall {
+        min-height: 255px !important;
+        border-color: #d8d8d8;
+      }
+
+      .table-wrap {
+        max-height: none;
+        overflow: visible;
+      }
+
+      thead th {
+        position: static;
+      }
     }
   </style>
 </head>
@@ -767,6 +897,7 @@ def _build_html(data_payload: dict) -> str:
         </div>
       </div>
       <div id="consistency-alert" class="consistency-alert"></div>
+      <div id="no-data-alert" class="no-data-alert"></div>
 
       <div class="filters">
         <div class="filter-box"><label>Region</label><select id="filter-region"></select></div>
@@ -779,7 +910,9 @@ def _build_html(data_payload: dict) -> str:
         <div class="filter-box">
           <label>View</label>
           <div class="control-stack">
+            <button class="print-toggle" id="print-dashboard">Print / Export PDF</button>
             <button class="methodology-toggle" id="toggle-methodology">Methodology</button>
+            <button class="reset-toggle" id="reset-filters">Reset Filters</button>
             <button class="theme-toggle" id="toggle-theme">Dark Mode</button>
           </div>
         </div>
@@ -854,7 +987,7 @@ def _build_html(data_payload: dict) -> str:
       </div>
     </div>
 
-    <div class="section">
+    <div class="section tradeoff">
       <div class="section-head">
         <h2>Service vs Inventory Trade-off</h2>
         <div class="section-sub">Quadrant and scatter analysis for identifying understock, overstock, and dual-failure segments.</div>
@@ -958,7 +1091,13 @@ def _build_html(data_payload: dict) -> str:
     const skuRiskBaselineMap = Object.fromEntries(
       dashboardData.sku_risk_baseline.map(s => [`${s.product_id}|${s.warehouse_id}|${s.supplier_id}`, s])
     );
-    const PLOT_CONFIG = { displayModeBar: false, responsive: true };
+    const PLOT_CONFIG = {
+      displayModeBar: false,
+      responsive: true,
+      scrollZoom: false
+    };
+    const printButton = document.getElementById('print-dashboard');
+    const resetButton = document.getElementById('reset-filters');
     const themeToggle = document.getElementById('toggle-theme');
 
     const filters = {
@@ -992,6 +1131,14 @@ def _build_html(data_payload: dict) -> str:
     function fmtNum(v) { return Number(v).toLocaleString(); }
     function fmtEur(v) { return `EUR ${Number(v).toLocaleString(undefined, {maximumFractionDigits: 0})}`; }
     function fmtEurM(v) { return `EUR ${(Number(v) / 1_000_000).toFixed(2)}M`; }
+    function ellipsize(text, maxLen = 28) {
+      const value = String(text || '');
+      return value.length > maxLen ? `${value.slice(0, Math.max(0, maxLen - 1))}…` : value;
+    }
+    function dynamicLeftMargin(labels, floor = 120, ceil = 235, unit = 6.2) {
+      const maxLen = labels.reduce((acc, label) => Math.max(acc, String(label || '').length), 0);
+      return Math.max(floor, Math.min(ceil, Math.round(maxLen * unit)));
+    }
 
     function clamp01(x) { return Math.max(0, Math.min(1, x)); }
     function norm(v, low, high) {
@@ -1124,6 +1271,21 @@ def _build_html(data_payload: dict) -> str:
 
       filters.start.value = dashboardData.meta.date_min.slice(0, 7);
       filters.end.value = dashboardData.meta.date_max.slice(0, 7);
+    }
+
+    function resetFilters() {
+      filters.region.value = 'ALL';
+      filters.warehouse.value = 'ALL';
+      filters.category.value = 'ALL';
+      filters.supplier.value = 'ALL';
+      filters.abc.value = 'ALL';
+      filters.start.value = dashboardData.meta.date_min.slice(0, 7);
+      filters.end.value = dashboardData.meta.date_max.slice(0, 7);
+      if (tableSearch) {
+        tableSearch.value = '';
+      }
+      tableSort = { key: 'governance_priority_score', dir: 'desc' };
+      updateDashboard();
     }
 
     function getNormalizedDateRange() {
@@ -1439,13 +1601,13 @@ def _build_html(data_payload: dict) -> str:
     function chartLayout(title) {
       const c = getThemePalette();
       return {
-        title: { text: title, x: 0.01, xanchor: 'left', font: { size: 13, color: c.title } },
-        margin: { l: 62, r: 20, t: 48, b: 54 },
+        title: { text: title, x: 0.01, xanchor: 'left', font: { size: 14, color: c.title } },
+        margin: { l: 66, r: 20, t: 52, b: 58 },
         paper_bgcolor: c.paper,
         plot_bgcolor: c.plot,
-        font: { family: 'IBM Plex Sans, Avenir Next, Source Sans 3, Segoe UI, sans-serif', size: 11, color: c.font },
-        xaxis: { gridcolor: c.grid, zerolinecolor: c.zero, automargin: true, tickangle: 0 },
-        yaxis: { gridcolor: c.grid, zerolinecolor: c.zero, automargin: true },
+        font: { family: 'IBM Plex Sans, Avenir Next, Source Sans 3, Segoe UI, sans-serif', size: 12, color: c.font },
+        xaxis: { gridcolor: c.grid, zerolinecolor: c.zero, automargin: true, tickangle: 0, tickfont: { size: 11 } },
+        yaxis: { gridcolor: c.grid, zerolinecolor: c.zero, automargin: true, tickfont: { size: 11 } },
         showlegend: false,
         hoverlabel: { bgcolor: c.hoverBg, font: { color: '#ffffff' } }
       };
@@ -1462,7 +1624,7 @@ def _build_html(data_payload: dict) -> str:
         line: { color: c.service, width: 2.5 },
         marker: { size: 6 },
         hovertemplate: 'Month %{x}<br>Fill Rate %{y:.1%}<extra></extra>'
-      }], { ...chartLayout('Service Level Trend Over Time'), xaxis: { gridcolor: c.grid, nticks: 8 }, yaxis: { tickformat: '.0%', gridcolor: c.grid } }, PLOT_CONFIG);
+      }], { ...chartLayout('Service Level Trend Over Time'), xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickformat: '.0%', gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
 
       Plotly.react('chart-stockout-trend', [{
         x: monthSeries.map(d => d.month),
@@ -1471,7 +1633,7 @@ def _build_html(data_payload: dict) -> str:
         line: { color: c.stockout, width: 2.5 },
         marker: { size: 6 },
         hovertemplate: 'Month %{x}<br>Stockout %{y:.1%}<extra></extra>'
-      }], { ...chartLayout('Stockout Rate Trend Over Time'), xaxis: { gridcolor: c.grid, nticks: 8 }, yaxis: { tickformat: '.0%', gridcolor: c.grid } }, PLOT_CONFIG);
+      }], { ...chartLayout('Stockout Rate Trend Over Time'), xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickformat: '.0%', gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
 
       Plotly.react('chart-lost-sales-trend', [{
         x: monthSeries.map(d => d.month),
@@ -1479,7 +1641,7 @@ def _build_html(data_payload: dict) -> str:
         type: 'bar',
         marker: { color: c.lostSales },
         hovertemplate: 'Month %{x}<br>Lost Sales %{y:$,.0f}<extra></extra>'
-      }], { ...chartLayout('Lost Sales Exposure Trend'), xaxis: { gridcolor: c.grid, nticks: 8 }, yaxis: { tickprefix: 'EUR ', separatethousands: true, gridcolor: c.grid } }, PLOT_CONFIG);
+      }], { ...chartLayout('Lost Sales Exposure Trend'), xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickprefix: 'EUR ', separatethousands: true, gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
 
       Plotly.react('chart-inventory-trend', [{
         x: monthSeries.map(d => d.month),
@@ -1487,72 +1649,82 @@ def _build_html(data_payload: dict) -> str:
         type: 'bar',
         marker: { color: c.inventory },
         hovertemplate: 'Month %{x}<br>Inventory %{y:$,.0f}<extra></extra>'
-      }], { ...chartLayout('Inventory Value Trend (Potential Capital Lock-up)'), xaxis: { gridcolor: c.grid, nticks: 8 }, yaxis: { tickprefix: 'EUR ', separatethousands: true, gridcolor: c.grid } }, PLOT_CONFIG);
+      }], { ...chartLayout('Inventory Value Trend (Potential Capital Lock-up)'), xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickprefix: 'EUR ', separatethousands: true, gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
 
       const wh = [...agg.warehouses].sort((a,b)=>a.fill_rate-b.fill_rate);
+      const whLabels = wh.map(d=>ellipsize(d.warehouse_name, 26));
+      const whMargin = dynamicLeftMargin(whLabels, 128, 230, 6.8);
       Plotly.react('chart-fill-warehouse', [{
-        y: wh.map(d=>d.warehouse_name),
+        y: whLabels,
         x: wh.map(d=>d.fill_rate),
         type:'bar',
         orientation:'h',
         marker:{color:c.warehouse},
-        hovertemplate: '%{y}<br>Fill Rate %{x:.1%}<extra></extra>'
+        hovertemplate: '%{customdata}<br>Fill Rate %{x:.1%}<extra></extra>',
+        customdata: wh.map(d=>d.warehouse_name)
       }], {
         ...chartLayout('Fill Rate by Warehouse'),
-        xaxis:{tickformat:'.0%', gridcolor:c.grid},
-        yaxis:{gridcolor:c.grid, automargin:true},
-        margin:{l:150, r:20, t:48, b:54}
+        xaxis:{tickformat:'.0%', gridcolor:c.grid, nticks: 5},
+        yaxis:{gridcolor:c.grid, automargin:true, tickfont:{size:11}},
+        margin:{l:whMargin, r:20, t:52, b:58}
       }, PLOT_CONFIG);
 
       const cat = [...agg.categories].sort((a,b)=>a.fill_rate-b.fill_rate);
+      const catLabels = cat.map(d=>ellipsize(d.category, 24));
       Plotly.react('chart-fill-category', [{
-        y: cat.map(d=>d.category),
+        y: catLabels,
         x: cat.map(d=>d.fill_rate),
         type:'bar',
         orientation:'h',
         marker:{color:c.category},
-        hovertemplate: '%{y}<br>Fill Rate %{x:.1%}<extra></extra>'
-      }], { ...chartLayout('Fill Rate by Category'), xaxis:{tickformat:'.0%', gridcolor:c.grid} }, PLOT_CONFIG);
+        hovertemplate: '%{customdata}<br>Fill Rate %{x:.1%}<extra></extra>',
+        customdata: cat.map(d=>d.category)
+      }], { ...chartLayout('Fill Rate by Category'), xaxis:{tickformat:'.0%', gridcolor:c.grid, nticks: 5}, margin:{l: dynamicLeftMargin(catLabels, 124, 220, 6.5), r:20, t:52, b:58} }, PLOT_CONFIG);
 
       const reg = [...agg.regions].sort((a,b)=>b.lostSales-a.lostSales);
       Plotly.react('chart-lostsales-region', [{
-        y: reg.map(d=>d.region),
+        y: reg.map(d=>ellipsize(d.region, 26)),
         x: reg.map(d=>d.lostSales),
         type:'bar',
         orientation:'h',
         marker:{color:c.region},
-        hovertemplate: '%{y}<br>Lost Sales %{x:$,.0f}<extra></extra>'
-      }], { ...chartLayout('Lost Sales Exposure by Region'), xaxis:{tickprefix:'EUR ', separatethousands:true, gridcolor:c.grid} }, PLOT_CONFIG);
+        hovertemplate: '%{customdata}<br>Lost Sales %{x:$,.0f}<extra></extra>',
+        customdata: reg.map(d=>d.region)
+      }], { ...chartLayout('Lost Sales Exposure by Region'), xaxis:{tickprefix:'EUR ', separatethousands:true, gridcolor:c.grid, nticks: 5} }, PLOT_CONFIG);
 
       const sup = [...agg.suppliers].sort((a,b)=>a.on_time_delivery_rate-b.on_time_delivery_rate);
+      const supLabels = sup.map(d=>ellipsize(d.supplier_name, 24));
       Plotly.react('chart-supplier-otd', [{
-        y: sup.map(d=>d.supplier_name),
+        y: supLabels,
         x: sup.map(d=>d.on_time_delivery_rate),
         type:'bar',
         orientation:'h',
         marker:{color:c.supplierOtd},
-        hovertemplate: '%{y}<br>OTD %{x:.1%}<extra></extra>'
-      }], { ...chartLayout('Supplier On-Time Delivery Comparison'), xaxis:{tickformat:'.0%', gridcolor:c.grid} }, PLOT_CONFIG);
+        hovertemplate: '%{customdata}<br>OTD %{x:.1%}<extra></extra>',
+        customdata: sup.map(d=>d.supplier_name)
+      }], { ...chartLayout('Supplier On-Time Delivery Comparison'), xaxis:{tickformat:'.0%', gridcolor:c.grid, nticks: 5}, margin:{l: dynamicLeftMargin(supLabels, 126, 225, 6.5), r:20, t:52, b:58} }, PLOT_CONFIG);
 
       const supVar = [...agg.suppliers].sort((a,b)=>b.lead_time_variability-a.lead_time_variability);
       Plotly.react('chart-lead-var', [{
-        y: supVar.map(d=>d.supplier_name),
+        y: supVar.map(d=>ellipsize(d.supplier_name, 24)),
         x: supVar.map(d=>d.lead_time_variability),
         type:'bar',
         orientation:'h',
         marker:{color:c.leadVar},
-        hovertemplate: '%{y}<br>Lead Time Variability %{x:.2f}<extra></extra>'
-      }], { ...chartLayout('Lead Time Variability by Supplier'), xaxis:{gridcolor:c.grid} }, PLOT_CONFIG);
+        hovertemplate: '%{customdata}<br>Lead Time Variability %{x:.2f}<extra></extra>',
+        customdata: supVar.map(d=>d.supplier_name)
+      }], { ...chartLayout('Lead Time Variability by Supplier'), xaxis:{gridcolor:c.grid, nticks: 5}, margin:{l: dynamicLeftMargin(supVar.map(d=>ellipsize(d.supplier_name, 24)), 126, 225, 6.5), r:20, t:52, b:58} }, PLOT_CONFIG);
 
       const catEx = [...agg.categories].sort((a,b)=>b.excess-a.excess);
       Plotly.react('chart-excess-category', [{
-        y: catEx.map(d=>d.category),
+        y: catEx.map(d=>ellipsize(d.category, 24)),
         x: catEx.map(d=>d.excess),
         type:'bar',
         orientation:'h',
         marker:{color:c.excess},
-        hovertemplate: '%{y}<br>Excess Proxy %{x:$,.0f}<extra></extra>'
-      }], { ...chartLayout('Excess Inventory Exposure by Category'), xaxis:{tickprefix:'EUR ', separatethousands:true, gridcolor:c.grid} }, PLOT_CONFIG);
+        hovertemplate: '%{customdata}<br>Excess Proxy %{x:$,.0f}<extra></extra>',
+        customdata: catEx.map(d=>d.category)
+      }], { ...chartLayout('Excess Inventory Exposure by Category'), xaxis:{tickprefix:'EUR ', separatethousands:true, gridcolor:c.grid, nticks: 5}, margin:{l: dynamicLeftMargin(catEx.map(d=>ellipsize(d.category, 24)), 124, 220, 6.5), r:20, t:52, b:58} }, PLOT_CONFIG);
 
       const segments = agg.segments;
       const segmentColorScale = currentTheme === 'dark'
@@ -1575,7 +1747,11 @@ def _build_html(data_payload: dict) -> str:
         },
         customdata: segments.map(s=>`${s.category} | ${s.region}`),
         hovertemplate: '%{customdata}<br>Inventory %{x:$,.0f}<br>Fill %{y:.1%}<br>Lost Sales %{marker.color:$,.0f}<extra></extra>'
-      }], { ...chartLayout('Service Level vs Inventory Value (By Category-Region)'), yaxis:{tickformat:'.0%', gridcolor:c.grid, automargin:true}, xaxis:{tickprefix:'EUR ', separatethousands:true, gridcolor:c.grid, automargin:true} }, PLOT_CONFIG);
+      }], {
+        ...chartLayout('Service Level vs Inventory Value (By Category-Region)'),
+        yaxis:{tickformat:'.0%', gridcolor:c.grid, automargin:true, nticks: 6},
+        xaxis:{tickprefix:'EUR ', separatethousands:true, gridcolor:c.grid, automargin:true, nticks: 6}
+      }, PLOT_CONFIG);
 
       Plotly.react('chart-service-vs-dos', [{
         x: segments.map(s=>s.avg_dos),
@@ -1584,42 +1760,51 @@ def _build_html(data_payload: dict) -> str:
         marker:{ size: 9, color:c.category, opacity: 0.82 },
         customdata: segments.map(s=>`${s.category} | ${s.region}`),
         hovertemplate: '%{customdata}<br>DOS %{x:.1f}<br>Fill %{y:.1%}<extra></extra>'
-      }], { ...chartLayout('Service Level vs Days of Supply'), yaxis:{tickformat:'.0%', gridcolor:c.grid, automargin:true}, xaxis:{automargin:true} }, PLOT_CONFIG);
+      }], {
+        ...chartLayout('Service Level vs Days of Supply'),
+        yaxis:{tickformat:'.0%', gridcolor:c.grid, automargin:true, nticks: 6},
+        xaxis:{automargin:true, nticks: 6}
+      }, PLOT_CONFIG);
 
       const dosMedian = wh.reduce((acc,d)=>acc+d.avg_dos,0)/Math.max(wh.length,1);
       const fillMedian = wh.reduce((acc,d)=>acc+d.fill_rate,0)/Math.max(wh.length,1);
+      const rankedWh = [...wh].sort((a,b)=>b.stockout_rate-a.stockout_rate);
+      const annotatedWh = rankedWh.slice(0, Math.min(4, rankedWh.length)).map(d => d.warehouse_id);
       Plotly.react('chart-quadrant', [{
         x: wh.map(d=>d.avg_dos),
         y: wh.map(d=>d.fill_rate),
         mode:'markers+text',
-        text: wh.map(d=>d.warehouse_id),
+        text: wh.map(d=>annotatedWh.includes(d.warehouse_id) ? d.warehouse_id : ''),
+        customdata: wh.map(d=>d.warehouse_id),
         textposition:'top center',
+        textfont:{size:10, color:c.font},
         marker:{ size: wh.map(d=>Math.max(14, Math.min(48, d.lostSales / 350000))), color:c.quadrant, opacity:0.8 },
-        hovertemplate: '%{text}<br>DOS %{x:.1f}<br>Fill %{y:.1%}<extra></extra>'
+        hovertemplate: '%{customdata}<br>DOS %{x:.1f}<br>Fill %{y:.1%}<extra></extra>'
       }], {
         ...chartLayout('Warehouse Service vs Working-Capital Quadrant'),
-        yaxis:{tickformat:'.0%', gridcolor:c.grid},
+        yaxis:{tickformat:'.0%', gridcolor:c.grid, nticks: 6},
+        xaxis:{gridcolor:c.grid, nticks: 6},
         shapes:[
           {type:'line', x0:dosMedian, x1:dosMedian, y0:0, y1:1, yref:'paper', line:{dash:'dash', color:c.lineRef}},
           {type:'line', x0:0, x1:1, xref:'paper', y0:fillMedian, y1:fillMedian, line:{dash:'dash', color:c.lineRef}}
         ],
         annotations:[
-          {x:dosMedian*0.65, y:fillMedian+0.06, text:'Service-Healthy / Lean', showarrow:false, font:{size:10, color:c.annGood}},
-          {x:dosMedian*1.25, y:fillMedian+0.06, text:'Service-Healthy / Capital-Heavy', showarrow:false, font:{size:10, color:c.inventory}},
-          {x:dosMedian*0.65, y:fillMedian-0.08, text:'Understocked Risk', showarrow:false, font:{size:10, color:c.annBad}},
-          {x:dosMedian*1.25, y:fillMedian-0.08, text:'Dual Failure', showarrow:false, font:{size:10, color:c.annBad}}
+          {x:0.22, y:0.94, xref:'paper', yref:'paper', text:'Service-Healthy / Lean', showarrow:false, font:{size:10, color:c.annGood}},
+          {x:0.78, y:0.94, xref:'paper', yref:'paper', text:'Service-Healthy / Capital-Heavy', showarrow:false, font:{size:10, color:c.inventory}},
+          {x:0.22, y:0.06, xref:'paper', yref:'paper', text:'Understocked Risk', showarrow:false, font:{size:10, color:c.annBad}},
+          {x:0.78, y:0.06, xref:'paper', yref:'paper', text:'Dual Failure', showarrow:false, font:{size:10, color:c.annBad}}
         ]
       }, PLOT_CONFIG);
 
       const topGov = agg.skuRows.slice(0, 15).reverse();
       Plotly.react('chart-top-governance', [{
-        y: topGov.map(d=>`${d.product_id}|${d.warehouse_id}`),
+        y: topGov.map(d=>`${d.product_id} | ${d.warehouse_id}`),
         x: topGov.map(d=>d.governance_priority_score),
         type:'bar',
         orientation:'h',
         marker:{color:c.governance},
         hovertemplate: '%{y}<br>Governance Score %{x:.1f}<extra></extra>'
-      }], { ...chartLayout('Top Governance Priority SKUs'), xaxis:{gridcolor:c.grid} }, PLOT_CONFIG);
+      }], { ...chartLayout('Top Governance Priority SKUs'), xaxis:{gridcolor:c.grid, nticks: 5}, margin:{l: 162, r:20, t:52, b:58} }, PLOT_CONFIG);
 
       const topSup = [...agg.suppliers].sort((a,b)=>b.stockout_rate-a.stockout_rate).slice(0,12).reverse();
       Plotly.react('chart-top-suppliers', [{
@@ -1629,7 +1814,7 @@ def _build_html(data_payload: dict) -> str:
         orientation:'h',
         marker:{color:c.supplierRisk},
         hovertemplate: '%{y}<br>Downstream Stockout %{x:.1%}<extra></extra>'
-      }], { ...chartLayout('Highest-Risk Suppliers (Downstream Stockout)'), xaxis:{tickformat:'.0%', gridcolor:c.grid} }, PLOT_CONFIG);
+      }], { ...chartLayout('Highest-Risk Suppliers (Downstream Stockout)'), xaxis:{tickformat:'.0%', gridcolor:c.grid, nticks: 5}, margin:{l: 150, r:20, t:52, b:58} }, PLOT_CONFIG);
 
       const topWh = [...agg.warehouses].sort((a,b)=>b.stockout_rate-a.stockout_rate).slice(0, 12).reverse();
       Plotly.react('chart-top-warehouses', [{
@@ -1639,7 +1824,7 @@ def _build_html(data_payload: dict) -> str:
         orientation:'h',
         marker:{color:c.warehouseRisk},
         hovertemplate: '%{y}<br>Stockout Rate %{x:.1%}<extra></extra>'
-      }], { ...chartLayout('Highest-Risk Warehouses (Stockout Rate)'), xaxis:{tickformat:'.0%', gridcolor:c.grid} }, PLOT_CONFIG);
+      }], { ...chartLayout('Highest-Risk Warehouses (Stockout Rate)'), xaxis:{tickformat:'.0%', gridcolor:c.grid, nticks: 5}, margin:{l: 160, r:20, t:52, b:58} }, PLOT_CONFIG);
 
       const heatSup = [...agg.suppliers].sort((a,b)=>b.supplier_service_risk_proxy-a.supplier_service_risk_proxy).slice(0,10);
       const z = [
@@ -1658,7 +1843,12 @@ def _build_html(data_payload: dict) -> str:
           tickfont: { color: c.font },
         },
         hovertemplate: '%{y}<br>%{x}<br>Intensity %{z:.2f}<extra></extra>'
-      }], { ...chartLayout('Supplier-Risk Heatmap (Relative Intensity)'), margin:{l:130, r:20, t:48, b:126}, xaxis:{tickangle:-32, automargin:true} }, PLOT_CONFIG);
+      }], {
+        ...chartLayout('Supplier-Risk Heatmap (Relative Intensity)'),
+        margin:{l:132, r:20, t:52, b:132},
+        xaxis:{tickangle:-28, automargin:true, tickfont:{size:10}},
+        yaxis:{automargin:true, tickfont:{size:11}}
+      }, PLOT_CONFIG);
     }
 
     function renderTable(rows) {
@@ -1708,17 +1898,12 @@ def _build_html(data_payload: dict) -> str:
       const topCategoryExcess = [...agg.categories].sort((a,b)=>b.excess-a.excess)[0];
       const topSku = agg.skuRows[0];
       const balancedShare = agg.skuRows.filter(r => r.fill_rate >= 0.97 && r.avg_dos >= 8 && r.avg_dos <= 35).length / Math.max(agg.skuRows.length,1);
-      const sensitivity = dashboardData.meta.sensitivity_range || null;
-      const sensitivityLine = sensitivity
-        ? `<br/><strong>Assumption sensitivity:</strong> across ${fmtNum(sensitivity.scenario_count)} calibrated scenarios, opportunity ranges from <strong>${fmtEur(sensitivity.min_opportunity)}</strong> to <strong>${fmtEur(sensitivity.max_opportunity)}</strong>.`
-        : '';
-
       const html = `
         <strong>What is going wrong:</strong> service and inventory are misaligned. Current fill rate is <strong>${fmtPct(agg.totals.fillRate)}</strong> while stockout rate is <strong>${fmtPct(agg.totals.stockoutRate)}</strong>, indicating preventable demand leakage.<br/><br/>
         <strong>Where the company is exposed:</strong> the most pressured warehouse is <strong>${topWarehouse ? topWarehouse.warehouse_name : 'n/a'}</strong>; supplier instability is concentrated around <strong>${topSupplier ? topSupplier.supplier_name : 'n/a'}</strong>; excess inventory concentration is highest in <strong>${topCategoryExcess ? topCategoryExcess.category : 'n/a'}</strong>.<br/><br/>
         <strong>What should be done first:</strong> act on the governance queue starting with <strong>${topSku ? `${topSku.product_id} @ ${topSku.warehouse_id}` : 'top filtered SKU'}</strong>, then escalate suppliers and warehouse-level replenishment policies that drive the largest combined service and capital penalty.<br/><br/>
         <strong>Leadership trade-off to manage:</strong> only <strong>${fmtPct(balancedShare)}</strong> of filtered SKU-warehouse positions are currently in a balanced zone (high service with controlled DOS). Decision focus should be on moving the portfolio toward that balanced share.<br/><br/>
-        <strong>Scenario lens:</strong> with assumptions at <strong>${fmtPct(agg.totals.recoverableMarginRate)}</strong> recoverable lost margin, <strong>${fmtPct(agg.totals.releasableWcRate)}</strong> releasable working capital, and <strong>${fmtPct(agg.totals.slowMovingIncrementalWeight)}</strong> slow-moving incremental weight, the 12-month opportunity proxy is <strong>${fmtEur(agg.totals.scenarioOpportunity12m)}</strong>.${sensitivityLine}
+        <strong>Scenario lens:</strong> with assumptions at <strong>${fmtPct(agg.totals.recoverableMarginRate)}</strong> recoverable lost margin, <strong>${fmtPct(agg.totals.releasableWcRate)}</strong> releasable working capital, and <strong>${fmtPct(agg.totals.slowMovingIncrementalWeight)}</strong> slow-moving incremental weight, the 12-month opportunity proxy is <strong>${fmtEur(agg.totals.scenarioOpportunity12m)}</strong>.
       `;
 
       document.getElementById('narrative-panel').innerHTML = html;
@@ -1758,9 +1943,22 @@ def _build_html(data_payload: dict) -> str:
       }
     }
 
+    function renderNoDataAlert(hasRows) {
+      const alert = document.getElementById('no-data-alert');
+      if (!alert) return;
+      if (hasRows) {
+        alert.style.display = 'none';
+        alert.textContent = '';
+        return;
+      }
+      alert.style.display = 'block';
+      alert.textContent = 'No records match the current filter combination. Reset filters or widen the date range.';
+    }
+
     function updateDashboard() {
       const dateRange = getNormalizedDateRange();
       const filteredRows = monthlyFact.filter(r => passesFilter(r, dateRange));
+      renderNoDataAlert(filteredRows.length > 0);
       const agg = aggregate(filteredRows, readAssumptions());
       lastAgg = agg;
       renderKPIs(agg);
@@ -1813,6 +2011,14 @@ def _build_html(data_payload: dict) -> str:
           const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
           applyTheme(nextTheme);
         });
+      }
+      if (printButton) {
+        printButton.addEventListener('click', () => {
+          window.print();
+        });
+      }
+      if (resetButton) {
+        resetButton.addEventListener('click', resetFilters);
       }
 
       window.addEventListener('resize', () => {

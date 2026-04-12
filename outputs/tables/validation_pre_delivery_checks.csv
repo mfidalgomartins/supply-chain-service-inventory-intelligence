@@ -24,7 +24,7 @@ aggregation_lost_sales_sku_to_overall,impact,Python,PASS,HIGH,0.000000,<= 1.0000
 aggregation_lost_sales_warehouse_to_overall,impact,Python,PASS,HIGH,0.000000,<= 1.000000,Aggregated impact totals should reconcile to overall summary.
 aggregation_lost_sales_supplier_to_overall,impact,Python,PASS,HIGH,0.000000,<= 1.000000,Aggregated impact totals should reconcile to overall summary.
 aggregation_lost_sales_category_to_overall,impact,Python,PASS,HIGH,0.000000,<= 1.000000,Aggregated impact totals should reconcile to overall summary.
-impact_opportunity_formula_consistency,impact,Python,PASS,HIGH,0.000000,<= 1.000000,"12M opportunity proxy must reconcile to the baseline sensitivity scenario (35% margin, 25% WC release, 50% slow-moving weight)."
+impact_opportunity_non_negative,impact,Python,PASS,HIGH,42794128.238036,>= 0.000000,12M opportunity proxy should be non-negative for a valid value pool.
 denominator_zero_demand_with_activity_raw,raw,Python,PASS,CRITICAL,0,0,No fulfilled or lost units allowed when demand denominator is zero.
 denominator_zero_demand_with_activity_daily,processed,Python,PASS,CRITICAL,0,0,Processed table denominator sanity should match raw logic.
 scoring_formula_consistency,scoring,Python,PASS,HIGH,0.000000,<= 0.050000,Governance score must reconcile to declared weighted formula.
@@ -34,12 +34,10 @@ scoring_action_policy_non_low_not_monitor_only,scoring,Python,PASS,HIGH,0,0,Non-
 scoring_top25_stability_under_weight_perturbation,scoring,Python,PASS,MEDIUM,min_overlap=0.880,>= 0.650,Top governance queue should remain reasonably stable under small weighting perturbations.
 charts_required_files_present,visualization,Python,PASS,HIGH,0,0,All required executive chart PNG files should exist.
 charts_file_size_sanity,visualization,Python,PASS,LOW,0,0,Very small PNG files may indicate rendering issues.
-upgrade_outputs_required_tables_present,analytics,Python,PASS,HIGH,0,0,"Required upgrade tables (adapter, forecast, policy, stress, lane diagnostics, intervention, alerts, SQL gate) must exist."
+upgrade_outputs_required_tables_present,analytics,Python,PASS,HIGH,0,0,"Required curated release tables (contracts, scoring, impact, dashboard, and SQL gate) must exist."
 data_contract_blocking_failures,analytics,Python,PASS,HIGH,0,0,Data contract validation must have zero FAIL checks.
 data_contract_warning_sanity,analytics,Python,PASS,MEDIUM,0,0,Contract warnings should remain zero for release quality discipline.
 pipeline_orchestration_log_present,analytics,Python,PASS,LOW,1,1,Optional run-log from one-command orchestration should exist for production-style traceability.
-intervention_rank_order_consistency,analytics,Python,PASS,MEDIUM,1,1,Intervention register ranks must be monotonic and stable after sorting logic.
-intervention_status_priority_consistency,analytics,Python,PASS,HIGH,1,1,Open interventions should be prioritized before Monitor/Closed items in ranking order.
 dashboard_metric_reconciliation,dashboard,Python,PASS,HIGH,0.000000,<= 1.000000,Dashboard embedded fact should reconcile to processed daily totals.
 dashboard_required_components_present,dashboard,Python,PASS,HIGH,0,0,"Dashboard must contain required filters, charts, and drilldown table structure."
 dashboard_no_visible_technical_metadata,dashboard,Python,PASS,HIGH,0,0,Executive-facing dashboard should not expose technical build metadata in the visible layout.
