@@ -1,234 +1,60 @@
 # Supply Chain Service Level, Inventory Risk & Working Capital Intelligence System
 
-## 1) Project Overview
-This project is an end-to-end supply chain analytics system designed to emulate serious internal decision support for Operations and Finance leadership.
+**One-line:** Executive-grade supply chain analytics that quantifies service leakage vs inventory drag and prioritizes action by business impact.
 
-It combines:
-- **SQL** for relational modeling, KPI logic, and validation checks
-- **Python** for synthetic data generation, feature engineering, scoring, impact estimation, and QA
-- a fully self-contained **HTML executive dashboard** for leadership review
+## Business problem
+Distribution networks often miss both sides of the trade‑off at once: stockouts lose revenue while excess inventory traps working capital. Teams optimize locally and lose portfolio visibility.
 
-The work is structured to answer not only _what happened_, but also _where value is leaking_, _why_, and _what should be acted on first_.
+## What the system does
+- Generates a realistic multi‑warehouse dataset with service, inventory, and supplier dynamics.
+- Builds governed KPI and risk tables (SQL + Python) for service, inventory efficiency, and capital exposure.
+- Produces a scored governance queue and executive dashboard for decision review.
 
-## 2) Business Problem
-Distribution businesses often fail in both directions at once:
-- revenue loss from stockouts and missed demand
-- cash lock-up in excess and slow-moving inventory
+## Decisions supported
+- Where to intervene first across SKU‑warehouse combinations.
+- Which suppliers and warehouses are driving service leakage.
+- Where inventory policy is over‑protective or under‑protective.
+- How much working capital is tied up in slow/excess stock.
 
-Without integrated visibility, teams optimize locally (service, purchasing, finance, warehousing) and miss portfolio-level trade-offs.
+## Project architecture
+- **Data generation** → `src/data_generation.py`
+- **SQL modeling + validation** → `sql/`
+- **Analytics tables + scoring** → `src/data_preparation.py`, `src/feature_engineering.py`, `src/scoring.py`
+- **Impact + dashboard** → `src/impact_analysis.py`, `src/executive_dashboard.py`
+- **Quality gates** → `src/pre_delivery_validation.py`, `src/sql_quality_gate.py`, `src/ci_quality_gate.py`
 
-## 3) Core Business Question
-> Is the company balancing service level and inventory efficiently, or is it simultaneously losing sales through stockouts while tying up too much working capital in excess and slow-moving stock?
+## Repository structure
+```
+├── src/
+├── data/
+├── sql/
+├── docs/
+├── outputs/
+├── tests/
+└── configs/
+```
 
-## 4) Why This Matters Operationally and Financially
-Operationally:
-- lower service reliability weakens customer trust and on-shelf availability
-- unstable supplier performance propagates into replenishment volatility
-- warehouse performance diverges by region and category
+## Core outputs
+- `outputs/dashboard/index.html` — single-file executive dashboard
+- `outputs/tables/sku_risk_table.csv` — primary governance queue
+- `outputs/tables/impact_overall_summary.csv` — portfolio impact snapshot
+- `docs/validation_report.md` — release QA summary
 
-Financially:
-- stockouts create immediate top-line and margin leakage
-- excess inventory increases carrying cost and markdown risk
-- inefficient inventory positioning traps working capital that could be redeployed
+## Why this project is strong
+- End‑to‑end system with governance, scoring, and release checks (not a notebook demo).
+- Clear decision framing for operations and finance.
+- Transparent, interpretable scoring and impact proxies.
 
-## 5) Project Architecture
-The system is organized in focused, decision-grade layers:
-1. **Data generation layer** (`src/data_generation.py`) produces multi-table synthetic operations data.
-2. **SQL modeling layer** (`sql/`) defines schema, intermediate views, KPI queries, and validation logic.
-3. **Analytical modeling layer** (`src/data_preparation.py`, `src/feature_engineering.py`) builds processed decision tables.
-4. **Data-contract layer** (`configs/table_contracts.json`, `src/data_contracts.py`) enforces schema/grain/null/non-negative contracts before downstream analytics.
-5. **Scoring layer** (`src/scoring.py`) computes interpretable risk and governance priority scores.
-6. **KPI + diagnostics layer** (`src/kpi_diagnostic_analysis.py`) produces operational summaries and comparisons.
-7. **Impact layer** (`src/impact_analysis.py`) estimates business-value exposure and opportunity proxies.
-8. **Visualization layer** (`src/visualization.py`) generates publication-quality PNG charts.
-9. **Executive dashboard layer** (`src/executive_dashboard.py`) creates a single self-contained HTML dashboard for leadership review.
-10. **Pre-delivery + CI quality-gate layer** (`src/pre_delivery_validation.py`, `src/sql_quality_gate.py`, `src/ci_quality_gate.py`) enforces SQL/Python data-quality and release checks.
-
-## 6) Dataset Design
-Synthetic data models a multi-warehouse distribution network with daily granularity and realistic operational variation.
-
-Core raw tables:
-- `products`
-- `suppliers`
-- `warehouses`
-- `inventory_snapshots`
-- `demand_history`
-- `purchase_orders`
-- `product_classification`
-
-Processed analytical tables:
-- `daily_product_warehouse_metrics`
-- `supplier_performance_summary`
-- `product_inventory_profile`
-- `warehouse_service_profile`
-- `sku_risk_table`
-- `supplier_risk_table`
-- `segment_risk_table`
-
-## 7) Methodology
-1. Generate reproducible synthetic operational data with embedded trade-offs and risk patterns.
-2. Build warehouse-style SQL transformations for entity-level and daily metrics.
-3. Engineer interpretable analytics features in Python.
-4. Compute KPI and diagnostic views by region, warehouse, category, supplier, and SKU.
-5. Apply transparent governance scoring (no black-box ML).
-6. Estimate financial impact using explicit proxy formulas and assumptions.
-7. Validate logic, reconciliation, and narrative risk before final delivery.
-
-## 8) KPI Framework
-Primary KPI families:
-- service health: fill rate, stockout rate, lost sales value
-- inventory efficiency: days of supply distribution, excess exposure, slow-moving exposure
-- working-capital exposure: inventory concentration and trapped-capital proxies
-- supplier execution: on-time delivery, delay, lead-time variability
-- trade-off diagnostics: service vs inventory policy imbalance zones
-
-## 9) Scoring Framework
-Implemented in `src/scoring.py` and documented in [`docs/scoring_framework.md`](docs/scoring_framework.md).
-
-Required component scores (0-100):
-- `service_risk_score`
-- `stockout_risk_score`
-- `excess_inventory_score`
-- `supplier_risk_score`
-- `working_capital_risk_score`
-- `governance_priority_score`
-
-Additional decision fields:
-- `risk_tier` (`Low` / `Medium` / `High` / `Critical`)
-- `main_risk_driver`
-- `recommended_action`
-
-Design principle: interpretable weighted logic aligned to operational policy thresholds, not statistical opacity.
-
-## 10) Dashboard Overview
-A single self-contained executive dashboard is generated at:
-- `outputs/dashboard/index.html`
-
-Audience-ready sections include:
-- executive header + filters + methodology panel
-- KPI scorecards
-- automatic leadership callouts
-- trend analysis (service, stockout, lost sales, inventory)
-- comparative diagnostics (warehouse/category/region/supplier)
-- trade-off scatter/quadrant views
-- risk prioritization panels
-- sortable drill-down table with actions
-- narrative panel for leadership decisions
-
-## 11) Key Findings (Latest Run)
-From the latest generated outputs:
-- overall fill rate: **92.27%**
-- stockout rate: **7.73%**
-- lost sales exposure: **EUR 34.78M**
-- trapped working-capital proxy: **EUR 321.37M**
-- estimated 12M opportunity proxy (margin recovery + WC release): **EUR 42.79M**
-- most pressured warehouse: **WH-LYON**
-- highest supplier risk exposure: **SUP-002**
-- largest loss-concentration category: **Health**
-
-These values are scenario outputs from synthetic data and are intended for methodological demonstration and governance prioritization logic.
-
-## 12) Business Recommendations
-1. Prioritize top governance-score SKU-warehouse combinations for immediate replenishment policy intervention.
-2. Launch supplier corrective plans on high-risk suppliers with weak OTD and high downstream stockout linkage.
-3. Execute category-level working-capital release actions where excess and slow-moving exposure are concentrated.
-4. Manage service-vs-capital trade-offs through explicit policy bands (target fill rate + DOS guardrails).
-5. Operationalize a weekly governance cadence using score movement and SKU-level resolution tracking.
-
-## 13) Validation and Caveats
-Formal pre-delivery validation is documented in:
-- [`docs/validation_report.md`](docs/validation_report.md)
-
-Current QA status:
-- generated by `src/pre_delivery_validation.py` and `src/ci_quality_gate.py`
-- includes SQL/Python integrity checks, scoring stability checks, dashboard governance checks, report-to-metric reconciliation, and release-state classification
-- outputs:
-  - `outputs/tables/validation_pre_delivery_checks.csv`
-  - `outputs/tables/validation_release_state_matrix.csv`
-  - `outputs/reports/release_readiness.md`
-
-Important caveats:
-- financial impact outputs are **proxy estimates**, not accounting-recognized P&L values
-- supplier delay impact is associative, not causal attribution
-- assumption choices (e.g., recoverable margin %, releasable WC %) materially affect opportunity estimates
-
-## 14) How to Run the Project
+## How to run
 ```bash
-cd /Users/miguelfidalgo/Documents/supply-chain-service-level-inventory-intelligence-system
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
-
-# 1) Generate synthetic raw data
-.venv/bin/python src/data_generation.py
-
-# 2) Build processed analytical tables (SQL + Python)
-.venv/bin/python src/data_preparation.py
-.venv/bin/python src/feature_engineering.py
-
-# 2b) Enforce data contracts
-.venv/bin/python src/data_contracts.py
-
-# 3) Build scoring outputs
-.venv/bin/python src/scoring.py
-
-# 4) Run KPI + diagnostic analysis
-.venv/bin/python src/kpi_diagnostic_analysis.py
-
-# 5) Run impact analysis
-.venv/bin/python src/impact_analysis.py
-
-# 6) Generate visualization suite
-.venv/bin/python src/visualization.py
-
-# 7) Build executive dashboard
-.venv/bin/python src/executive_dashboard.py
-
-# 8) Run formal quality gates
-.venv/bin/python src/sql_quality_gate.py
-.venv/bin/python src/pre_delivery_validation.py
-.venv/bin/python src/ci_quality_gate.py
-
-# 11) Optional tests
-.venv/bin/python -m pytest -q
-
-# One-command full run
 .venv/bin/python src/run_pipeline.py
 ```
 
-## 15) Repository Structure
-```text
-supply-chain-service-inventory-intelligence/
-├── README.md
-├── requirements.txt
-├── .gitignore
-├── src/
-├── data/
-│   ├── raw/
-│   └── processed/
-├── sql/
-├── docs/
-├── tests/
-├── outputs/
-│   ├── charts/
-│   ├── dashboard/
-│   ├── reports/
-│   └── tables/
-├── configs/
-│   └── table_contracts.json
-└── .github/workflows/
-    └── analytics-ci.yml
-```
+## Limitations
+- Synthetic data; results are methodological, not company‑specific.
+- Financial impact metrics are proxy estimates, not audited P&L.
 
-## 16) Future Improvements
-1. Introduce shipment-level transportation and lane-cost data for end-to-end service-cost optimization.
-2. Add closed-loop outcome tracking once a real execution system is connected (before/after KPI migration).
-3. Wire source ingestion to orchestration metadata (dbt/Airflow run status integration).
-
-## 17) Repository Governance Notes
-- `src/run_pipeline.py` is the authoritative execution path for reproducible builds.
-- `outputs/dashboard/index.html` is the single official dashboard artifact for release review.
-- `docs/metric_dictionary.md` is the authoritative metric source for KPIs and scoring logic.
-- The curated `/outputs` structure keeps review artifacts focused on executive evidence, governed metrics, and release checks.
-
----
-This project is intentionally built as an internal-grade analytics product, not a notebook-only demo, to demonstrate senior-level analytics engineering, operational reasoning, and executive communication.
+## Tools
+Python, SQL, DuckDB, pandas, Plotly, HTML, CSS.
