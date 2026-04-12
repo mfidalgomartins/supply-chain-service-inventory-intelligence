@@ -2,7 +2,7 @@
 
 A decision‑grade supply chain analytics system built to expose the trade‑off between service performance and inventory capital. It models how stockouts, supplier instability, and excess inventory interact—and turns that into a ranked action list leadership can use.
 
-Live dashboard: https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/executive-supply-chain-command-center.html
+Live dashboard: https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/
 
 ## The problem this solves
 Most distribution teams fail in both directions at once: service breaks create lost sales while excess stock traps cash. Without an integrated view, planning, procurement, and finance optimize locally and miss the portfolio trade‑off.
@@ -32,7 +32,7 @@ A governed pipeline that generates realistic operational data, builds KPI and ri
 ```
 
 ## Core outputs
-- `docs/executive-supply-chain-command-center.html` — dashboard publicado (GitHub Pages)
+- `docs/index.html` — dashboard publicado (GitHub Pages)
 - `outputs/tables/sku_risk_table.csv` — ranked governance queue
 - `outputs/tables/impact_overall_summary.csv` — portfolio exposure snapshot
 - `docs/validation_report.md` — release QA summary
