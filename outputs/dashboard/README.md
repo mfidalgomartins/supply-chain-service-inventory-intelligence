@@ -1,9 +1,11 @@
 # Executive Dashboard
 
-Live dashboard: https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/executive-supply-chain-command-center.html
+This folder contains the executive dashboard and supporting artifacts for the project.
 
-Recommended file:
-- `executive-supply-chain-command-center.html` (presentation-ready build)
+**Open the live dashboard:**
+https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/executive-supply-chain-command-center.html
 
-Technical entry point for GitHub Pages:
-- `docs/index.html` (redirects to the dashboard)
+Secondary access:
+- `docs/executive-supply-chain-command-center.html` (published page source)
+
+Note: GitHub shows `.html` files as code when clicked in the repo. Use the live link above for the interactive view.
