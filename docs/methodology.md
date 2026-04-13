@@ -86,7 +86,7 @@ Current generated volume:
 
 7. Executive dashboard
 - Script: `src/executive_dashboard.py`
-- Output: `/outputs/dashboard/index.html` (self-contained), plus dashboard fact/dim extracts in `/outputs/tables/`.
+- Output: `/index.html` (self-contained publishable entry point), plus a redirect entry at `/docs/index.html` and dashboard fact/dim extracts in `/outputs/tables/`.
 
 8. Pre-delivery QA
 - Script: `src/pre_delivery_validation.py`

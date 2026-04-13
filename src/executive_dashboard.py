@@ -15,8 +15,8 @@ except ModuleNotFoundError:
     from config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
 
 
-OUTPUT_DASHBOARD_DIR = PROJECT_ROOT / "outputs" / "dashboard"
-OUTPUT_DASHBOARD_FILE = OUTPUT_DASHBOARD_DIR / "index.html"
+OUTPUT_DASHBOARD_FILE = PROJECT_ROOT / "index.html"
+DOCS_DASHBOARD_ENTRY = PROJECT_ROOT / "docs" / "index.html"
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
 
 
@@ -2056,11 +2056,27 @@ def _build_html(data_payload: dict) -> str:
 
 
 def build_executive_dashboard() -> Path:
-    OUTPUT_DASHBOARD_DIR.mkdir(parents=True, exist_ok=True)
-
     data_payload = _prepare_dashboard_data()
     html = _build_html(data_payload)
     OUTPUT_DASHBOARD_FILE.write_text(html, encoding="utf-8")
+    DOCS_DASHBOARD_ENTRY.parent.mkdir(parents=True, exist_ok=True)
+    DOCS_DASHBOARD_ENTRY.write_text(
+        """<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content="0; url=../index.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Supply Chain Dashboard Redirect</title>
+  </head>
+  <body>
+    <p>Redirecting to dashboard...</p>
+    <p>If redirect does not work, open <a href="../index.html">../index.html</a>.</p>
+  </body>
+</html>
+""",
+        encoding="utf-8",
+    )
 
     build_info = pd.DataFrame(
         [

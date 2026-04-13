@@ -32,7 +32,7 @@ A governed pipeline that generates realistic operational data, builds KPI and ri
 ```
 
 ## Core outputs
-- `docs/index.html` — dashboard publicado (GitHub Pages)
+- `index.html` — published dashboard (GitHub Pages)
 - `outputs/tables/sku_risk_table.csv` — ranked governance queue
 - `outputs/tables/impact_overall_summary.csv` — portfolio exposure snapshot
 - `docs/validation_report.md` — release QA summary

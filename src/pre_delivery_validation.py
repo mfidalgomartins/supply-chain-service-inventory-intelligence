@@ -19,7 +19,7 @@ DOCS_DIR = PROJECT_ROOT / "docs"
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
 OUTPUT_CHARTS_DIR = PROJECT_ROOT / "outputs" / "charts"
 OUTPUT_REPORTS_DIR = PROJECT_ROOT / "outputs" / "reports"
-OUTPUT_DASHBOARD_DIR = PROJECT_ROOT / "outputs" / "dashboard"
+OUTPUT_DASHBOARD_FILE = PROJECT_ROOT / "index.html"
 SQL_DIR = PROJECT_ROOT / "sql"
 
 
@@ -185,7 +185,7 @@ def _python_validation_checks() -> list[CheckResult]:
     }
 
     dashboard_fact = pd.read_csv(OUTPUT_TABLES_DIR / "dashboard_monthly_sku_fact.csv")
-    html_path = OUTPUT_DASHBOARD_DIR / "index.html"
+    html_path = OUTPUT_DASHBOARD_FILE
 
     # 1) Row count sanity
     expected_dense_rows = (

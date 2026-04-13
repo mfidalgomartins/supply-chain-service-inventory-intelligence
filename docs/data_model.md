@@ -70,7 +70,8 @@ Built via `src/scoring.py`.
 | segment_risk_table | `/data/processed/segment_risk_table.csv` | `category + region` | Segment-level risk concentration and governance |
 | governance_priority_master | `/data/processed/governance_priority_master.csv` | mixed entity list | Unified governance queue across SKU, supplier, and segment entities |
 
-Mirrored reporting extracts are written to `/outputs/tables/` with `scoring_*.csv` names.
+The canonical scored extract mirrored to `/outputs/tables/` is:
+- `scoring_sku_risk_table.csv`
 
 ## Impact Outputs
 Built via `src/impact_analysis.py`. Curated impact summaries are stored in `/outputs/tables/`:
@@ -120,7 +121,7 @@ Dashboard fact/dim exports:
   - Final HTML size/hash and build metadata for release discipline.
 
 Runtime HTML payload:
-- `/outputs/dashboard/index.html` embeds JSON with:
+- `/index.html` embeds JSON with:
   - monthly fact records
   - product dimension map
   - supplier/warehouse dimensions

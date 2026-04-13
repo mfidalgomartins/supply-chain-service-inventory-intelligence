@@ -11,7 +11,7 @@ except ModuleNotFoundError:
 
 
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
-OUTPUT_DASHBOARD = PROJECT_ROOT / "outputs" / "dashboard" / "index.html"
+OUTPUT_DASHBOARD = PROJECT_ROOT / "index.html"
 REQUIRED_FILES = [
     PROJECT_ROOT / "docs" / "validation_report.md",
     PROJECT_ROOT / "docs" / "methodology.md",
