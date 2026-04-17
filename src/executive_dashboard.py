@@ -395,26 +395,137 @@ def _build_html(data_payload: dict) -> str:
 
     .header-top {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
-      align-items: end;
+      grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.95fr);
+      gap: 18px;
+      align-items: stretch;
     }
 
     .title {
       margin: 0;
-      font-size: clamp(1.3rem, 1.95vw, 2rem);
+      font-size: clamp(1.45rem, 2.15vw, 2.3rem);
       letter-spacing: 0.08px;
-      line-height: 1.16;
+      line-height: 1.1;
       color: var(--title-ink);
-      font-weight: 760;
+      font-weight: 780;
     }
 
     .subtitle {
-      margin-top: 8px;
+      margin-top: 10px;
       color: var(--muted);
-      font-size: 0.95rem;
+      font-size: 0.98rem;
+      line-height: 1.56;
+      max-width: 920px;
+    }
+
+    .header-copy {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 0.73rem;
+      font-weight: 700;
+      letter-spacing: 0.26px;
+      text-transform: uppercase;
+    }
+
+    .hero-panel {
+      border: 1px solid var(--border-soft);
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(244,249,252,0.92) 100%),
+        linear-gradient(135deg, rgba(11,92,120,0.09) 0%, rgba(31,107,68,0.05) 100%);
+      padding: 18px 18px 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
+      display: grid;
+      gap: 14px;
+      min-height: 100%;
+    }
+
+    [data-theme="dark"] .hero-panel {
+      background:
+        linear-gradient(180deg, rgba(22,42,58,0.96) 0%, rgba(18,35,49,0.96) 100%),
+        linear-gradient(135deg, rgba(45,155,194,0.12) 0%, rgba(93,182,142,0.08) 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .hero-eyebrow {
+      color: var(--muted);
+      font-size: 0.73rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+
+    .hero-headline {
+      font-size: 1.18rem;
+      line-height: 1.28;
+      font-weight: 760;
+      color: var(--title-ink);
+      margin-top: -2px;
+    }
+
+    .hero-summary {
+      color: var(--muted);
+      font-size: 0.87rem;
       line-height: 1.5;
-      max-width: 1020px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .hero-card {
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      padding: 11px 12px 12px;
+      background: rgba(255,255,255,0.72);
+      display: grid;
+      gap: 5px;
+    }
+
+    [data-theme="dark"] .hero-card {
+      background: rgba(15,29,41,0.52);
+    }
+
+    .hero-label {
+      color: var(--muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.48px;
+      font-weight: 700;
+    }
+
+    .hero-value {
+      color: var(--kpi-value-ink);
+      font-size: 1rem;
+      line-height: 1.26;
+      font-weight: 760;
+    }
+
+    .hero-detail {
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.42;
     }
 
     .consistency-alert {
@@ -448,11 +559,15 @@ def _build_html(data_payload: dict) -> str:
     }
 
     .filters {
-      margin-top: 16px;
+      margin-top: 18px;
       display: grid;
       grid-template-columns: repeat(8, minmax(138px, 1fr));
       gap: 12px;
       align-items: end;
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      background: var(--panel-soft);
+      padding: 14px;
     }
 
     .filter-box label {
@@ -475,6 +590,15 @@ def _build_html(data_payload: dict) -> str:
       color: var(--ink);
       font-size: 0.85rem;
       min-height: 39px;
+    }
+
+    .filter-box select:focus-visible,
+    .filter-box input:focus-visible,
+    .table-controls input:focus-visible,
+    button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-color: var(--accent);
     }
 
     .methodology-toggle {
@@ -543,7 +667,7 @@ def _build_html(data_payload: dict) -> str:
     }
 
     .methodology-panel {
-      margin-top: 12px;
+      margin-top: 14px;
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
       background: var(--narrative-bg);
@@ -555,11 +679,11 @@ def _build_html(data_payload: dict) -> str:
     }
 
     .assumption-panel {
-      margin-top: 12px;
+      margin-top: 14px;
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
       background: var(--panel-soft);
-      padding: 10px 12px 11px;
+      padding: 12px 14px 12px;
     }
 
     .assumption-grid {
@@ -596,75 +720,146 @@ def _build_html(data_payload: dict) -> str:
       border: 1px solid var(--border);
       box-shadow: var(--shadow-sm);
       border-radius: var(--radius-md);
-      padding: 18px 18px 16px;
+      padding: 18px 18px 17px;
     }
 
     .section-head {
-      margin-bottom: 13px;
+      margin-bottom: 14px;
+      display: grid;
+      gap: 5px;
+    }
+
+    .section-kicker {
+      color: var(--muted);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
     }
 
     .section h2 {
       margin: 0 0 2px;
-      font-size: 1.04rem;
+      font-size: 1.1rem;
       color: var(--section-title-ink);
       letter-spacing: 0.16px;
-      font-weight: 730;
+      font-weight: 760;
     }
 
     .section-sub {
       color: var(--muted);
-      font-size: 0.83rem;
-      line-height: 1.42;
+      font-size: 0.84rem;
+      line-height: 1.46;
+      max-width: 980px;
     }
 
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(8, minmax(130px, 1fr));
-      gap: 13px;
+      grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+      gap: 14px;
     }
 
     .kpi {
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
       background: var(--panel-alt);
-      padding: 11px 12px;
-      min-height: 96px;
+      padding: 13px 14px;
+      min-height: 114px;
       box-shadow: var(--kpi-inset-shadow);
-      border-top: 3px solid var(--border-strong-soft);
+      border-top: 4px solid var(--border-strong-soft);
+      display: grid;
+      gap: 6px;
     }
 
     .kpi .label {
-      font-size: 0.71rem;
+      font-size: 0.69rem;
       text-transform: uppercase;
       color: var(--muted);
       letter-spacing: 0.48px;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .kpi .value {
-      margin-top: 8px;
-      font-size: 1.3rem;
+      font-size: 1.44rem;
       font-weight: 760;
       color: var(--kpi-value-ink);
-      line-height: 1.15;
+      line-height: 1.08;
+    }
+
+    .kpi .context {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.38;
+    }
+
+    .kpi-positive { border-top-color: rgba(31, 107, 68, 0.46); }
+    .kpi-watch { border-top-color: rgba(155, 106, 18, 0.52); }
+    .kpi-critical { border-top-color: rgba(181, 58, 51, 0.54); }
+    .kpi-neutral { border-top-color: var(--border-strong-soft); }
+
+    .kpi-positive .value { color: var(--ok); }
+    .kpi-watch .value { color: var(--warn); }
+    .kpi-critical .value { color: var(--danger); }
+
+    [data-theme="dark"] .kpi-positive .value,
+    [data-theme="dark"] .kpi-watch .value,
+    [data-theme="dark"] .kpi-critical .value {
+      filter: brightness(1.1);
     }
 
     .callout-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(180px, 1fr));
-      gap: 13px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
     }
 
     .callout {
       border: 1px solid var(--border-soft);
       border-left: 4px solid var(--accent);
-      border-radius: 10px;
-      padding: 12px 13px;
+      border-radius: 12px;
+      padding: 13px 14px;
       background: var(--panel-soft);
-      min-height: 102px;
+      min-height: 132px;
       font-size: 0.86rem;
-      line-height: 1.47;
+      line-height: 1.5;
       color: var(--callout-ink);
+      display: grid;
+      gap: 7px;
+    }
+
+    .callout-eyebrow {
+      color: var(--muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+
+    .callout-title {
+      color: var(--section-title-ink);
+      font-size: 0.97rem;
+      line-height: 1.34;
+      font-weight: 760;
+    }
+
+    .callout-body {
+      color: var(--callout-ink);
+      font-size: 0.83rem;
+      line-height: 1.48;
+    }
+
+    .callout-critical { border-left-color: var(--danger); }
+    .callout-watch { border-left-color: var(--warn); }
+    .callout-positive { border-left-color: var(--ok); }
+    .callout-neutral { border-left-color: var(--accent); }
+
+    .callout-critical .callout-title { color: var(--danger); }
+    .callout-watch .callout-title { color: var(--warn); }
+    .callout-positive .callout-title { color: var(--ok); }
+
+    [data-theme="dark"] .callout-critical .callout-title,
+    [data-theme="dark"] .callout-watch .callout-title,
+    [data-theme="dark"] .callout-positive .callout-title {
+      filter: brightness(1.1);
     }
 
     .chart-grid-2 {
@@ -683,9 +878,10 @@ def _build_html(data_payload: dict) -> str:
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
       background: var(--panel-alt);
-      padding: 8px 10px 8px;
+      padding: 10px 11px 8px;
       min-height: 340px;
       overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.48);
     }
 
     .chart-card.tall { min-height: 410px; }
@@ -704,11 +900,40 @@ def _build_html(data_payload: dict) -> str:
     .narrative {
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
-      padding: 14px 15px;
+      padding: 16px 16px;
       background: var(--narrative-bg);
-      font-size: 0.89rem;
+      font-size: 0.88rem;
       line-height: 1.58;
       color: var(--ink);
+    }
+
+    .brief-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .brief-item {
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      background: var(--panel-alt);
+      padding: 12px 13px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .brief-label {
+      color: var(--muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+
+    .brief-copy {
+      color: var(--ink);
+      font-size: 0.84rem;
+      line-height: 1.48;
     }
 
     .table-controls {
@@ -735,6 +960,7 @@ def _build_html(data_payload: dict) -> str:
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
       max-height: 460px;
+      background: var(--panel-alt);
     }
 
     table {
@@ -753,15 +979,20 @@ def _build_html(data_payload: dict) -> str:
       padding: 8px;
       cursor: pointer;
       white-space: nowrap;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.36px;
     }
 
     tbody td {
       border-bottom: 1px solid var(--border-soft);
-      padding: 7px 8px;
+      padding: 9px 8px;
       white-space: nowrap;
+      vertical-align: top;
     }
 
     tbody tr:hover { background: var(--table-row-hover); }
+    tbody tr:nth-child(even) { background: var(--panel-soft); }
 
     .risk-badge {
       padding: 2px 8px;
@@ -785,10 +1016,28 @@ def _build_html(data_payload: dict) -> str:
       line-height: 1.4;
     }
 
+    .priority-cell {
+      font-weight: 760;
+      color: var(--section-title-ink);
+    }
+
+    .action-cell {
+      white-space: normal;
+      min-width: 240px;
+      line-height: 1.42;
+    }
+
+    .entity-cell {
+      font-weight: 650;
+      color: var(--title-ink);
+    }
+
     @media (max-width: 1280px) {
       .container { padding: 18px; }
+      .header-top { grid-template-columns: 1fr; }
+      .hero-grid { grid-template-columns: 1fr 1fr 1fr; }
       .filters { grid-template-columns: repeat(4, minmax(150px, 1fr)); }
-      .kpi-grid { grid-template-columns: repeat(4, minmax(130px, 1fr)); }
+      .kpi-grid { grid-template-columns: repeat(4, minmax(170px, 1fr)); }
       .callout-grid { grid-template-columns: 1fr 1fr; }
       .chart-grid-3 { grid-template-columns: 1fr 1fr; }
       .assumption-grid { grid-template-columns: repeat(2, minmax(170px, 1fr)); }
@@ -799,11 +1048,13 @@ def _build_html(data_payload: dict) -> str:
     @media (max-width: 820px) {
       .container { padding: 14px; }
       .header-top { grid-template-columns: 1fr; }
+      .hero-grid { grid-template-columns: 1fr; }
       .filters { grid-template-columns: repeat(2, minmax(130px, 1fr)); }
-      .kpi-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .kpi-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
       .callout-grid { grid-template-columns: 1fr; }
       .chart-grid-2, .chart-grid-3 { grid-template-columns: 1fr; }
       .assumption-grid { grid-template-columns: 1fr; }
+      .brief-grid { grid-template-columns: 1fr; }
       .table-controls input { min-width: 100%; }
       .chart-card,
       .chart-card.short,
@@ -891,9 +1142,38 @@ def _build_html(data_payload: dict) -> str:
   <div class="container">
     <div class="header">
       <div class="header-top">
-        <div>
+        <div class="header-copy">
+          <div class="header-meta">
+            <span class="meta-pill">Executive command center</span>
+            <span class="meta-pill" id="header-scope">Filtered operating scope</span>
+            <span class="meta-pill" id="header-updated">Updated from governed snapshot</span>
+          </div>
+          <div>
           <h1 class="title">Supply Chain Service Level, Inventory Risk & Working Capital Intelligence System</h1>
           <div class="subtitle">Executive Operations & Finance Review Dashboard: service reliability, stockout leakage, inventory efficiency, and intervention priorities.</div>
+        </div>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-eyebrow">Current decision frame</div>
+          <div class="hero-headline" id="hero-headline"></div>
+          <div class="hero-summary" id="hero-summary"></div>
+          <div class="hero-grid">
+            <div class="hero-card">
+              <div class="hero-label">Immediate action</div>
+              <div class="hero-value" id="hero-primary"></div>
+              <div class="hero-detail" id="hero-primary-detail"></div>
+            </div>
+            <div class="hero-card">
+              <div class="hero-label">Largest exposure</div>
+              <div class="hero-value" id="hero-exposure"></div>
+              <div class="hero-detail" id="hero-exposure-detail"></div>
+            </div>
+            <div class="hero-card">
+              <div class="hero-label">Value at stake</div>
+              <div class="hero-value" id="hero-opportunity"></div>
+              <div class="hero-detail" id="hero-opportunity-detail"></div>
+            </div>
+          </div>
         </div>
       </div>
       <div id="consistency-alert" class="consistency-alert"></div>
@@ -945,7 +1225,8 @@ def _build_html(data_payload: dict) -> str:
 
     <div class="section">
       <div class="section-head">
-        <h2>KPI Snapshot</h2>
+        <div class="section-kicker">Portfolio scorecard</div>
+        <h2>Operating Scorecard</h2>
         <div class="section-sub">Portfolio-level service, stockout, working-capital, supplier execution, and intervention-pressure KPIs.</div>
       </div>
       <div class="kpi-grid" id="kpi-grid"></div>
@@ -953,15 +1234,17 @@ def _build_html(data_payload: dict) -> str:
 
     <div class="section">
       <div class="section-head">
-        <h2>Executive Insight Callouts</h2>
-        <div class="section-sub">Automatically generated decision statements highlighting concentration of risk and value leakage.</div>
+        <div class="section-kicker">Priority signals</div>
+        <h2>Executive Decision Priorities</h2>
+        <div class="section-sub">Concise operating signals on where leadership attention should go first.</div>
       </div>
       <div class="callout-grid" id="callout-grid"></div>
     </div>
 
     <div class="section">
       <div class="section-head">
-        <h2>Time-Series Performance</h2>
+        <div class="section-kicker">Trend view</div>
+        <h2>Performance Over Time</h2>
         <div class="section-sub">Trend diagnostics to separate temporary volatility from persistent operating drift.</div>
       </div>
       <div class="chart-grid-2">
@@ -974,7 +1257,8 @@ def _build_html(data_payload: dict) -> str:
 
     <div class="section">
       <div class="section-head">
-        <h2>Comparative Diagnostics</h2>
+        <div class="section-kicker">Cross-section comparison</div>
+        <h2>Exposure by Node</h2>
         <div class="section-sub">Cross-sectional comparison of warehouses, categories, regions, and suppliers to locate operational imbalance.</div>
       </div>
       <div class="chart-grid-3">
@@ -989,6 +1273,7 @@ def _build_html(data_payload: dict) -> str:
 
     <div class="section tradeoff">
       <div class="section-head">
+        <div class="section-kicker">Portfolio balance</div>
         <h2>Service vs Inventory Trade-off</h2>
         <div class="section-sub">Quadrant and scatter analysis for identifying understock, overstock, and dual-failure segments.</div>
       </div>
@@ -1001,7 +1286,8 @@ def _build_html(data_payload: dict) -> str:
 
     <div class="section">
       <div class="section-head">
-        <h2>Risk Prioritization</h2>
+        <div class="section-kicker">Execution queue</div>
+        <h2>Intervention Prioritization</h2>
         <div class="section-sub">Action queue diagnostics by SKU, supplier, warehouse, and supplier-risk intensity.</div>
       </div>
       <div class="chart-grid-3">
@@ -1014,8 +1300,9 @@ def _build_html(data_payload: dict) -> str:
 
     <div class="section">
       <div class="section-head">
-        <h2>Detailed Drill-Down: SKU-Warehouse Prioritization</h2>
-        <div class="section-sub">Sortable and filterable intervention table for tactical execution ownership.</div>
+        <div class="section-kicker">Execution detail</div>
+        <h2>Priority Action Table</h2>
+        <div class="section-sub">Sortable and filterable SKU-warehouse intervention table for tactical execution ownership.</div>
       </div>
       <div class="table-controls">
         <input id="table-search" type="text" placeholder="Search product, warehouse, supplier, risk driver, action..." />
@@ -1025,18 +1312,18 @@ def _build_html(data_payload: dict) -> str:
         <table id="detail-table">
           <thead>
             <tr>
-              <th data-key="product_id">product_id</th>
-              <th data-key="product_name">product_name</th>
-              <th data-key="warehouse_id">warehouse_id</th>
-              <th data-key="supplier_id">supplier_id</th>
-              <th data-key="fill_rate">fill_rate</th>
-              <th data-key="stockout_risk_score">stockout_risk_score</th>
-              <th data-key="excess_inventory_score">excess_inventory_score</th>
-              <th data-key="working_capital_risk_score">working_capital_risk_score</th>
-              <th data-key="governance_priority_score">governance_priority_score</th>
-              <th data-key="risk_tier">risk_tier</th>
-              <th data-key="main_risk_driver">main_risk_driver</th>
-              <th data-key="recommended_action">recommended_action</th>
+              <th data-key="product_id">SKU</th>
+              <th data-key="product_name">Product</th>
+              <th data-key="warehouse_id">Warehouse</th>
+              <th data-key="supplier_id">Supplier</th>
+              <th data-key="fill_rate">Fill Rate</th>
+              <th data-key="stockout_risk_score">Stockout Risk</th>
+              <th data-key="excess_inventory_score">Excess Risk</th>
+              <th data-key="working_capital_risk_score">WC Risk</th>
+              <th data-key="governance_priority_score">Priority Score</th>
+              <th data-key="risk_tier">Tier</th>
+              <th data-key="main_risk_driver">Primary Driver</th>
+              <th data-key="recommended_action">Recommended Action</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -1046,7 +1333,8 @@ def _build_html(data_payload: dict) -> str:
 
     <div class="section">
       <div class="section-head">
-        <h2>Narrative Panel</h2>
+        <div class="section-kicker">Executive interpretation</div>
+        <h2>Executive Brief</h2>
         <div class="section-sub">Decision-oriented interpretation summarizing what is wrong, where exposure sits, and what should happen next.</div>
       </div>
       <div class="narrative" id="narrative-panel"></div>
@@ -1131,6 +1419,13 @@ def _build_html(data_payload: dict) -> str:
     function fmtNum(v) { return Number(v).toLocaleString(); }
     function fmtEur(v) { return `EUR ${Number(v).toLocaleString(undefined, {maximumFractionDigits: 0})}`; }
     function fmtEurM(v) { return `EUR ${(Number(v) / 1_000_000).toFixed(2)}M`; }
+    function fmtCompactEur(v) {
+      const value = Math.abs(Number(v) || 0);
+      if (value >= 1_000_000_000) return `EUR ${(value / 1_000_000_000).toFixed(2)}B`;
+      if (value >= 1_000_000) return `EUR ${(value / 1_000_000).toFixed(2)}M`;
+      if (value >= 1_000) return `EUR ${(value / 1_000).toFixed(1)}K`;
+      return fmtEur(value);
+    }
     function ellipsize(text, maxLen = 28) {
       const value = String(text || '');
       return value.length > maxLen ? `${value.slice(0, Math.max(0, maxLen - 1))}…` : value;
@@ -1144,6 +1439,16 @@ def _build_html(data_payload: dict) -> str:
     function norm(v, low, high) {
       if (high <= low) return 0;
       return clamp01((v - low) / (high - low));
+    }
+
+    function computeBalancedShare(agg) {
+      return agg.skuRows.filter(r => r.fill_rate >= 0.97 && r.avg_dos >= 8 && r.avg_dos <= 35).length / Math.max(agg.skuRows.length, 1);
+    }
+
+    function classifyPosture(agg, balancedShare) {
+      if (agg.totals.fillRate < 0.95 && balancedShare < 0.35) return 'critical';
+      if (agg.totals.stockoutRate > 0.05 || agg.totals.totalExcess > agg.totals.totalInventory * 0.18) return 'watch';
+      return 'stable';
     }
 
     function getPreferredTheme() {
@@ -1537,79 +1842,217 @@ def _build_html(data_payload: dict) -> str:
       };
     }
 
+    function renderHeaderSummary(agg, dateRange) {
+      const balancedShare = computeBalancedShare(agg);
+      const posture = classifyPosture(agg, balancedShare);
+      const topSku = agg.skuRows[0];
+      const topSupplier = [...agg.suppliers].sort((a,b) => (b.stockout_rate * b.lostSales) - (a.stockout_rate * a.lostSales))[0];
+      const topWarehouse = [...agg.warehouses].sort((a,b) => b.lostSales - a.lostSales)[0];
+      const headerScope = document.getElementById('header-scope');
+      const headerUpdated = document.getElementById('header-updated');
+      const headline = document.getElementById('hero-headline');
+      const summary = document.getElementById('hero-summary');
+
+      if (headerScope) {
+        headerScope.textContent = `${fmtNum(agg.skuRows.length)} SKU-warehouse positions | ${fmtNum(agg.warehouses.length)} warehouses | ${fmtNum(agg.suppliers.length)} suppliers`;
+      }
+      if (headerUpdated) {
+        headerUpdated.textContent = `${dateRange.start.slice(0, 7)} to ${dateRange.end.slice(0, 7)} | ${dashboardData.generated_at}`;
+      }
+
+      if (headline) {
+        if (posture === 'critical') {
+          headline.textContent = 'Service is under target while capital remains trapped in the network.';
+        } else if (posture === 'watch') {
+          headline.textContent = 'Targeted intervention is required to recover service without adding broad inventory.';
+        } else {
+          headline.textContent = 'Portfolio is broadly controlled, but concentration pockets still require active management.';
+        }
+      }
+
+      if (summary) {
+        summary.textContent = `This view isolates the filtered operating scope and surfaces the trade-off between customer service, supplier execution, and working-capital drag. Balanced positions currently represent ${fmtPct(balancedShare)} of the active portfolio.`;
+      }
+
+      const primary = document.getElementById('hero-primary');
+      const primaryDetail = document.getElementById('hero-primary-detail');
+      if (primary) {
+        primary.textContent = topSku ? `${topSku.product_id} @ ${topSku.warehouse_id}` : 'No priority item';
+      }
+      if (primaryDetail) {
+        primaryDetail.textContent = topSku
+          ? `Priority score ${topSku.governance_priority_score.toFixed(1)}. Main driver: ${topSku.main_risk_driver}.`
+          : 'No governed SKU priority is available in the current slice.';
+      }
+
+      const exposure = document.getElementById('hero-exposure');
+      const exposureDetail = document.getElementById('hero-exposure-detail');
+      if (exposure) {
+        exposure.textContent = topSupplier ? topSupplier.supplier_name : (topWarehouse ? topWarehouse.warehouse_name : 'No exposure pocket');
+      }
+      if (exposureDetail) {
+        exposureDetail.textContent = topSupplier
+          ? `${fmtEurM(topSupplier.lostSales)} linked lost sales, OTD ${fmtPct(topSupplier.on_time_delivery_rate)}.`
+          : (topWarehouse ? `${fmtEurM(topWarehouse.lostSales)} lost sales exposure in the most pressured warehouse.` : 'No material exposure pocket in the current slice.');
+      }
+
+      const opportunity = document.getElementById('hero-opportunity');
+      const opportunityDetail = document.getElementById('hero-opportunity-detail');
+      if (opportunity) {
+        opportunity.textContent = fmtCompactEur(agg.totals.scenarioOpportunity12m);
+      }
+      if (opportunityDetail) {
+        opportunityDetail.textContent = `${fmtPct(agg.totals.recoverableMarginRate)} lost-margin recovery + ${fmtPct(agg.totals.releasableWcRate)} releasable working capital assumption.`;
+      }
+    }
+
     function buildCallouts(agg) {
-      const callouts = [];
+      const topSku = agg.skuRows[0];
       const whWorst = [...agg.warehouses].sort((a,b) => a.fill_rate - b.fill_rate)[0];
-      if (whWorst) {
-        callouts.push(`Warehouse pressure point: <strong>${whWorst.warehouse_name}</strong> is running at ${fmtPct(whWorst.fill_rate)} fill rate with ${fmtEurM(whWorst.lostSales)} lost sales.`);
-      }
-
       const supWorst = [...agg.suppliers].sort((a,b) => (b.stockout_rate * b.lostSales) - (a.stockout_rate * a.lostSales))[0];
-      if (supWorst) {
-        callouts.push(`Supplier instability: <strong>${supWorst.supplier_name}</strong> links to ${fmtEurM(supWorst.lostSales)} downstream lost sales; OTD is ${fmtPct(supWorst.on_time_delivery_rate)}.`);
-      }
-
       const catExcess = [...agg.categories].sort((a,b)=>b.excess-a.excess)[0];
-      if (catExcess) {
-        callouts.push(`Excess inventory concentration: <strong>${catExcess.category}</strong> holds ${fmtEurM(catExcess.excess)} of excess-value proxy.`);
-      }
-
       const segmentImbalance = [...agg.segments].sort((a,b)=>{
         const aScore = (1-a.fill_rate)*0.65 + norm(a.avg_dos, 20, 70)*0.35;
         const bScore = (1-b.fill_rate)*0.65 + norm(b.avg_dos, 20, 70)*0.35;
         return bScore - aScore;
       })[0];
-      if (segmentImbalance) {
-        callouts.push(`Service-vs-capital imbalance: <strong>${segmentImbalance.category} | ${segmentImbalance.region}</strong> combines ${fmtPct(segmentImbalance.fill_rate)} fill rate with ${segmentImbalance.avg_dos.toFixed(1)} DOS.`);
-      }
 
-      const topSku = agg.skuRows[0];
+      const callouts = [];
+
       if (topSku) {
-        callouts.push(`Urgent governance queue: top priority SKU is <strong>${topSku.product_id} @ ${topSku.warehouse_id}</strong> (score ${topSku.governance_priority_score.toFixed(1)}, driver ${topSku.main_risk_driver}).`);
+        callouts.push({
+          tone: 'critical',
+          eyebrow: 'Priority 1',
+          title: `${topSku.product_id} @ ${topSku.warehouse_id}`,
+          body: `Start with the highest-governance item. Score ${topSku.governance_priority_score.toFixed(1)} with ${topSku.main_risk_driver} as the lead driver.`
+        });
       }
 
-      const lostRegion = agg.regions[0];
-      if (lostRegion) {
-        callouts.push(`Largest lost-sales pocket: <strong>${lostRegion.region}</strong> contributes ${fmtEurM(lostRegion.lostSales)} of exposed demand value.`);
+      if (supWorst) {
+        callouts.push({
+          tone: 'watch',
+          eyebrow: 'Supplier escalation',
+          title: supWorst.supplier_name,
+          body: `${fmtEurM(supWorst.lostSales)} lost sales exposure sits behind this supplier. Weighted OTD is ${fmtPct(supWorst.on_time_delivery_rate)}.`
+        });
       }
 
-      return callouts.slice(0, 6);
+      if (whWorst) {
+        callouts.push({
+          tone: 'watch',
+          eyebrow: 'Warehouse pressure',
+          title: whWorst.warehouse_name,
+          body: `Fill rate is ${fmtPct(whWorst.fill_rate)} with ${fmtEurM(whWorst.lostSales)} in lost sales. Replenishment settings need review before broad network changes.`
+        });
+      }
+
+      if (catExcess) {
+        callouts.push({
+          tone: 'neutral',
+          eyebrow: 'Capital concentration',
+          title: catExcess.category,
+          body: `${fmtEurM(catExcess.excess)} of excess-value proxy is concentrated here, making it the cleanest release candidate.`
+        });
+      }
+
+      if (segmentImbalance) {
+        callouts.push({
+          tone: 'positive',
+          eyebrow: 'Trade-off lens',
+          title: `${segmentImbalance.category} | ${segmentImbalance.region}`,
+          body: `${fmtPct(segmentImbalance.fill_rate)} fill rate with ${segmentImbalance.avg_dos.toFixed(1)} days of supply. This is the clearest service-versus-capital imbalance in the current slice.`
+        });
+      }
+
+      return callouts.slice(0, 4);
     }
 
     function renderKPIs(agg) {
       const highRiskSkuCount = agg.skuRows.filter(r => r.risk_tier === 'High' || r.risk_tier === 'Critical').length;
       const kpis = [
-        ['Overall Fill Rate', fmtPct(agg.totals.fillRate)],
-        ['Stockout Rate', fmtPct(agg.totals.stockoutRate)],
-        ['Lost Sales Value', fmtEur(agg.totals.totalLostSales)],
-        ['Total Inventory Value', fmtEur(agg.totals.totalInventory)],
-        ['Excess Inventory Value', fmtEur(agg.totals.totalExcess)],
-        ['Working Capital At Risk (Observed)', fmtEur(agg.totals.totalTrappedWCObserved)],
-        ['12M Opportunity (Scenario)', fmtEur(agg.totals.scenarioOpportunity12m)],
-        ['Supplier OTD (Weighted)', fmtPct(agg.totals.weightedSupplierOTD)],
-        ['High-Risk SKU Count', fmtNum(highRiskSkuCount)],
+        {
+          label: 'Fill Rate',
+          value: fmtPct(agg.totals.fillRate),
+          context: 'Target operating threshold: 97%+.',
+          tone: agg.totals.fillRate >= 0.97 ? 'positive' : (agg.totals.fillRate >= 0.95 ? 'watch' : 'critical'),
+        },
+        {
+          label: 'Stockout Rate',
+          value: fmtPct(agg.totals.stockoutRate),
+          context: 'Direct indicator of demand leakage.',
+          tone: agg.totals.stockoutRate <= 0.02 ? 'positive' : (agg.totals.stockoutRate <= 0.05 ? 'watch' : 'critical'),
+        },
+        {
+          label: 'Lost Sales Value',
+          value: fmtCompactEur(agg.totals.totalLostSales),
+          context: 'Current filtered revenue exposure.',
+          tone: agg.totals.totalLostSales <= 500000 ? 'neutral' : 'critical',
+        },
+        {
+          label: '12M Opportunity',
+          value: fmtCompactEur(agg.totals.scenarioOpportunity12m),
+          context: 'Scenario-based upside from service recovery + capital release.',
+          tone: 'positive',
+        },
+        {
+          label: 'Working Capital at Risk',
+          value: fmtCompactEur(agg.totals.totalTrappedWCObserved),
+          context: 'Observed value currently trapped in inventory.',
+          tone: agg.totals.totalTrappedWCObserved <= agg.totals.totalInventory * 0.12 ? 'neutral' : 'watch',
+        },
+        {
+          label: 'Excess Inventory',
+          value: fmtCompactEur(agg.totals.totalExcess),
+          context: 'Value above days-of-supply caps.',
+          tone: agg.totals.totalExcess <= agg.totals.totalInventory * 0.08 ? 'positive' : 'watch',
+        },
+        {
+          label: 'Supplier OTD',
+          value: fmtPct(agg.totals.weightedSupplierOTD),
+          context: 'Demand-weighted supplier execution quality.',
+          tone: agg.totals.weightedSupplierOTD >= 0.92 ? 'positive' : (agg.totals.weightedSupplierOTD >= 0.88 ? 'watch' : 'critical'),
+        },
+        {
+          label: 'High-Risk SKU Count',
+          value: fmtNum(highRiskSkuCount),
+          context: 'High + critical governed intervention items.',
+          tone: highRiskSkuCount <= 20 ? 'positive' : (highRiskSkuCount <= 50 ? 'watch' : 'critical'),
+        },
       ];
 
       const grid = document.getElementById('kpi-grid');
-      grid.innerHTML = kpis.map(([label, value]) => `<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div></div>`).join('');
+      grid.innerHTML = kpis.map(k => `
+        <div class="kpi kpi-${k.tone}">
+          <div class="label">${k.label}</div>
+          <div class="value">${k.value}</div>
+          <div class="context">${k.context}</div>
+        </div>
+      `).join('');
     }
 
     function renderCallouts(callouts) {
-      document.getElementById('callout-grid').innerHTML = callouts.map(t => `<div class="callout">${t}</div>`).join('');
+      document.getElementById('callout-grid').innerHTML = callouts.map(c => `
+        <div class="callout callout-${c.tone}">
+          <div class="callout-eyebrow">${c.eyebrow}</div>
+          <div class="callout-title">${c.title}</div>
+          <div class="callout-body">${c.body}</div>
+        </div>
+      `).join('');
     }
 
     function chartLayout(title) {
       const c = getThemePalette();
       return {
-        title: { text: title, x: 0.01, xanchor: 'left', font: { size: 14, color: c.title } },
-        margin: { l: 66, r: 20, t: 52, b: 58 },
+        title: { text: title, x: 0.01, xanchor: 'left', font: { size: 15, color: c.title } },
+        margin: { l: 68, r: 20, t: 58, b: 58 },
         paper_bgcolor: c.paper,
         plot_bgcolor: c.plot,
         font: { family: 'IBM Plex Sans, Avenir Next, Source Sans 3, Segoe UI, sans-serif', size: 12, color: c.font },
         xaxis: { gridcolor: c.grid, zerolinecolor: c.zero, automargin: true, tickangle: 0, tickfont: { size: 11 } },
         yaxis: { gridcolor: c.grid, zerolinecolor: c.zero, automargin: true, tickfont: { size: 11 } },
         showlegend: false,
-        hoverlabel: { bgcolor: c.hoverBg, font: { color: '#ffffff' } }
+        hoverlabel: { bgcolor: c.hoverBg, font: { color: '#ffffff' } },
+        dragmode: false
       };
     }
 
@@ -1624,7 +2067,7 @@ def _build_html(data_payload: dict) -> str:
         line: { color: c.service, width: 2.5 },
         marker: { size: 6 },
         hovertemplate: 'Month %{x}<br>Fill Rate %{y:.1%}<extra></extra>'
-      }], { ...chartLayout('Service Level Trend Over Time'), xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickformat: '.0%', gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
+      }], { ...chartLayout('Service Level Trend'), hovermode: 'x unified', xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickformat: '.0%', gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
 
       Plotly.react('chart-stockout-trend', [{
         x: monthSeries.map(d => d.month),
@@ -1633,7 +2076,7 @@ def _build_html(data_payload: dict) -> str:
         line: { color: c.stockout, width: 2.5 },
         marker: { size: 6 },
         hovertemplate: 'Month %{x}<br>Stockout %{y:.1%}<extra></extra>'
-      }], { ...chartLayout('Stockout Rate Trend Over Time'), xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickformat: '.0%', gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
+      }], { ...chartLayout('Stockout Rate Trend'), hovermode: 'x unified', xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickformat: '.0%', gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
 
       Plotly.react('chart-lost-sales-trend', [{
         x: monthSeries.map(d => d.month),
@@ -1641,7 +2084,7 @@ def _build_html(data_payload: dict) -> str:
         type: 'bar',
         marker: { color: c.lostSales },
         hovertemplate: 'Month %{x}<br>Lost Sales %{y:$,.0f}<extra></extra>'
-      }], { ...chartLayout('Lost Sales Exposure Trend'), xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickprefix: 'EUR ', separatethousands: true, gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
+      }], { ...chartLayout('Lost Sales Exposure Trend'), hovermode: 'x unified', xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickprefix: 'EUR ', separatethousands: true, gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
 
       Plotly.react('chart-inventory-trend', [{
         x: monthSeries.map(d => d.month),
@@ -1649,7 +2092,7 @@ def _build_html(data_payload: dict) -> str:
         type: 'bar',
         marker: { color: c.inventory },
         hovertemplate: 'Month %{x}<br>Inventory %{y:$,.0f}<extra></extra>'
-      }], { ...chartLayout('Inventory Value Trend (Potential Capital Lock-up)'), xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickprefix: 'EUR ', separatethousands: true, gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
+      }], { ...chartLayout('Inventory Value Trend'), hovermode: 'x unified', xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickprefix: 'EUR ', separatethousands: true, gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
 
       const wh = [...agg.warehouses].sort((a,b)=>a.fill_rate-b.fill_rate);
       const whLabels = wh.map(d=>ellipsize(d.warehouse_name, 26));
@@ -1874,18 +2317,18 @@ def _build_html(data_payload: dict) -> str:
       tableBody.innerHTML = shown.map(r => {
         const tierClass = `risk-${r.risk_tier.toLowerCase()}`;
         return `<tr>
-          <td>${r.product_id}</td>
-          <td>${r.product_name}</td>
+          <td class="entity-cell">${r.product_id}</td>
+          <td class="action-cell">${r.product_name}</td>
           <td>${r.warehouse_id}</td>
           <td>${r.supplier_id}</td>
           <td>${fmtPct(r.fill_rate)}</td>
           <td>${r.stockout_risk_score.toFixed(1)}</td>
           <td>${r.excess_inventory_score.toFixed(1)}</td>
           <td>${r.working_capital_risk_score.toFixed(1)}</td>
-          <td><strong>${r.governance_priority_score.toFixed(1)}</strong></td>
+          <td class="priority-cell">${r.governance_priority_score.toFixed(1)}</td>
           <td><span class="risk-badge ${tierClass}">${r.risk_tier}</span></td>
           <td>${r.main_risk_driver}</td>
-          <td>${r.recommended_action}</td>
+          <td class="action-cell">${r.recommended_action}</td>
         </tr>`;
       }).join('');
 
@@ -1897,13 +2340,26 @@ def _build_html(data_payload: dict) -> str:
       const topSupplier = [...agg.suppliers].sort((a,b)=>b.stockout_rate-a.stockout_rate)[0];
       const topCategoryExcess = [...agg.categories].sort((a,b)=>b.excess-a.excess)[0];
       const topSku = agg.skuRows[0];
-      const balancedShare = agg.skuRows.filter(r => r.fill_rate >= 0.97 && r.avg_dos >= 8 && r.avg_dos <= 35).length / Math.max(agg.skuRows.length,1);
+      const balancedShare = computeBalancedShare(agg);
       const html = `
-        <strong>What is going wrong:</strong> service and inventory are misaligned. Current fill rate is <strong>${fmtPct(agg.totals.fillRate)}</strong> while stockout rate is <strong>${fmtPct(agg.totals.stockoutRate)}</strong>, indicating preventable demand leakage.<br/><br/>
-        <strong>Where the company is exposed:</strong> the most pressured warehouse is <strong>${topWarehouse ? topWarehouse.warehouse_name : 'n/a'}</strong>; supplier instability is concentrated around <strong>${topSupplier ? topSupplier.supplier_name : 'n/a'}</strong>; excess inventory concentration is highest in <strong>${topCategoryExcess ? topCategoryExcess.category : 'n/a'}</strong>.<br/><br/>
-        <strong>What should be done first:</strong> act on the governance queue starting with <strong>${topSku ? `${topSku.product_id} @ ${topSku.warehouse_id}` : 'top filtered SKU'}</strong>, then escalate suppliers and warehouse-level replenishment policies that drive the largest combined service and capital penalty.<br/><br/>
-        <strong>Leadership trade-off to manage:</strong> only <strong>${fmtPct(balancedShare)}</strong> of filtered SKU-warehouse positions are currently in a balanced zone (high service with controlled DOS). Decision focus should be on moving the portfolio toward that balanced share.<br/><br/>
-        <strong>Scenario lens:</strong> with assumptions at <strong>${fmtPct(agg.totals.recoverableMarginRate)}</strong> recoverable lost margin, <strong>${fmtPct(agg.totals.releasableWcRate)}</strong> releasable working capital, and <strong>${fmtPct(agg.totals.slowMovingIncrementalWeight)}</strong> slow-moving incremental weight, the 12-month opportunity proxy is <strong>${fmtEur(agg.totals.scenarioOpportunity12m)}</strong>.
+        <div class="brief-grid">
+          <div class="brief-item">
+            <div class="brief-label">What is off plan</div>
+            <div class="brief-copy">Fill rate is <strong>${fmtPct(agg.totals.fillRate)}</strong> while stockout rate is <strong>${fmtPct(agg.totals.stockoutRate)}</strong>. Service is still leaking demand and should not be treated as a transient fluctuation.</div>
+          </div>
+          <div class="brief-item">
+            <div class="brief-label">Where exposure sits</div>
+            <div class="brief-copy">Pressure is concentrated in <strong>${topWarehouse ? topWarehouse.warehouse_name : 'n/a'}</strong>, supplier instability is led by <strong>${topSupplier ? topSupplier.supplier_name : 'n/a'}</strong>, and excess value is most visible in <strong>${topCategoryExcess ? topCategoryExcess.category : 'n/a'}</strong>.</div>
+          </div>
+          <div class="brief-item">
+            <div class="brief-label">What leadership should do first</div>
+            <div class="brief-copy">Start with <strong>${topSku ? `${topSku.product_id} @ ${topSku.warehouse_id}` : 'the top filtered SKU'}</strong>, then address the supplier and warehouse policies driving the highest combined service and capital penalty.</div>
+          </div>
+          <div class="brief-item">
+            <div class="brief-label">Trade-off to manage</div>
+            <div class="brief-copy">Only <strong>${fmtPct(balancedShare)}</strong> of filtered SKU-warehouse positions sit in a balanced zone. The objective is targeted service recovery without broad inventory expansion.</div>
+          </div>
+        </div>
       `;
 
       document.getElementById('narrative-panel').innerHTML = html;
@@ -1961,6 +2417,7 @@ def _build_html(data_payload: dict) -> str:
       renderNoDataAlert(filteredRows.length > 0);
       const agg = aggregate(filteredRows, readAssumptions());
       lastAgg = agg;
+      renderHeaderSummary(agg, dateRange);
       renderKPIs(agg);
       renderCallouts(buildCallouts(agg));
       renderCharts(agg);
