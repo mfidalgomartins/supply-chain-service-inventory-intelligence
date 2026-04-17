@@ -280,31 +280,31 @@ def _build_html(data_payload: dict) -> str:
   <title>Supply Chain Service Level, Inventory Risk & Working Capital Intelligence System</title>
   <style>
     :root {
-      --bg: #f2f5f7;
-      --bg-grad-a: #ddebf2;
-      --bg-grad-b: #e8efdc;
-      --bg-grad-c: #eef3f6;
-      --panel: #ffffff;
-      --panel-alt: #ffffff;
-      --panel-soft: #f8fbfd;
-      --narrative-bg: #fbfdff;
-      --ink: #0f2431;
-      --muted: #506474;
-      --accent: #0b5c78;
-      --accent-soft: #e5f1f6;
-      --title-ink: #102f40;
-      --section-title-ink: #10384c;
-      --kpi-value-ink: #13364a;
-      --callout-ink: #1d3543;
-      --border-strong-soft: #d7e9f1;
+      --bg: #edf1f4;
+      --bg-grad-a: #d7e3ec;
+      --bg-grad-b: #ece0d1;
+      --bg-grad-c: #e8edf1;
+      --panel: rgba(255,255,255,0.84);
+      --panel-alt: rgba(255,255,255,0.9);
+      --panel-soft: rgba(246,249,251,0.88);
+      --narrative-bg: rgba(248,250,252,0.96);
+      --ink: #122531;
+      --muted: #617381;
+      --accent: #0d617d;
+      --accent-soft: #e4edf3;
+      --title-ink: #10222d;
+      --section-title-ink: #143142;
+      --kpi-value-ink: #163649;
+      --callout-ink: #203948;
+      --border-strong-soft: #d2e0ea;
       --danger: #b53a33;
       --warn: #9b6a12;
       --ok: #1f6b44;
-      --border: #d6e0e6;
-      --border-soft: #e8eef2;
-      --input-bg: #ffffff;
-      --table-head-bg: #edf3f7;
-      --table-row-hover: #f8fbfd;
+      --border: rgba(196,211,221,0.82);
+      --border-soft: rgba(219,229,235,0.9);
+      --input-bg: rgba(255,255,255,0.88);
+      --table-head-bg: #eef3f7;
+      --table-row-hover: #f5f8fb;
       --alert-bg: #fff5f5;
       --alert-border: #f0c5c5;
       --alert-ink: #7e1f1f;
@@ -317,39 +317,39 @@ def _build_html(data_payload: dict) -> str:
       --risk-high-ink: #9b4a00;
       --risk-critical-bg: #ffd5d5;
       --risk-critical-ink: #8b1717;
-      --shadow-sm: 0 2px 8px rgba(15, 36, 49, 0.06);
-      --shadow-md: 0 6px 18px rgba(15, 36, 49, 0.10);
-      --radius-lg: 16px;
-      --radius-md: 12px;
-      --radius-sm: 10px;
+      --shadow-sm: 0 14px 38px rgba(17, 37, 49, 0.07);
+      --shadow-md: 0 24px 64px rgba(17, 37, 49, 0.11);
+      --radius-lg: 22px;
+      --radius-md: 18px;
+      --radius-sm: 14px;
     }
 
     [data-theme="dark"] {
       --bg: #0d1720;
-      --bg-grad-a: #1d3242;
-      --bg-grad-b: #1f3d34;
-      --bg-grad-c: #13202c;
-      --panel: #132331;
-      --panel-alt: #162a3a;
-      --panel-soft: #1a3143;
-      --narrative-bg: #1a3040;
+      --bg-grad-a: #22384a;
+      --bg-grad-b: #47382f;
+      --bg-grad-c: #14222d;
+      --panel: rgba(19,35,49,0.84);
+      --panel-alt: rgba(23,41,56,0.9);
+      --panel-soft: rgba(28,47,62,0.9);
+      --narrative-bg: rgba(24,42,56,0.96);
       --ink: #dde8f1;
-      --muted: #9cb3c4;
-      --accent: #2d9bc2;
+      --muted: #99afbf;
+      --accent: #4aa4c7;
       --accent-soft: #26455b;
-      --title-ink: #eef6ff;
-      --section-title-ink: #d9e9f7;
-      --kpi-value-ink: #f2f8ff;
-      --callout-ink: #e1edf8;
-      --border-strong-soft: #355167;
+      --title-ink: #f2f7fb;
+      --section-title-ink: #dceaf6;
+      --kpi-value-ink: #f3f8fc;
+      --callout-ink: #dbe7f1;
+      --border-strong-soft: #36556c;
       --danger: #e87979;
       --warn: #f1c07d;
       --ok: #5db68e;
-      --border: #274154;
-      --border-soft: #2a465a;
-      --input-bg: #0f1d29;
+      --border: rgba(49,75,94,0.88);
+      --border-soft: rgba(55,84,105,0.92);
+      --input-bg: rgba(14,27,38,0.92);
       --table-head-bg: #21384a;
-      --table-row-hover: #1c3344;
+      --table-row-hover: #1b3142;
       --alert-bg: #3c1e26;
       --alert-border: #73414e;
       --alert-ink: #ffd8df;
@@ -362,8 +362,8 @@ def _build_html(data_payload: dict) -> str:
       --risk-high-ink: #ffd2ae;
       --risk-critical-bg: #552a33;
       --risk-critical-ink: #ffc6d1;
-      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
-      --shadow-md: 0 8px 22px rgba(0, 0, 0, 0.45);
+      --shadow-sm: 0 18px 44px rgba(0, 0, 0, 0.34);
+      --shadow-md: 0 28px 76px rgba(0, 0, 0, 0.44);
     }
 
     * { box-sizing: border-box; }
@@ -376,6 +376,8 @@ def _build_html(data_payload: dict) -> str:
         radial-gradient(980px 320px at 92% -18%, var(--bg-grad-b) 0%, transparent 68%),
         linear-gradient(180deg, var(--bg-grad-c) 0%, var(--bg) 100%);
       transition: background 180ms ease, color 180ms ease;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
 
     .container {
@@ -389,8 +391,23 @@ def _build_html(data_payload: dict) -> str:
       border: 1px solid var(--border);
       box-shadow: var(--shadow-md);
       border-radius: var(--radius-lg);
-      padding: 24px 24px 20px;
-      margin-bottom: 20px;
+      padding: 26px 26px 22px;
+      margin-bottom: 22px;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(18px);
+    }
+
+    .header::before,
+    .section::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.95) 24%, transparent 100%);
+      pointer-events: none;
     }
 
     .header-top {
@@ -435,35 +452,38 @@ def _build_html(data_payload: dict) -> str:
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 7px 10px;
+      padding: 8px 12px;
       border-radius: 999px;
       border: 1px solid var(--border-soft);
       background: var(--panel-soft);
       color: var(--muted);
-      font-size: 0.73rem;
+      font-size: 0.7rem;
       font-weight: 700;
-      letter-spacing: 0.26px;
+      letter-spacing: 0.38px;
       text-transform: uppercase;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.64);
     }
 
     .hero-panel {
       border: 1px solid var(--border-soft);
-      border-radius: 18px;
+      border-radius: 20px;
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(244,249,252,0.92) 100%),
-        linear-gradient(135deg, rgba(11,92,120,0.09) 0%, rgba(31,107,68,0.05) 100%);
-      padding: 18px 18px 16px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
+        radial-gradient(120% 140% at 100% 0%, rgba(13,97,125,0.12) 0%, transparent 56%),
+        linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(246,249,252,0.9) 100%);
+      padding: 20px 20px 18px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.78), 0 18px 40px rgba(20, 44, 58, 0.08);
       display: grid;
-      gap: 14px;
+      gap: 15px;
       min-height: 100%;
+      position: relative;
+      overflow: hidden;
     }
 
     [data-theme="dark"] .hero-panel {
       background:
-        linear-gradient(180deg, rgba(22,42,58,0.96) 0%, rgba(18,35,49,0.96) 100%),
-        linear-gradient(135deg, rgba(45,155,194,0.12) 0%, rgba(93,182,142,0.08) 100%);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+        radial-gradient(120% 140% at 100% 0%, rgba(74,164,199,0.13) 0%, transparent 54%),
+        linear-gradient(180deg, rgba(24,42,56,0.98) 0%, rgba(17,33,46,0.98) 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 42px rgba(0,0,0,0.28);
     }
 
     .hero-eyebrow {
@@ -475,11 +495,12 @@ def _build_html(data_payload: dict) -> str:
     }
 
     .hero-headline {
-      font-size: 1.18rem;
-      line-height: 1.28;
+      font-size: 1.24rem;
+      line-height: 1.25;
       font-weight: 760;
       color: var(--title-ink);
       margin-top: -2px;
+      max-width: 24ch;
     }
 
     .hero-summary {
@@ -496,15 +517,16 @@ def _build_html(data_payload: dict) -> str:
 
     .hero-card {
       border: 1px solid var(--border-soft);
-      border-radius: 14px;
-      padding: 11px 12px 12px;
-      background: rgba(255,255,255,0.72);
+      border-radius: 16px;
+      padding: 12px 13px 13px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(250,252,253,0.75) 100%);
       display: grid;
-      gap: 5px;
+      gap: 6px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
     }
 
     [data-theme="dark"] .hero-card {
-      background: rgba(15,29,41,0.52);
+      background: linear-gradient(180deg, rgba(18,33,46,0.82) 0%, rgba(14,27,38,0.72) 100%);
     }
 
     .hero-label {
@@ -562,12 +584,13 @@ def _build_html(data_payload: dict) -> str:
       margin-top: 18px;
       display: grid;
       grid-template-columns: repeat(8, minmax(138px, 1fr));
-      gap: 12px;
+      gap: 13px;
       align-items: end;
       border: 1px solid var(--border-soft);
-      border-radius: 14px;
+      border-radius: 18px;
       background: var(--panel-soft);
-      padding: 14px;
+      padding: 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
     }
 
     .filter-box label {
@@ -584,12 +607,13 @@ def _build_html(data_payload: dict) -> str:
     .filter-box input {
       width: 100%;
       border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 9px 10px;
+      border-radius: 11px;
+      padding: 10px 12px;
       background: var(--input-bg);
       color: var(--ink);
       font-size: 0.85rem;
-      min-height: 39px;
+      min-height: 42px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
     }
 
     .filter-box select:focus-visible,
@@ -602,41 +626,44 @@ def _build_html(data_payload: dict) -> str:
     }
 
     .methodology-toggle {
-      background: var(--accent);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white 12%) 0%, var(--accent) 100%);
       color: #fff;
       border: none;
-      border-radius: 9px;
-      padding: 9px 12px;
+      border-radius: 11px;
+      padding: 10px 12px;
       cursor: pointer;
       font-weight: 600;
       font-size: 0.8rem;
       width: 100%;
+      box-shadow: 0 12px 24px rgba(13, 97, 125, 0.18), inset 0 1px 0 rgba(255,255,255,0.22);
     }
     .methodology-toggle:hover { filter: brightness(1.03); }
 
     .print-toggle {
-      background: var(--ok);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--ok) 86%, white 14%) 0%, var(--ok) 100%);
       color: #fff;
       border: none;
-      border-radius: 9px;
-      padding: 9px 12px;
+      border-radius: 11px;
+      padding: 10px 12px;
       cursor: pointer;
       font-weight: 600;
       font-size: 0.8rem;
       width: 100%;
+      box-shadow: 0 12px 24px rgba(31, 107, 68, 0.16), inset 0 1px 0 rgba(255,255,255,0.2);
     }
     .print-toggle:hover { filter: brightness(1.04); }
 
     .reset-toggle {
-      background: transparent;
+      background: rgba(255,255,255,0.62);
       color: var(--ink);
-      border: 1px dashed var(--border);
-      border-radius: 9px;
-      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 10px 12px;
       cursor: pointer;
       font-weight: 600;
       font-size: 0.8rem;
       width: 100%;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
     }
     .reset-toggle:hover {
       border-color: var(--accent);
@@ -645,15 +672,16 @@ def _build_html(data_payload: dict) -> str:
     }
 
     .theme-toggle {
-      background: transparent;
+      background: rgba(255,255,255,0.62);
       color: var(--ink);
       border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 9px 12px;
+      border-radius: 11px;
+      padding: 10px 12px;
       cursor: pointer;
       font-weight: 600;
       font-size: 0.8rem;
       width: 100%;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
     }
     .theme-toggle:hover {
       border-color: var(--accent);
@@ -664,6 +692,29 @@ def _build_html(data_payload: dict) -> str:
     .control-stack {
       display: grid;
       gap: 7px;
+    }
+
+    .methodology-toggle,
+    .print-toggle,
+    .reset-toggle,
+    .theme-toggle,
+    .kpi,
+    .callout,
+    .chart-card {
+      transition: transform 140ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .kpi:hover,
+    .callout:hover,
+    .chart-card:hover {
+      transform: translateY(-1px);
+    }
+
+    .methodology-toggle:hover,
+    .print-toggle:hover,
+    .reset-toggle:hover,
+    .theme-toggle:hover {
+      transform: translateY(-1px);
     }
 
     .methodology-panel {
@@ -715,12 +766,15 @@ def _build_html(data_payload: dict) -> str:
     }
 
     .section {
-      margin-bottom: 18px;
+      margin-bottom: 22px;
       background: var(--panel);
       border: 1px solid var(--border);
       box-shadow: var(--shadow-sm);
       border-radius: var(--radius-md);
-      padding: 18px 18px 17px;
+      padding: 20px 20px 18px;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(18px);
     }
 
     .section-head {
@@ -733,8 +787,8 @@ def _build_html(data_payload: dict) -> str:
       color: var(--muted);
       font-size: 0.7rem;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 700;
+      letter-spacing: 0.62px;
+      font-weight: 760;
     }
 
     .section h2 {
@@ -761,13 +815,19 @@ def _build_html(data_payload: dict) -> str:
     .kpi {
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
-      background: var(--panel-alt);
-      padding: 13px 14px;
-      min-height: 114px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(249,251,252,0.78) 100%);
+      padding: 14px 15px;
+      min-height: 120px;
       box-shadow: var(--kpi-inset-shadow);
       border-top: 4px solid var(--border-strong-soft);
       display: grid;
       gap: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    [data-theme="dark"] .kpi {
+      background: linear-gradient(180deg, rgba(24,41,55,0.9) 0%, rgba(18,33,46,0.82) 100%);
     }
 
     .kpi .label {
@@ -815,15 +875,20 @@ def _build_html(data_payload: dict) -> str:
     .callout {
       border: 1px solid var(--border-soft);
       border-left: 4px solid var(--accent);
-      border-radius: 12px;
-      padding: 13px 14px;
-      background: var(--panel-soft);
+      border-radius: 16px;
+      padding: 14px 15px;
+      background: linear-gradient(180deg, rgba(248,250,252,0.94) 0%, rgba(244,248,250,0.84) 100%);
       min-height: 132px;
       font-size: 0.86rem;
       line-height: 1.5;
       color: var(--callout-ink);
       display: grid;
       gap: 7px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.68);
+    }
+
+    [data-theme="dark"] .callout {
+      background: linear-gradient(180deg, rgba(28,47,62,0.92) 0%, rgba(22,39,53,0.86) 100%);
     }
 
     .callout-eyebrow {
@@ -877,11 +942,19 @@ def _build_html(data_payload: dict) -> str:
     .chart-card {
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
-      background: var(--panel-alt);
-      padding: 10px 11px 8px;
+      background:
+        radial-gradient(115% 120% at 100% 0%, rgba(13,97,125,0.08) 0%, transparent 56%),
+        linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(249,251,252,0.82) 100%);
+      padding: 12px 13px 10px;
       min-height: 340px;
       overflow: hidden;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.48);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 16px 36px rgba(19, 39, 52, 0.05);
+    }
+
+    [data-theme="dark"] .chart-card {
+      background:
+        radial-gradient(115% 120% at 100% 0%, rgba(74,164,199,0.1) 0%, transparent 56%),
+        linear-gradient(180deg, rgba(24,41,55,0.92) 0%, rgba(19,35,49,0.84) 100%);
     }
 
     .chart-card.tall { min-height: 410px; }
@@ -915,11 +988,16 @@ def _build_html(data_payload: dict) -> str:
 
     .brief-item {
       border: 1px solid var(--border-soft);
-      border-radius: 12px;
-      background: var(--panel-alt);
-      padding: 12px 13px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(248,250,252,0.86) 100%);
+      padding: 13px 14px;
       display: grid;
       gap: 6px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+
+    [data-theme="dark"] .brief-item {
+      background: linear-gradient(180deg, rgba(24,41,55,0.9) 0%, rgba(18,33,46,0.84) 100%);
     }
 
     .brief-label {
@@ -947,12 +1025,13 @@ def _build_html(data_payload: dict) -> str:
 
     .table-controls input {
       border: 1px solid var(--border-soft);
-      border-radius: 9px;
-      padding: 8px 10px;
+      border-radius: 11px;
+      padding: 10px 12px;
       font-size: 0.85rem;
       min-width: 260px;
       background: var(--input-bg);
       color: var(--ink);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.66);
     }
 
     .table-wrap {
@@ -960,7 +1039,12 @@ def _build_html(data_payload: dict) -> str:
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
       max-height: 460px;
-      background: var(--panel-alt);
+      background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(250,252,253,0.9) 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+
+    [data-theme="dark"] .table-wrap {
+      background: linear-gradient(180deg, rgba(24,41,55,0.9) 0%, rgba(18,33,46,0.84) 100%);
     }
 
     table {
@@ -1464,26 +1548,26 @@ def _build_html(data_payload: dict) -> str:
           font: '#dbe8f5',
           grid: '#2a4458',
           zero: '#36556d',
-          paper: '#162a3a',
-          plot: '#162a3a',
+          paper: 'rgba(0,0,0,0)',
+          plot: 'rgba(0,0,0,0)',
           hoverBg: '#0f1d29',
-          service: '#74a9ff',
-          stockout: '#ff8b8b',
-          lostSales: '#ff7f7f',
-          inventory: '#6bb4ff',
-          warehouse: '#7ea6ff',
-          category: '#63d9a0',
-          region: '#ff8d8d',
-          supplierOtd: '#c2a6ff',
-          leadVar: '#ff9f9f',
-          excess: '#f2c879',
-          quadrant: '#89b7ff',
-          governance: '#6cd3e6',
-          supplierRisk: '#f6b26b',
-          warehouseRisk: '#f28f8f',
+          service: '#7db8e8',
+          stockout: '#df857c',
+          lostSales: '#e48f7c',
+          inventory: '#7da0c8',
+          warehouse: '#6d97c7',
+          category: '#64baac',
+          region: '#d68a72',
+          supplierOtd: '#9387d8',
+          leadVar: '#d89884',
+          excess: '#d3a563',
+          quadrant: '#7ca7d1',
+          governance: '#53a9c5',
+          supplierRisk: '#c88863',
+          warehouseRisk: '#d86f67',
           lineRef: '#90a4b8',
-          annGood: '#63d9a0',
-          annBad: '#ff9a7d',
+          annGood: '#6dc2af',
+          annBad: '#df857c',
         };
       }
       return {
@@ -1491,26 +1575,26 @@ def _build_html(data_payload: dict) -> str:
         font: '#1c2f3b',
         grid: '#eef2f5',
         zero: '#dfe6eb',
-        paper: '#ffffff',
-        plot: '#ffffff',
+        paper: 'rgba(0,0,0,0)',
+        plot: 'rgba(0,0,0,0)',
         hoverBg: '#0f2f40',
-        service: '#1f4e79',
-        stockout: '#9b2c2c',
-        lostSales: '#c53030',
-        inventory: '#2b6cb0',
-        warehouse: '#2c5282',
-        category: '#1f7a4a',
-        region: '#b83232',
-        supplierOtd: '#6b46c1',
-        leadVar: '#a94442',
-        excess: '#b7791f',
-        quadrant: '#2c5282',
-        governance: '#0d5c7a',
-        supplierRisk: '#9f4a1c',
-        warehouseRisk: '#b83232',
+        service: '#1b6784',
+        stockout: '#b14f48',
+        lostSales: '#c9654d',
+        inventory: '#5a83aa',
+        warehouse: '#4c7198',
+        category: '#2d8473',
+        region: '#b85d4d',
+        supplierOtd: '#7468b6',
+        leadVar: '#b77160',
+        excess: '#bf8a38',
+        quadrant: '#3f6f9a',
+        governance: '#0d607d',
+        supplierRisk: '#a86142',
+        warehouseRisk: '#b94f49',
         lineRef: '#6b7280',
-        annGood: '#1f7a4a',
-        annBad: '#b83232',
+        annGood: '#2d8473',
+        annBad: '#b14f48',
       };
     }
 
@@ -2270,6 +2354,9 @@ def _build_html(data_payload: dict) -> str:
       }], { ...chartLayout('Highest-Risk Warehouses (Stockout Rate)'), xaxis:{tickformat:'.0%', gridcolor:c.grid, nticks: 5}, margin:{l: 160, r:20, t:52, b:58} }, PLOT_CONFIG);
 
       const heatSup = [...agg.suppliers].sort((a,b)=>b.supplier_service_risk_proxy-a.supplier_service_risk_proxy).slice(0,10);
+      const heatmapScale = currentTheme === 'dark'
+        ? [[0, '#173042'], [0.45, '#5a7e95'], [1, '#d07f68']]
+        : [[0, '#e6eef3'], [0.45, '#8caab8'], [1, '#ba604b']];
       const z = [
         heatSup.map(s=>1 - s.on_time_delivery_rate),
         heatSup.map(s=>s.average_delay_days / Math.max(...heatSup.map(x=>x.average_delay_days), 1)),
@@ -2281,7 +2368,7 @@ def _build_html(data_payload: dict) -> str:
         x: heatSup.map(s=>s.supplier_name),
         y: ['OTD Gap', 'Delay Severity', 'Lead-Time Volatility', 'Composite Risk'],
         type: 'heatmap',
-        colorscale: 'Reds',
+        colorscale: heatmapScale,
         colorbar: {
           tickfont: { color: c.font },
         },
