@@ -383,7 +383,7 @@ def _build_html(data_payload: dict) -> str:
     .container {
       max-width: 1720px;
       margin: 0 auto;
-      padding: 26px 26px 34px;
+      padding: 18px 22px 28px;
     }
 
     .header {
@@ -391,11 +391,11 @@ def _build_html(data_payload: dict) -> str:
       border: 1px solid var(--border);
       box-shadow: var(--shadow-md);
       border-radius: var(--radius-lg);
-      padding: 26px 26px 22px;
-      margin-bottom: 22px;
+      padding: 18px 18px 16px;
+      margin-bottom: 16px;
       position: relative;
       overflow: hidden;
-      backdrop-filter: blur(18px);
+      backdrop-filter: blur(14px);
     }
 
     .header::before,
@@ -412,14 +412,14 @@ def _build_html(data_payload: dict) -> str:
 
     .header-top {
       display: grid;
-      grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.95fr);
-      gap: 18px;
-      align-items: stretch;
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.92fr);
+      gap: 14px;
+      align-items: start;
     }
 
     .title {
       margin: 0;
-      font-size: clamp(1.45rem, 2.15vw, 2.3rem);
+      font-size: clamp(1.28rem, 1.9vw, 2.05rem);
       letter-spacing: 0.08px;
       line-height: 1.1;
       color: var(--title-ink);
@@ -427,11 +427,11 @@ def _build_html(data_payload: dict) -> str:
     }
 
     .subtitle {
-      margin-top: 10px;
+      margin-top: 8px;
       color: var(--muted);
-      font-size: 0.98rem;
-      line-height: 1.56;
-      max-width: 920px;
+      font-size: 0.91rem;
+      line-height: 1.48;
+      max-width: 760px;
     }
 
     .header-copy {
@@ -444,8 +444,8 @@ def _build_html(data_payload: dict) -> str:
     .header-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 12px;
+      gap: 7px;
+      margin-bottom: 10px;
     }
 
     .meta-pill {
@@ -470,11 +470,10 @@ def _build_html(data_payload: dict) -> str:
       background:
         radial-gradient(120% 140% at 100% 0%, rgba(13,97,125,0.12) 0%, transparent 56%),
         linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(246,249,252,0.9) 100%);
-      padding: 20px 20px 18px;
+      padding: 15px 15px 14px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.78), 0 18px 40px rgba(20, 44, 58, 0.08);
       display: grid;
-      gap: 15px;
-      min-height: 100%;
+      gap: 10px;
       position: relative;
       overflow: hidden;
     }
@@ -488,37 +487,37 @@ def _build_html(data_payload: dict) -> str:
 
     .hero-eyebrow {
       color: var(--muted);
-      font-size: 0.73rem;
+      font-size: 0.68rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       font-weight: 700;
     }
 
     .hero-headline {
-      font-size: 1.24rem;
-      line-height: 1.25;
+      font-size: 1.02rem;
+      line-height: 1.28;
       font-weight: 760;
       color: var(--title-ink);
       margin-top: -2px;
-      max-width: 24ch;
+      max-width: 30ch;
     }
 
     .hero-summary {
       color: var(--muted);
-      font-size: 0.87rem;
-      line-height: 1.5;
+      font-size: 0.8rem;
+      line-height: 1.42;
     }
 
     .hero-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
+      gap: 8px;
     }
 
     .hero-card {
       border: 1px solid var(--border-soft);
-      border-radius: 16px;
-      padding: 12px 13px 13px;
+      border-radius: 14px;
+      padding: 10px 11px 11px;
       background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(250,252,253,0.75) 100%);
       display: grid;
       gap: 6px;
@@ -531,7 +530,7 @@ def _build_html(data_payload: dict) -> str:
 
     .hero-label {
       color: var(--muted);
-      font-size: 0.68rem;
+      font-size: 0.64rem;
       text-transform: uppercase;
       letter-spacing: 0.48px;
       font-weight: 700;
@@ -539,15 +538,68 @@ def _build_html(data_payload: dict) -> str:
 
     .hero-value {
       color: var(--kpi-value-ink);
-      font-size: 1rem;
-      line-height: 1.26;
+      font-size: 0.92rem;
+      line-height: 1.2;
       font-weight: 760;
     }
 
     .hero-detail {
       color: var(--muted);
+      font-size: 0.72rem;
+      line-height: 1.34;
+    }
+
+    .header-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 12px;
+      margin-bottom: 10px;
+    }
+
+    .toolbar-button {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 12px;
+      cursor: pointer;
       font-size: 0.76rem;
-      line-height: 1.42;
+      font-weight: 700;
+      letter-spacing: 0.22px;
+      color: var(--ink);
+      background: rgba(255,255,255,0.58);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+      transition: transform 140ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease, color 180ms ease;
+    }
+
+    .toolbar-button:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+    }
+
+    .toolbar-button-accent {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white 12%) 0%, var(--accent) 100%);
+      box-shadow: 0 10px 20px rgba(13, 97, 125, 0.14), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+
+    .toolbar-button-ok {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--ok) 86%, white 14%) 0%, var(--ok) 100%);
+      box-shadow: 0 10px 20px rgba(31, 107, 68, 0.13), inset 0 1px 0 rgba(255,255,255,0.18);
+    }
+
+    .toolbar-button-ghost {
+      background: var(--panel-soft);
+    }
+
+    .toolbar-note {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 0.74rem;
+      line-height: 1.35;
     }
 
     .consistency-alert {
@@ -581,15 +633,15 @@ def _build_html(data_payload: dict) -> str:
     }
 
     .filters {
-      margin-top: 18px;
+      margin-top: 0;
       display: grid;
-      grid-template-columns: repeat(8, minmax(138px, 1fr));
-      gap: 13px;
+      grid-template-columns: repeat(7, minmax(128px, 1fr));
+      gap: 10px;
       align-items: end;
       border: 1px solid var(--border-soft);
       border-radius: 18px;
       background: var(--panel-soft);
-      padding: 16px;
+      padding: 12px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
     }
 
@@ -625,79 +677,7 @@ def _build_html(data_payload: dict) -> str:
       border-color: var(--accent);
     }
 
-    .methodology-toggle {
-      background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white 12%) 0%, var(--accent) 100%);
-      color: #fff;
-      border: none;
-      border-radius: 11px;
-      padding: 10px 12px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.8rem;
-      width: 100%;
-      box-shadow: 0 12px 24px rgba(13, 97, 125, 0.18), inset 0 1px 0 rgba(255,255,255,0.22);
-    }
-    .methodology-toggle:hover { filter: brightness(1.03); }
-
-    .print-toggle {
-      background: linear-gradient(180deg, color-mix(in srgb, var(--ok) 86%, white 14%) 0%, var(--ok) 100%);
-      color: #fff;
-      border: none;
-      border-radius: 11px;
-      padding: 10px 12px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.8rem;
-      width: 100%;
-      box-shadow: 0 12px 24px rgba(31, 107, 68, 0.16), inset 0 1px 0 rgba(255,255,255,0.2);
-    }
-    .print-toggle:hover { filter: brightness(1.04); }
-
-    .reset-toggle {
-      background: rgba(255,255,255,0.62);
-      color: var(--ink);
-      border: 1px solid var(--border);
-      border-radius: 11px;
-      padding: 10px 12px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.8rem;
-      width: 100%;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
-    }
-    .reset-toggle:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--accent-soft);
-    }
-
-    .theme-toggle {
-      background: rgba(255,255,255,0.62);
-      color: var(--ink);
-      border: 1px solid var(--border);
-      border-radius: 11px;
-      padding: 10px 12px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.8rem;
-      width: 100%;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
-    }
-    .theme-toggle:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--accent-soft);
-    }
-
-    .control-stack {
-      display: grid;
-      gap: 7px;
-    }
-
-    .methodology-toggle,
-    .print-toggle,
-    .reset-toggle,
-    .theme-toggle,
+    .toolbar-button,
     .kpi,
     .callout,
     .chart-card {
@@ -710,15 +690,8 @@ def _build_html(data_payload: dict) -> str:
       transform: translateY(-1px);
     }
 
-    .methodology-toggle:hover,
-    .print-toggle:hover,
-    .reset-toggle:hover,
-    .theme-toggle:hover {
-      transform: translateY(-1px);
-    }
-
     .methodology-panel {
-      margin-top: 14px;
+      margin-top: 10px;
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
       background: var(--narrative-bg);
@@ -730,11 +703,12 @@ def _build_html(data_payload: dict) -> str:
     }
 
     .assumption-panel {
-      margin-top: 14px;
+      margin-top: 10px;
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
       background: var(--panel-soft);
       padding: 12px 14px 12px;
+      display: none;
     }
 
     .assumption-grid {
@@ -766,19 +740,19 @@ def _build_html(data_payload: dict) -> str:
     }
 
     .section {
-      margin-bottom: 22px;
+      margin-bottom: 16px;
       background: var(--panel);
       border: 1px solid var(--border);
       box-shadow: var(--shadow-sm);
       border-radius: var(--radius-md);
-      padding: 20px 20px 18px;
+      padding: 18px 18px 16px;
       position: relative;
       overflow: hidden;
       backdrop-filter: blur(18px);
     }
 
     .section-head {
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       display: grid;
       gap: 5px;
     }
@@ -801,8 +775,8 @@ def _build_html(data_payload: dict) -> str:
 
     .section-sub {
       color: var(--muted);
-      font-size: 0.84rem;
-      line-height: 1.46;
+      font-size: 0.82rem;
+      line-height: 1.42;
       max-width: 980px;
     }
 
@@ -930,13 +904,13 @@ def _build_html(data_payload: dict) -> str:
     .chart-grid-2 {
       display: grid;
       grid-template-columns: repeat(2, minmax(320px, 1fr));
-      gap: 14px;
+      gap: 12px;
     }
 
     .chart-grid-3 {
       display: grid;
       grid-template-columns: repeat(3, minmax(280px, 1fr));
-      gap: 14px;
+      gap: 12px;
     }
 
     .chart-card {
@@ -946,7 +920,7 @@ def _build_html(data_payload: dict) -> str:
         radial-gradient(115% 120% at 100% 0%, rgba(13,97,125,0.08) 0%, transparent 56%),
         linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(249,251,252,0.82) 100%);
       padding: 12px 13px 10px;
-      min-height: 340px;
+      min-height: 324px;
       overflow: hidden;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 16px 36px rgba(19, 39, 52, 0.05);
     }
@@ -957,8 +931,8 @@ def _build_html(data_payload: dict) -> str:
         linear-gradient(180deg, rgba(24,41,55,0.92) 0%, rgba(19,35,49,0.84) 100%);
     }
 
-    .chart-card.tall { min-height: 410px; }
-    .chart-card.short { min-height: 315px; }
+    .chart-card.tall { min-height: 388px; }
+    .chart-card.short { min-height: 296px; }
     .chart-card > .js-plotly-plot,
     .chart-card > .plot-container {
       width: 100% !important;
@@ -1038,7 +1012,7 @@ def _build_html(data_payload: dict) -> str:
       overflow: auto;
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
-      max-height: 460px;
+      max-height: 420px;
       background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(250,252,253,0.9) 100%);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
     }
@@ -1133,6 +1107,8 @@ def _build_html(data_payload: dict) -> str:
       .container { padding: 14px; }
       .header-top { grid-template-columns: 1fr; }
       .hero-grid { grid-template-columns: 1fr; }
+      .header-toolbar { align-items: stretch; }
+      .toolbar-note { margin-left: 0; width: 100%; }
       .filters { grid-template-columns: repeat(2, minmax(130px, 1fr)); }
       .kpi-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
       .callout-grid { grid-template-columns: 1fr; }
@@ -1263,6 +1239,15 @@ def _build_html(data_payload: dict) -> str:
       <div id="consistency-alert" class="consistency-alert"></div>
       <div id="no-data-alert" class="no-data-alert"></div>
 
+      <div class="header-toolbar">
+        <button class="toolbar-button toolbar-button-ghost" id="toggle-assumptions">Scenario Controls</button>
+        <button class="toolbar-button toolbar-button-ghost" id="toggle-methodology">Method Notes</button>
+        <button class="toolbar-button toolbar-button-accent" id="reset-filters">Reset Filters</button>
+        <button class="toolbar-button" id="toggle-theme">Dark Mode</button>
+        <button class="toolbar-button toolbar-button-ok" id="print-dashboard">Print / Export PDF</button>
+        <div class="toolbar-note">Primary controls stay visible. Scenario and method panels stay collapsed until needed.</div>
+      </div>
+
       <div class="filters">
         <div class="filter-box"><label>Region</label><select id="filter-region"></select></div>
         <div class="filter-box"><label>Warehouse</label><select id="filter-warehouse"></select></div>
@@ -1271,15 +1256,6 @@ def _build_html(data_payload: dict) -> str:
         <div class="filter-box"><label>ABC Class</label><select id="filter-abc"></select></div>
         <div class="filter-box"><label>Date Start</label><input id="filter-start" type="month" /></div>
         <div class="filter-box"><label>Date End</label><input id="filter-end" type="month" /></div>
-        <div class="filter-box">
-          <label>View</label>
-          <div class="control-stack">
-            <button class="print-toggle" id="print-dashboard">Print / Export PDF</button>
-            <button class="methodology-toggle" id="toggle-methodology">Methodology</button>
-            <button class="reset-toggle" id="reset-filters">Reset Filters</button>
-            <button class="theme-toggle" id="toggle-theme">Dark Mode</button>
-          </div>
-        </div>
       </div>
 
       <div class="methodology-panel" id="methodology-panel">
@@ -1471,6 +1447,8 @@ def _build_html(data_payload: dict) -> str:
     const printButton = document.getElementById('print-dashboard');
     const resetButton = document.getElementById('reset-filters');
     const themeToggle = document.getElementById('toggle-theme');
+    const methodologyToggle = document.getElementById('toggle-methodology');
+    const assumptionToggle = document.getElementById('toggle-assumptions');
 
     const filters = {
       region: document.getElementById('filter-region'),
@@ -1608,6 +1586,15 @@ def _build_html(data_payload: dict) -> str:
       if (rerender && lastAgg) {
         renderCharts(lastAgg);
       }
+    }
+
+    function togglePanel(panelId, triggerButton, closedLabel, openLabel) {
+      const panel = document.getElementById(panelId);
+      if (!panel || !triggerButton) return;
+      const willOpen = panel.style.display !== 'block';
+      panel.style.display = willOpen ? 'block' : 'none';
+      triggerButton.textContent = willOpen ? openLabel : closedLabel;
+      triggerButton.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
     }
 
     function getUniqueValues(rows, key) {
@@ -2546,10 +2533,18 @@ def _build_html(data_payload: dict) -> str:
         });
       });
 
-      document.getElementById('toggle-methodology').addEventListener('click', () => {
-        const panel = document.getElementById('methodology-panel');
-        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-      });
+      if (methodologyToggle) {
+        methodologyToggle.setAttribute('aria-expanded', 'false');
+        methodologyToggle.addEventListener('click', () => {
+          togglePanel('methodology-panel', methodologyToggle, 'Method Notes', 'Hide Method Notes');
+        });
+      }
+      if (assumptionToggle) {
+        assumptionToggle.setAttribute('aria-expanded', 'false');
+        assumptionToggle.addEventListener('click', () => {
+          togglePanel('assumption-panel', assumptionToggle, 'Scenario Controls', 'Hide Scenario Controls');
+        });
+      }
       if (themeToggle) {
         themeToggle.addEventListener('click', () => {
           const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
