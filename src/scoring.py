@@ -12,7 +12,6 @@ except ModuleNotFoundError:
 
 
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
-OUTPUT_REPORTS_DIR = PROJECT_ROOT / "outputs" / "reports"
 
 
 @dataclass(frozen=True)
@@ -515,7 +514,6 @@ def save_scoring_outputs(
 ) -> None:
     DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
     OUTPUT_TABLES_DIR.mkdir(parents=True, exist_ok=True)
-    OUTPUT_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
     processed_files = {
         "sku_risk_table.csv": sku_scores,
@@ -526,9 +524,6 @@ def save_scoring_outputs(
 
     table_files = {
         "scoring_sku_risk_table.csv": sku_scores,
-        "scoring_supplier_risk_table.csv": supplier_scores,
-        "scoring_segment_risk_table.csv": segment_scores,
-        "scoring_governance_priority_master.csv": master_scores,
     }
 
     for file_name, df in processed_files.items():
@@ -536,42 +531,6 @@ def save_scoring_outputs(
 
     for file_name, df in table_files.items():
         df.to_csv(OUTPUT_TABLES_DIR / file_name, index=False)
-
-
-def write_management_brief(
-    sku_scores: pd.DataFrame,
-    supplier_scores: pd.DataFrame,
-    segment_scores: pd.DataFrame,
-) -> None:
-    high_critical_sku = int((sku_scores["risk_tier"].isin(["High", "Critical"])).sum())
-    high_critical_supplier = int((supplier_scores["risk_tier"].isin(["High", "Critical"])).sum())
-    high_critical_segment = int((segment_scores["risk_tier"].isin(["High", "Critical"])).sum())
-
-    top_sku = sku_scores.iloc[0]
-    top_supplier = supplier_scores.iloc[0]
-    top_segment = segment_scores.iloc[0]
-
-    lines = [
-        "# Scoring Management Brief",
-        "",
-        "Use the governance scores as a weekly intervention queue, not as a static KPI.",
-        "",
-        "## How Leadership Should Use the Scores",
-        "1. Start with High/Critical entities by governance_priority_score; these are highest expected operational intervention value.",
-        "2. Use main_risk_driver to route ownership: service/stockout to planning and DC ops, supplier risk to procurement, excess and working-capital risks to inventory governance and finance.",
-        "3. Use recommended_action as the first operational playbook and confirm with planner/supplier context before execution.",
-        "4. Track score movement weekly; sustained score reduction is required to close actions.",
-        "",
-        "## Current Snapshot",
-        f"- High/Critical SKU-warehouse combinations: **{high_critical_sku}**.",
-        f"- High/Critical suppliers: **{high_critical_supplier}**.",
-        f"- High/Critical segments: **{high_critical_segment}**.",
-        f"- Top SKU-warehouse priority: **{top_sku['product_id']} @ {top_sku['warehouse_id']}** (score {top_sku['governance_priority_score']:.2f}, driver {top_sku['main_risk_driver']}).",
-        f"- Top supplier priority: **{top_supplier['supplier_id']} ({top_supplier['supplier_name']})** (score {top_supplier['governance_priority_score']:.2f}, driver {top_supplier['main_risk_driver']}).",
-        f"- Top segment priority: **{top_segment['segment_id']}** (score {top_segment['governance_priority_score']:.2f}, driver {top_segment['main_risk_driver']}).",
-    ]
-
-    (OUTPUT_REPORTS_DIR / "scoring_management_brief.md").write_text("\n".join(lines), encoding="utf-8")
 
 
 def run_scoring() -> None:
@@ -587,7 +546,6 @@ def run_scoring() -> None:
     master_scores = build_master_priority_table(sku_scores, supplier_scores, segment_scores)
 
     save_scoring_outputs(sku_scores, supplier_scores, segment_scores, master_scores)
-    write_management_brief(sku_scores, supplier_scores, segment_scores)
 
     print("Scoring framework execution complete.")
     print(f"SKU rows scored: {len(sku_scores):,}")

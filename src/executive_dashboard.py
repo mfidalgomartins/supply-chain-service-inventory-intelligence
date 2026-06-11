@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from plotly.offline.offline import get_plotlyjs
 
 try:
     from src.config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
@@ -16,13 +14,8 @@ except ModuleNotFoundError:
 
 
 OUTPUT_DASHBOARD_FILE = PROJECT_ROOT / "index.html"
-DOCS_DASHBOARD_ENTRY = PROJECT_ROOT / "docs" / "index.html"
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
-
-
-def _sha256_for_file(path: Path) -> str:
-    payload = path.read_bytes()
-    return hashlib.sha256(payload).hexdigest()
+PLOTLY_CDN_URL = "https://cdn.plot.ly/plotly-3.5.0.min.js"
 
 
 def _prepare_dashboard_data() -> dict:
@@ -57,8 +50,11 @@ def _prepare_dashboard_data() -> dict:
         daily["inventory_value"],
         0.0,
     )
-    daily["trapped_wc_proxy"] = daily["excess_inventory_proxy"] + 0.5 * (daily["slow_moving_proxy"] - daily["excess_inventory_proxy"]).clip(
-        lower=0
+    daily["slow_moving_non_excess_proxy"] = (
+        daily["slow_moving_proxy"] - daily["excess_inventory_proxy"]
+    ).clip(lower=0)
+    daily["trapped_wc_proxy"] = (
+        daily["excess_inventory_proxy"] + 0.5 * daily["slow_moving_non_excess_proxy"]
     )
     daily["lost_sales_margin_proxy"] = daily["lost_sales_revenue"] * daily["gross_margin_rate"]
 
@@ -72,11 +68,12 @@ def _prepare_dashboard_data() -> dict:
             units_fulfilled=("units_fulfilled", "sum"),
             units_lost_sales=("units_lost_sales", "sum"),
             lost_sales_revenue=("lost_sales_revenue", "sum"),
-            inventory_value=("inventory_value", "sum"),
+            inventory_value=("inventory_value", "mean"),
             avg_days_of_supply=("days_of_supply", "mean"),
-            excess_inventory_proxy=("excess_inventory_proxy", "sum"),
-            slow_moving_proxy=("slow_moving_proxy", "sum"),
-            trapped_wc_proxy=("trapped_wc_proxy", "sum"),
+            excess_inventory_proxy=("excess_inventory_proxy", "mean"),
+            slow_moving_proxy=("slow_moving_proxy", "mean"),
+            slow_moving_non_excess_proxy=("slow_moving_non_excess_proxy", "mean"),
+            trapped_wc_proxy=("trapped_wc_proxy", "mean"),
             lost_sales_margin_proxy=("lost_sales_margin_proxy", "sum"),
             observation_days=("date", "nunique"),
         )
@@ -92,6 +89,7 @@ def _prepare_dashboard_data() -> dict:
         "avg_days_of_supply",
         "excess_inventory_proxy",
         "slow_moving_proxy",
+        "slow_moving_non_excess_proxy",
         "trapped_wc_proxy",
         "lost_sales_margin_proxy",
     ]
@@ -118,22 +116,19 @@ def _prepare_dashboard_data() -> dict:
         .round(4)
     )
 
-    overall_kpi_path = PROJECT_ROOT / "outputs" / "reports" / "kpi_overall_service_health.csv"
     impact_overall_path = OUTPUT_TABLES_DIR / "impact_overall_summary.csv"
-    if overall_kpi_path.exists():
-        overall_kpi = pd.read_csv(overall_kpi_path).iloc[0].to_dict()
-    else:
-        total_demand = float(daily["units_demanded"].sum())
-        total_fulfilled = float(daily["units_fulfilled"].sum())
-        total_lost = float(daily["units_lost_sales"].sum())
-        overall_kpi = {
-            "overall_fill_rate": total_fulfilled / total_demand if total_demand > 0 else 1.0,
-            "overall_stockout_rate": total_lost / total_demand if total_demand > 0 else 0.0,
-            "total_lost_sales_revenue": float(daily["lost_sales_revenue"].sum()),
-        }
+    total_demand = float(daily["units_demanded"].sum())
+    total_fulfilled = float(daily["units_fulfilled"].sum())
+    total_lost = float(daily["units_lost_sales"].sum())
+    overall_kpi = {
+        "overall_fill_rate": total_fulfilled / total_demand if total_demand > 0 else 1.0,
+        "overall_stockout_rate": total_lost / total_demand if total_demand > 0 else 0.0,
+        "total_lost_sales_revenue": float(daily["lost_sales_revenue"].sum()),
+    }
 
     if impact_overall_path.exists():
-        impact_map = dict(zip(pd.read_csv(impact_overall_path)["metric"], pd.read_csv(impact_overall_path)["value"]))
+        impact_overall = pd.read_csv(impact_overall_path)
+        impact_map = dict(zip(impact_overall["metric"], impact_overall["value"]))
     else:
         impact_map = {}
 
@@ -141,7 +136,7 @@ def _prepare_dashboard_data() -> dict:
         "overall_fill_rate": float(overall_kpi.get("overall_fill_rate", 0.0)),
         "overall_stockout_rate": float(overall_kpi.get("overall_stockout_rate", 0.0)),
         "total_lost_sales_revenue": float(overall_kpi.get("total_lost_sales_revenue", 0.0)),
-        "trapped_working_capital_proxy_observed": float(impact_map.get("trapped_working_capital_proxy_observed", 0.0)),
+        "trapped_working_capital_proxy_average": float(impact_map.get("trapped_working_capital_proxy_average", 0.0)),
         "opportunity_total_12m_proxy": float(impact_map.get("opportunity_total_12m_proxy", 0.0)),
     }
 
@@ -157,7 +152,8 @@ def _prepare_dashboard_data() -> dict:
         .encode("utf-8")
     )
     dataset_hash = hashlib.sha256(hash_seed).hexdigest()
-    dashboard_version = f"v{datetime.now(timezone.utc):%Y.%m.%d}.{dataset_hash[:8]}"
+    dashboard_version = f"v{dataset_hash[:12]}"
+    data_through = daily["date"].max().strftime("%Y-%m-%d")
 
     monthly_compact_columns = [
         "month",
@@ -175,6 +171,7 @@ def _prepare_dashboard_data() -> dict:
         "avg_days_of_supply",
         "excess_inventory_proxy",
         "slow_moving_proxy",
+        "slow_moving_non_excess_proxy",
         "trapped_wc_proxy",
         "lost_sales_margin_proxy",
         "observation_days",
@@ -209,6 +206,7 @@ def _prepare_dashboard_data() -> dict:
                 float(r.avg_days_of_supply),
                 float(r.excess_inventory_proxy),
                 float(r.slow_moving_proxy),
+                float(r.slow_moving_non_excess_proxy),
                 float(r.trapped_wc_proxy),
                 float(r.lost_sales_margin_proxy),
                 int(r.observation_days),
@@ -219,7 +217,7 @@ def _prepare_dashboard_data() -> dict:
     product_name_map = dict(product_dim[["product_id", "product_name"]].itertuples(index=False, name=None))
 
     data_payload = {
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        "generated_at": f"Data through {data_through}",
         "dashboard_version": dashboard_version,
         "monthly_sku_compact": {
             "columns": monthly_compact_columns,
@@ -251,24 +249,10 @@ def _prepare_dashboard_data() -> dict:
     sku_baseline.to_csv(OUTPUT_TABLES_DIR / "dashboard_sku_risk_baseline.csv", index=False)
     pd.DataFrame([snapshot]).to_csv(OUTPUT_TABLES_DIR / "dashboard_official_snapshot.csv", index=False)
 
-    dashboard_manifest = pd.DataFrame(
-        [
-            {
-                "dashboard_version": dashboard_version,
-                "dataset_hash": dataset_hash,
-                "generated_at_utc": data_payload["generated_at"],
-                "monthly_rows": len(monthly_sku),
-                "sku_baseline_rows": len(sku_baseline),
-            }
-        ]
-    )
-    dashboard_manifest.to_csv(OUTPUT_TABLES_DIR / "dashboard_build_manifest.csv", index=False)
-
     return data_payload
 
 
 def _build_html(data_payload: dict) -> str:
-    plotly_js = get_plotlyjs()
     data_json = json.dumps(data_payload, ensure_ascii=False, separators=(",", ":"))
 
     template = """
@@ -277,1139 +261,918 @@ def _build_html(data_payload: dict) -> str:
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Supply Chain Service Level, Inventory Risk & Working Capital Intelligence System</title>
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Service &amp; Inventory Intelligence — Operating Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;450;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" />
   <style>
     :root {
-      --bg: #edf1f4;
-      --bg-grad-a: #d7e3ec;
-      --bg-grad-b: #ece0d1;
-      --bg-grad-c: #e8edf1;
-      --panel: rgba(255,255,255,0.84);
-      --panel-alt: rgba(255,255,255,0.9);
-      --panel-soft: rgba(246,249,251,0.88);
-      --narrative-bg: rgba(248,250,252,0.96);
-      --ink: #122531;
-      --muted: #617381;
-      --accent: #0d617d;
-      --accent-soft: #e4edf3;
-      --title-ink: #10222d;
-      --section-title-ink: #143142;
-      --kpi-value-ink: #163649;
-      --callout-ink: #203948;
-      --border-strong-soft: #d2e0ea;
-      --danger: #b53a33;
-      --warn: #9b6a12;
-      --ok: #1f6b44;
-      --border: rgba(196,211,221,0.82);
-      --border-soft: rgba(219,229,235,0.9);
-      --input-bg: rgba(255,255,255,0.88);
-      --table-head-bg: #eef3f7;
-      --table-row-hover: #f5f8fb;
-      --alert-bg: #fff5f5;
-      --alert-border: #f0c5c5;
-      --alert-ink: #7e1f1f;
-      --kpi-inset-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
-      --risk-low-bg: #d8f0df;
-      --risk-low-ink: #1d633d;
-      --risk-medium-bg: #f7eac8;
-      --risk-medium-ink: #8c5f00;
-      --risk-high-bg: #ffd8b8;
-      --risk-high-ink: #9b4a00;
-      --risk-critical-bg: #ffd5d5;
-      --risk-critical-ink: #8b1717;
-      --shadow-sm: 0 14px 38px rgba(17, 37, 49, 0.07);
-      --shadow-md: 0 24px 64px rgba(17, 37, 49, 0.11);
-      --radius-lg: 22px;
-      --radius-md: 18px;
-      --radius-sm: 14px;
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-soft: #f7f9fb;
+      --inset: #f1f4f7;
+      --ink: #0b1a24;
+      --ink-soft: #33424d;
+      --muted: #64727d;
+      --faint: #8e9aa4;
+      --border: #e7ebef;
+      --border-strong: #d7dde3;
+      --accent: #0c6f7e;
+      --accent-ink: #ffffff;
+      --accent-soft: #e7f2f4;
+      --good: #1c7a4d;
+      --warn: #8a5d05;
+      --bad: #bb3a30;
+      --good-soft: #e8f3ed;
+      --warn-soft: #f6efdb;
+      --bad-soft: #faece9;
+      --shadow: 0 1px 2px rgba(11, 26, 36, 0.05), 0 1px 1px rgba(11, 26, 36, 0.03);
+      --shadow-pop: 0 14px 34px -16px rgba(11, 26, 36, 0.22);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --font: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: "Geist Mono", ui-monospace, "SF Mono", "Roboto Mono", monospace;
     }
 
     [data-theme="dark"] {
-      --bg: #0d1720;
-      --bg-grad-a: #22384a;
-      --bg-grad-b: #47382f;
-      --bg-grad-c: #14222d;
-      --panel: rgba(19,35,49,0.84);
-      --panel-alt: rgba(23,41,56,0.9);
-      --panel-soft: rgba(28,47,62,0.9);
-      --narrative-bg: rgba(24,42,56,0.96);
-      --ink: #dde8f1;
-      --muted: #99afbf;
-      --accent: #4aa4c7;
-      --accent-soft: #26455b;
-      --title-ink: #f2f7fb;
-      --section-title-ink: #dceaf6;
-      --kpi-value-ink: #f3f8fc;
-      --callout-ink: #dbe7f1;
-      --border-strong-soft: #36556c;
-      --danger: #e87979;
-      --warn: #f1c07d;
-      --ok: #5db68e;
-      --border: rgba(49,75,94,0.88);
-      --border-soft: rgba(55,84,105,0.92);
-      --input-bg: rgba(14,27,38,0.92);
-      --table-head-bg: #21384a;
-      --table-row-hover: #1b3142;
-      --alert-bg: #3c1e26;
-      --alert-border: #73414e;
-      --alert-ink: #ffd8df;
-      --kpi-inset-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-      --risk-low-bg: #1f4a35;
-      --risk-low-ink: #b8efd2;
-      --risk-medium-bg: #4c3d1f;
-      --risk-medium-ink: #f6db9d;
-      --risk-high-bg: #563520;
-      --risk-high-ink: #ffd2ae;
-      --risk-critical-bg: #552a33;
-      --risk-critical-ink: #ffc6d1;
-      --shadow-sm: 0 18px 44px rgba(0, 0, 0, 0.34);
-      --shadow-md: 0 28px 76px rgba(0, 0, 0, 0.44);
+      color-scheme: dark;
+      --bg: #090d11;
+      --surface: #111820;
+      --surface-soft: #151d26;
+      --inset: #19222c;
+      --ink: #e8eef3;
+      --ink-soft: #c2ccd4;
+      --muted: #8b96a1;
+      --faint: #6a7682;
+      --border: #212a33;
+      --border-strong: #2c3741;
+      --accent: #45bccd;
+      --accent-ink: #04161a;
+      --accent-soft: #102f37;
+      --good: #57c089;
+      --warn: #d6ad63;
+      --bad: #ef8077;
+      --good-soft: #11271f;
+      --warn-soft: #2c2614;
+      --bad-soft: #311c1a;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+      --shadow-pop: 0 18px 44px -18px rgba(0, 0, 0, 0.7);
     }
 
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
-      font-family: "IBM Plex Sans", "Avenir Next", "Source Sans 3", "Segoe UI", sans-serif;
+      background: var(--bg);
       color: var(--ink);
-      background:
-        radial-gradient(1200px 420px at 8% -10%, var(--bg-grad-a) 0%, transparent 70%),
-        radial-gradient(980px 320px at 92% -18%, var(--bg-grad-b) 0%, transparent 68%),
-        linear-gradient(180deg, var(--bg-grad-c) 0%, var(--bg) 100%);
-      transition: background 180ms ease, color 180ms ease;
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.5;
+      letter-spacing: -0.005em;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
     }
 
-    .container {
-      max-width: 1720px;
-      margin: 0 auto;
-      padding: 18px 22px 28px;
+    a { color: inherit; }
+    button, input, select { font: inherit; color: inherit; }
+    ::selection { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 4px;
     }
+    .num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; letter-spacing: -0.01em; }
 
-    .header {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-md);
-      border-radius: var(--radius-lg);
-      padding: 18px 18px 16px;
-      margin-bottom: 16px;
-      position: relative;
-      overflow: hidden;
-      backdrop-filter: blur(14px);
-    }
-
-    .header::before,
-    .section::before {
-      content: "";
+    .skip-link {
       position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
+      top: -48px;
+      left: 16px;
+      z-index: 60;
+      padding: 9px 13px;
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow);
+    }
+    .skip-link:focus { top: 12px; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
       height: 1px;
-      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.95) 24%, transparent 100%);
-      pointer-events: none;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
-    .header-top {
-      display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.92fr);
-      gap: 14px;
-      align-items: start;
+    /* ---------- Masthead ---------- */
+    .masthead {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: color-mix(in srgb, var(--surface) 80%, transparent);
+      -webkit-backdrop-filter: saturate(150%) blur(12px);
+      backdrop-filter: saturate(150%) blur(12px);
+      border-bottom: 1px solid var(--border);
     }
-
-    .title {
-      margin: 0;
-      font-size: clamp(1.28rem, 1.9vw, 2.05rem);
-      letter-spacing: 0.08px;
-      line-height: 1.1;
-      color: var(--title-ink);
-      font-weight: 780;
-    }
-
-    .subtitle {
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 0.91rem;
-      line-height: 1.48;
-      max-width: 760px;
-    }
-
-    .header-copy {
-      min-width: 0;
+    .masthead-inner {
+      width: min(1320px, calc(100% - 44px));
+      margin: 0 auto;
+      height: 56px;
       display: flex;
-      flex-direction: column;
+      align-items: center;
       justify-content: space-between;
+      gap: 18px;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-mark {
+      width: 27px;
+      height: 27px;
+      flex: none;
+      border-radius: 7px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      display: grid;
+      place-items: center;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: -0.03em;
+    }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+    .brand-name { font-size: 0.84rem; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand-sub { font-size: 0.7rem; color: var(--faint); font-weight: 450; }
+    .masthead-actions { display: flex; align-items: center; gap: 8px; }
+
+    /* ---------- Page ---------- */
+    .page {
+      width: min(1320px, calc(100% - 44px));
+      margin: 0 auto;
+      padding: 26px 0 56px;
     }
 
-    .header-meta {
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    /* ---------- Hero ---------- */
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(330px, 0.85fr);
+      gap: 14px;
+      margin-bottom: 26px;
+    }
+    .hero-head, .verdict { padding: 24px 26px; }
+    .hero-head { display: flex; flex-direction: column; }
+    .hero-head .meta-row { margin-top: auto; padding-top: 22px; }
+    .eyebrow {
+      margin: 0 0 11px;
+      color: var(--faint);
+      font-size: 0.69rem;
+      font-weight: 600;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      max-width: 18ch;
+      font-size: clamp(1.7rem, 2.4vw, 2.5rem);
+      font-weight: 600;
+      line-height: 1.06;
+      letter-spacing: -0.022em;
+    }
+    .lead {
+      max-width: 52ch;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .meta-row, .chips {
       display: flex;
       flex-wrap: wrap;
       gap: 7px;
-      margin-bottom: 10px;
+      align-items: center;
     }
-
-    .meta-pill {
+    .meta-row { margin-top: 18px; }
+    .chip {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--border-soft);
-      background: var(--panel-soft);
-      color: var(--muted);
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.38px;
-      text-transform: uppercase;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.64);
-    }
-
-    .hero-panel {
-      border: 1px solid var(--border-soft);
-      border-radius: 20px;
-      background:
-        radial-gradient(120% 140% at 100% 0%, rgba(13,97,125,0.12) 0%, transparent 56%),
-        linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(246,249,252,0.9) 100%);
-      padding: 15px 15px 14px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.78), 0 18px 40px rgba(20, 44, 58, 0.08);
-      display: grid;
-      gap: 10px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    [data-theme="dark"] .hero-panel {
-      background:
-        radial-gradient(120% 140% at 100% 0%, rgba(74,164,199,0.13) 0%, transparent 54%),
-        linear-gradient(180deg, rgba(24,42,56,0.98) 0%, rgba(17,33,46,0.98) 100%);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 42px rgba(0,0,0,0.28);
-    }
-
-    .hero-eyebrow {
-      color: var(--muted);
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 700;
-    }
-
-    .hero-headline {
-      font-size: 1.02rem;
-      line-height: 1.28;
-      font-weight: 760;
-      color: var(--title-ink);
-      margin-top: -2px;
-      max-width: 30ch;
-    }
-
-    .hero-summary {
-      color: var(--muted);
-      font-size: 0.8rem;
-      line-height: 1.42;
-    }
-
-    .hero-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    .hero-card {
-      border: 1px solid var(--border-soft);
-      border-radius: 14px;
-      padding: 10px 11px 11px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(250,252,253,0.75) 100%);
-      display: grid;
-      gap: 6px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
-    }
-
-    [data-theme="dark"] .hero-card {
-      background: linear-gradient(180deg, rgba(18,33,46,0.82) 0%, rgba(14,27,38,0.72) 100%);
-    }
-
-    .hero-label {
-      color: var(--muted);
-      font-size: 0.64rem;
-      text-transform: uppercase;
-      letter-spacing: 0.48px;
-      font-weight: 700;
-    }
-
-    .hero-value {
-      color: var(--kpi-value-ink);
-      font-size: 0.92rem;
-      line-height: 1.2;
-      font-weight: 760;
-    }
-
-    .hero-detail {
-      color: var(--muted);
-      font-size: 0.72rem;
-      line-height: 1.34;
-    }
-
-    .header-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      margin-top: 12px;
-      margin-bottom: 10px;
-    }
-
-    .toolbar-button {
+      height: 27px;
+      padding: 0 10px;
       border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-size: 0.76rem;
-      font-weight: 700;
-      letter-spacing: 0.22px;
-      color: var(--ink);
-      background: rgba(255,255,255,0.58);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
-      transition: transform 140ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease, color 180ms ease;
-    }
-
-    .toolbar-button:hover {
-      transform: translateY(-1px);
-      border-color: var(--accent);
-    }
-
-    .toolbar-button-accent {
-      color: #fff;
-      border-color: transparent;
-      background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white 12%) 0%, var(--accent) 100%);
-      box-shadow: 0 10px 20px rgba(13, 97, 125, 0.14), inset 0 1px 0 rgba(255,255,255,0.2);
-    }
-
-    .toolbar-button-ok {
-      color: #fff;
-      border-color: transparent;
-      background: linear-gradient(180deg, color-mix(in srgb, var(--ok) 86%, white 14%) 0%, var(--ok) 100%);
-      box-shadow: 0 10px 20px rgba(31, 107, 68, 0.13), inset 0 1px 0 rgba(255,255,255,0.18);
-    }
-
-    .toolbar-button-ghost {
-      background: var(--panel-soft);
-    }
-
-    .toolbar-note {
-      margin-left: auto;
+      border-radius: 7px;
+      background: var(--surface-soft);
       color: var(--muted);
       font-size: 0.74rem;
-      line-height: 1.35;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .chip-quiet { background: transparent; }
+    .chip-dot::before {
+      content: "";
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--good);
     }
 
-    .consistency-alert {
-      display: none;
-      margin-top: 10px;
-      padding: 9px 11px;
-      border-radius: 9px;
-      border: 1px solid var(--alert-border);
-      background: var(--alert-bg);
-      color: var(--alert-ink);
-      font-size: 0.79rem;
-      line-height: 1.4;
-    }
-
-    .no-data-alert {
-      display: none;
-      margin-top: 10px;
-      padding: 9px 11px;
-      border-radius: 9px;
-      border: 1px solid #e8d7a8;
-      background: #fff9e9;
-      color: #6d4f00;
-      font-size: 0.79rem;
-      line-height: 1.4;
-    }
-
-    [data-theme="dark"] .no-data-alert {
-      border-color: #665327;
-      background: #3b341f;
-      color: #f5dda0;
-    }
-
-    .filters {
-      margin-top: 0;
-      display: grid;
-      grid-template-columns: repeat(7, minmax(128px, 1fr));
-      gap: 10px;
-      align-items: end;
-      border: 1px solid var(--border-soft);
-      border-radius: 18px;
-      background: var(--panel-soft);
-      padding: 12px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
-    }
-
-    .filter-box label {
-      display: block;
-      margin-bottom: 5px;
-      color: var(--muted);
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.55px;
-      font-weight: 600;
-    }
-
-    .filter-box select,
-    .filter-box input {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 11px;
-      padding: 10px 12px;
-      background: var(--input-bg);
-      color: var(--ink);
-      font-size: 0.85rem;
-      min-height: 42px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
-    }
-
-    .filter-box select:focus-visible,
-    .filter-box input:focus-visible,
-    .table-controls input:focus-visible,
-    button:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
-      border-color: var(--accent);
-    }
-
-    .toolbar-button,
-    .kpi,
-    .callout,
-    .chart-card {
-      transition: transform 140ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
-    }
-
-    .kpi:hover,
-    .callout:hover,
-    .chart-card:hover {
-      transform: translateY(-1px);
-    }
-
-    .methodology-panel {
-      margin-top: 10px;
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-sm);
-      background: var(--narrative-bg);
-      padding: 11px 12px;
-      display: none;
-      color: var(--ink);
-      font-size: 0.83rem;
-      line-height: 1.48;
-    }
-
-    .assumption-panel {
-      margin-top: 10px;
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-sm);
-      background: var(--panel-soft);
-      padding: 12px 14px 12px;
-      display: none;
-    }
-
-    .assumption-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(180px, 1fr));
-      gap: 12px;
-    }
-
-    .assumption-box label {
-      display: block;
-      margin-bottom: 4px;
-      color: var(--muted);
-      font-size: 0.73rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 600;
-    }
-
-    .assumption-box input[type="range"] {
-      width: 100%;
-      accent-color: var(--accent);
-    }
-
-    .assumption-value {
-      margin-top: 4px;
-      color: var(--kpi-value-ink);
-      font-weight: 700;
-      font-size: 0.79rem;
-    }
-
-    .section {
-      margin-bottom: 16px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-sm);
-      border-radius: var(--radius-md);
-      padding: 18px 18px 16px;
-      position: relative;
-      overflow: hidden;
-      backdrop-filter: blur(18px);
-    }
-
-    .section-head {
-      margin-bottom: 12px;
-      display: grid;
-      gap: 5px;
-    }
-
-    .section-kicker {
-      color: var(--muted);
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.62px;
-      font-weight: 760;
-    }
-
-    .section h2 {
-      margin: 0 0 2px;
-      font-size: 1.1rem;
-      color: var(--section-title-ink);
-      letter-spacing: 0.16px;
-      font-weight: 760;
-    }
-
-    .section-sub {
-      color: var(--muted);
+    /* ---------- Buttons ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      height: 34px;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink-soft);
+      padding: 0 12px;
+      cursor: pointer;
       font-size: 0.82rem;
-      line-height: 1.42;
-      max-width: 980px;
+      font-weight: 500;
+      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
     }
+    .btn:hover { background: var(--inset); border-color: var(--border-strong); color: var(--ink); }
+    .btn[aria-expanded="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+    .btn-ghost { border-color: transparent; background: transparent; }
+    .btn-ghost:hover { background: var(--inset); }
 
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
-      gap: 14px;
+    /* ---------- Verdict panel ---------- */
+    .verdict {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
     }
-
-    .kpi {
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-sm);
-      background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(249,251,252,0.78) 100%);
-      padding: 14px 15px;
-      min-height: 120px;
-      box-shadow: var(--kpi-inset-shadow);
-      border-top: 4px solid var(--border-strong-soft);
-      display: grid;
-      gap: 6px;
-      position: relative;
-      overflow: hidden;
+    .verdict-line {
+      margin: 0;
+      font-size: 1.18rem;
+      font-weight: 600;
+      line-height: 1.28;
+      letter-spacing: -0.015em;
     }
-
-    [data-theme="dark"] .kpi {
-      background: linear-gradient(180deg, rgba(24,41,55,0.9) 0%, rgba(18,33,46,0.82) 100%);
-    }
-
-    .kpi .label {
-      font-size: 0.69rem;
-      text-transform: uppercase;
+    .verdict-copy {
+      margin: 10px 0 0;
       color: var(--muted);
-      letter-spacing: 0.48px;
-      font-weight: 700;
-    }
-
-    .kpi .value {
-      font-size: 1.44rem;
-      font-weight: 760;
-      color: var(--kpi-value-ink);
-      line-height: 1.08;
-    }
-
-    .kpi .context {
-      color: var(--muted);
-      font-size: 0.78rem;
-      line-height: 1.38;
-    }
-
-    .kpi-positive { border-top-color: rgba(31, 107, 68, 0.46); }
-    .kpi-watch { border-top-color: rgba(155, 106, 18, 0.52); }
-    .kpi-critical { border-top-color: rgba(181, 58, 51, 0.54); }
-    .kpi-neutral { border-top-color: var(--border-strong-soft); }
-
-    .kpi-positive .value { color: var(--ok); }
-    .kpi-watch .value { color: var(--warn); }
-    .kpi-critical .value { color: var(--danger); }
-
-    [data-theme="dark"] .kpi-positive .value,
-    [data-theme="dark"] .kpi-watch .value,
-    [data-theme="dark"] .kpi-critical .value {
-      filter: brightness(1.1);
-    }
-
-    .callout-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 14px;
-    }
-
-    .callout {
-      border: 1px solid var(--border-soft);
-      border-left: 4px solid var(--accent);
-      border-radius: 16px;
-      padding: 14px 15px;
-      background: linear-gradient(180deg, rgba(248,250,252,0.94) 0%, rgba(244,248,250,0.84) 100%);
-      min-height: 132px;
       font-size: 0.86rem;
       line-height: 1.5;
-      color: var(--callout-ink);
+    }
+    .verdict-foot {
+      margin-top: auto;
+      padding-top: 18px;
       display: grid;
-      gap: 7px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.68);
+      gap: 14px;
     }
-
-    [data-theme="dark"] .callout {
-      background: linear-gradient(180deg, rgba(28,47,62,0.92) 0%, rgba(22,39,53,0.86) 100%);
-    }
-
-    .callout-eyebrow {
-      color: var(--muted);
-      font-size: 0.68rem;
+    .verdict-stat { display: grid; gap: 3px; }
+    .verdict-stat + .verdict-stat { border-top: 1px solid var(--border); padding-top: 14px; }
+    .verdict-k {
+      color: var(--faint);
+      font-size: 0.66rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 700;
     }
+    .verdict-v { font-size: 0.96rem; font-weight: 600; letter-spacing: -0.01em; }
+    .verdict-d { color: var(--muted); font-size: 0.8rem; line-height: 1.45; }
 
-    .callout-title {
-      color: var(--section-title-ink);
-      font-size: 0.97rem;
-      line-height: 1.34;
-      font-weight: 760;
+    /* ---------- Controls ---------- */
+    .controls {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      padding: 16px 18px;
+      margin-bottom: 26px;
     }
-
-    .callout-body {
-      color: var(--callout-ink);
-      font-size: 0.83rem;
-      line-height: 1.48;
-    }
-
-    .callout-critical { border-left-color: var(--danger); }
-    .callout-watch { border-left-color: var(--warn); }
-    .callout-positive { border-left-color: var(--ok); }
-    .callout-neutral { border-left-color: var(--accent); }
-
-    .callout-critical .callout-title { color: var(--danger); }
-    .callout-watch .callout-title { color: var(--warn); }
-    .callout-positive .callout-title { color: var(--ok); }
-
-    [data-theme="dark"] .callout-critical .callout-title,
-    [data-theme="dark"] .callout-watch .callout-title,
-    [data-theme="dark"] .callout-positive .callout-title {
-      filter: brightness(1.1);
-    }
-
-    .chart-grid-2 {
+    .filters {
+      flex: 1 1 auto;
       display: grid;
-      grid-template-columns: repeat(2, minmax(320px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(5, minmax(0, 1fr)) repeat(2, minmax(0, 1.18fr));
+      gap: 10px 12px;
+    }
+    .controls-bar { display: flex; gap: 7px; flex: none; }
+    .field { min-width: 0; }
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--faint);
+      font-size: 0.67rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .field select, .field input {
+      width: 100%;
+      height: 36px;
+      padding: 0 10px;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 0.84rem;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease;
+    }
+    .field select:hover, .field input:hover { border-color: var(--faint); }
+    .field select:focus, .field input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
     }
 
-    .chart-grid-3 {
+    /* ---------- Sections ---------- */
+    .section { margin-bottom: 26px; }
+    .section-head { margin-bottom: 18px; }
+    .section h2 {
+      margin: 2px 0 0;
+      font-size: 1.18rem;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+    .section-sub {
+      margin: 6px 0 0;
+      max-width: 70ch;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    /* ---------- KPI band ---------- */
+    .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(280px, 1fr));
-      gap: 12px;
-    }
-
-    .chart-card {
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-sm);
-      background:
-        radial-gradient(115% 120% at 100% 0%, rgba(13,97,125,0.08) 0%, transparent 56%),
-        linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(249,251,252,0.82) 100%);
-      padding: 12px 13px 10px;
-      min-height: 324px;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       overflow: hidden;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 16px 36px rgba(19, 39, 52, 0.05);
+    }
+    .kpi {
+      padding: 18px 18px 16px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      min-height: 158px;
+    }
+    .kpi-top { display: flex; align-items: center; gap: 7px; }
+    .kpi-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); flex: none; }
+    .kpi.good .kpi-dot { background: var(--good); }
+    .kpi.warn .kpi-dot { background: var(--warn); }
+    .kpi.bad .kpi-dot { background: var(--bad); }
+    .kpi.accent .kpi-dot { background: var(--accent); }
+    .kpi-label {
+      color: var(--muted);
+      font-size: 0.73rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+    .kpi-value {
+      margin-top: 11px;
+      font-family: var(--mono);
+      font-size: clamp(1.45rem, 1.75vw, 1.9rem);
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi-spark { margin-top: 12px; height: 26px; }
+    .kpi-spark svg { display: block; width: 100%; height: 26px; overflow: visible; }
+    .kpi-spark .spark-line {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 1.5;
+      opacity: 0.75;
+    }
+    .kpi-note {
+      margin-top: auto;
+      padding-top: 11px;
+      color: var(--faint);
+      font-size: 0.74rem;
+      line-height: 1.45;
+    }
+    .kpi-note b { color: var(--ink-soft); font-weight: 500; }
+    .delta-good { color: var(--good); font-weight: 600; }
+    .delta-bad { color: var(--bad); font-weight: 600; }
+    .delta-flat { color: var(--faint); font-weight: 500; }
+
+    /* ---------- Triage cards ---------- */
+    .triage-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .triage {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      min-height: 138px;
+    }
+    .triage-head { display: flex; align-items: center; gap: 7px; }
+    .triage-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; }
+    .triage.bad .triage-dot { background: var(--bad); }
+    .triage.warn .triage-dot { background: var(--warn); }
+    .triage.good .triage-dot { background: var(--good); }
+    .triage-label {
+      color: var(--faint);
+      font-size: 0.66rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .triage-title {
+      margin-top: 11px;
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+    }
+    .triage-body {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.83rem;
+      line-height: 1.5;
     }
 
-    [data-theme="dark"] .chart-card {
-      background:
-        radial-gradient(115% 120% at 100% 0%, rgba(74,164,199,0.1) 0%, transparent 56%),
-        linear-gradient(180deg, rgba(24,41,55,0.92) 0%, rgba(19,35,49,0.84) 100%);
+    /* ---------- Charts ---------- */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
     }
-
-    .chart-card.tall { min-height: 388px; }
-    .chart-card.short { min-height: 296px; }
-    .chart-card > .js-plotly-plot,
-    .chart-card > .plot-container {
+    .chart-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .chart-card {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 16px 14px 8px;
+    }
+    .chart-head { padding: 0 6px 2px; }
+    .chart-title {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      line-height: 1.3;
+      letter-spacing: -0.01em;
+    }
+    .chart-kicker {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    .chart-kicker b { color: var(--ink); font-weight: 600; }
+    .chart-body { flex: 1; min-height: 296px; }
+    .chart-card.tall .chart-body { min-height: 352px; }
+    .chart-body > .js-plotly-plot,
+    .chart-body > .plot-container {
       width: 100% !important;
-      height: 100% !important;
       min-height: inherit;
     }
 
-    .section.tradeoff .chart-card.tall {
-      min-height: 430px;
+    /* ---------- Scenario / method panels ---------- */
+    .scenario-panel, .method-panel {
+      display: none;
+      padding: 18px;
+      margin-bottom: 26px;
     }
+    .method-panel {
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.6;
+      max-width: 90ch;
+    }
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(180px, 1fr));
+      gap: 18px;
+    }
+    .scenario-grid input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      margin-top: 4px;
+    }
+    .scenario-value {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 500;
+    }
+    .scenario-value b { font-family: var(--mono); color: var(--ink); font-weight: 500; }
 
-    .narrative {
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-sm);
-      padding: 16px 16px;
-      background: var(--narrative-bg);
-      font-size: 0.88rem;
-      line-height: 1.58;
+    /* ---------- Table ---------- */
+    .table-tools {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .table-tools input {
+      width: min(380px, 100%);
+      height: 36px;
+      padding: 0 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      background: var(--surface);
       color: var(--ink);
+      font-size: 0.84rem;
+    }
+    .table-tools input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .table-wrap {
+      max-height: 460px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    th, td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr { transition: background 0.1s ease; }
+    tbody tr:hover { background: var(--surface-soft); }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--surface-soft);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-strong);
+      user-select: none;
+    }
+    th:hover { color: var(--ink); }
+    th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--accent); }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .wrap { white-space: normal; min-width: 230px; color: var(--muted); }
+    .score { font-family: var(--mono); font-weight: 600; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      height: 21px;
+      padding: 0 8px;
+      border-radius: 6px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .tier-low { color: var(--good); background: var(--good-soft); }
+    .tier-medium { color: var(--warn); background: var(--warn-soft); }
+    .tier-high, .tier-critical { color: var(--bad); background: var(--bad-soft); }
+
+    /* ---------- Footer ---------- */
+    .foot {
+      margin-top: 34px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: var(--faint);
+      font-size: 0.74rem;
+    }
+    .foot .num { letter-spacing: 0; font-size: 0.72rem; }
+
+    /* ---------- Status alert ---------- */
+    .status-alert {
+      display: none;
+      margin: 0 0 22px;
+      padding: 12px 14px;
+      border: 1px solid var(--border-strong);
+      border-left: 3px solid var(--warn);
+      border-radius: 8px;
+      background: var(--warn-soft);
+      color: var(--ink);
+      font-size: 0.85rem;
     }
 
+    /* ---------- Brief ---------- */
     .brief-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }
-
-    .brief-item {
-      border: 1px solid var(--border-soft);
-      border-radius: 16px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(248,250,252,0.86) 100%);
-      padding: 13px 14px;
-      display: grid;
-      gap: 6px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    .brief {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 16px 18px;
     }
-
-    [data-theme="dark"] .brief-item {
-      background: linear-gradient(180deg, rgba(24,41,55,0.9) 0%, rgba(18,33,46,0.84) 100%);
-    }
-
-    .brief-label {
-      color: var(--muted);
-      font-size: 0.68rem;
+    .brief-title {
+      color: var(--faint);
+      font-size: 0.66rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 700;
     }
-
     .brief-copy {
-      color: var(--ink);
-      font-size: 0.84rem;
-      line-height: 1.48;
+      margin-top: 9px;
+      color: var(--ink-soft);
+      font-size: 0.88rem;
+      line-height: 1.55;
+    }
+    .brief-copy b { color: var(--ink); font-weight: 600; }
+
+    @media (max-width: 1080px) {
+      .hero { grid-template-columns: 1fr; }
+      .controls { flex-direction: column; align-items: stretch; }
+      .filters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .controls-bar { justify-content: flex-end; }
+      .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .triage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .chart-grid, .chart-grid.three { grid-template-columns: 1fr; }
     }
 
-    .table-controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      gap: 10px;
-      flex-wrap: wrap;
+    @media (max-width: 640px) {
+      .page { width: calc(100% - 28px); padding-top: 18px; }
+      .masthead-inner { width: calc(100% - 28px); }
+      .brand-sub { display: none; }
+      .masthead .chip-quiet { display: none; }
+      h1 { font-size: clamp(1.55rem, 7vw, 1.95rem); }
+      .hero-head, .verdict, .section { padding: 18px; }
+      .filters, .triage-grid, .scenario-grid, .brief-grid { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; }
+      .chart-card, .chart-card.tall { min-height: 330px; }
+      th, td { padding: 10px 12px; font-size: 0.78rem; }
     }
 
-    .table-controls input {
-      border: 1px solid var(--border-soft);
-      border-radius: 11px;
-      padding: 10px 12px;
-      font-size: 0.85rem;
-      min-width: 260px;
-      background: var(--input-bg);
-      color: var(--ink);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.66);
-    }
-
-    .table-wrap {
-      overflow: auto;
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-sm);
-      max-height: 420px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(250,252,253,0.9) 100%);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
-    }
-
-    [data-theme="dark"] .table-wrap {
-      background: linear-gradient(180deg, rgba(24,41,55,0.9) 0%, rgba(18,33,46,0.84) 100%);
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      font-size: 0.82rem;
-    }
-
-    thead th {
-      position: sticky;
-      top: 0;
-      background: var(--table-head-bg);
-      color: var(--title-ink);
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-      padding: 8px;
-      cursor: pointer;
-      white-space: nowrap;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.36px;
-    }
-
-    tbody td {
-      border-bottom: 1px solid var(--border-soft);
-      padding: 9px 8px;
-      white-space: nowrap;
-      vertical-align: top;
-    }
-
-    tbody tr:hover { background: var(--table-row-hover); }
-    tbody tr:nth-child(even) { background: var(--panel-soft); }
-
-    .risk-badge {
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-      display: inline-block;
-    }
-
-    .risk-low { background: var(--risk-low-bg); color: var(--risk-low-ink); }
-    .risk-medium { background: var(--risk-medium-bg); color: var(--risk-medium-ink); }
-    .risk-high { background: var(--risk-high-bg); color: var(--risk-high-ink); }
-    .risk-critical { background: var(--risk-critical-bg); color: var(--risk-critical-ink); }
-
-    .footer-note {
-      margin-top: 12px;
-      color: var(--muted);
-      font-size: 0.77rem;
-      line-height: 1.4;
-    }
-
-    .priority-cell {
-      font-weight: 760;
-      color: var(--section-title-ink);
-    }
-
-    .action-cell {
-      white-space: normal;
-      min-width: 240px;
-      line-height: 1.42;
-    }
-
-    .entity-cell {
-      font-weight: 650;
-      color: var(--title-ink);
-    }
-
-    @media (max-width: 1280px) {
-      .container { padding: 18px; }
-      .header-top { grid-template-columns: 1fr; }
-      .hero-grid { grid-template-columns: 1fr 1fr 1fr; }
-      .filters { grid-template-columns: repeat(4, minmax(150px, 1fr)); }
-      .kpi-grid { grid-template-columns: repeat(4, minmax(170px, 1fr)); }
-      .callout-grid { grid-template-columns: 1fr 1fr; }
-      .chart-grid-3 { grid-template-columns: 1fr 1fr; }
-      .assumption-grid { grid-template-columns: repeat(2, minmax(170px, 1fr)); }
-      .chart-card.short { min-height: 330px; }
-      .chart-card.tall { min-height: 420px; }
-    }
-
-    @media (max-width: 820px) {
-      .container { padding: 14px; }
-      .header-top { grid-template-columns: 1fr; }
-      .hero-grid { grid-template-columns: 1fr; }
-      .header-toolbar { align-items: stretch; }
-      .toolbar-note { margin-left: 0; width: 100%; }
-      .filters { grid-template-columns: repeat(2, minmax(130px, 1fr)); }
-      .kpi-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
-      .callout-grid { grid-template-columns: 1fr; }
-      .chart-grid-2, .chart-grid-3 { grid-template-columns: 1fr; }
-      .assumption-grid { grid-template-columns: 1fr; }
-      .brief-grid { grid-template-columns: 1fr; }
-      .table-controls input { min-width: 100%; }
-      .chart-card,
-      .chart-card.short,
-      .chart-card.tall {
-        min-height: 345px;
-      }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition: none !important; animation: none !important; }
     }
 
     @media print {
-      :root,
-      [data-theme="dark"] {
-        --bg: #ffffff;
-        --bg-grad-a: #ffffff;
-        --bg-grad-b: #ffffff;
-        --bg-grad-c: #ffffff;
-        --panel: #ffffff;
-        --panel-alt: #ffffff;
-        --panel-soft: #ffffff;
-        --narrative-bg: #ffffff;
-        --ink: #111111;
-        --muted: #444444;
-        --title-ink: #111111;
-        --section-title-ink: #111111;
-        --kpi-value-ink: #111111;
-        --border: #d8d8d8;
-        --border-soft: #e2e2e2;
-        --shadow-sm: none;
-        --shadow-md: none;
-      }
-
-      body {
-        background: #ffffff !important;
-        color: #111111 !important;
-      }
-
-      .container {
-        max-width: none;
-        padding: 0;
-      }
-
-      .header,
-      .section {
-        box-shadow: none !important;
-        break-inside: avoid;
-        page-break-inside: avoid;
-      }
-
-      .filters,
-      .assumption-panel,
-      .methodology-panel,
-      .consistency-alert,
-      .table-controls {
-        display: none !important;
-      }
-
-      .section {
-        margin-bottom: 12px;
-      }
-
-      .chart-grid-2,
-      .chart-grid-3 {
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-
-      .chart-card,
-      .chart-card.short,
-      .chart-card.tall {
-        min-height: 255px !important;
-        border-color: #d8d8d8;
-      }
-
-      .table-wrap {
-        max-height: none;
-        overflow: visible;
-      }
-
-      thead th {
-        position: static;
-      }
+      body { background: #fff; color: #111; }
+      .masthead { position: static; backdrop-filter: none; }
+      .page { width: 100%; padding: 0; }
+      .panel, .section { box-shadow: none; break-inside: avoid; }
+      .controls, .scenario-panel, .method-panel, .table-tools, .masthead-actions { display: none !important; }
+      .chart-grid, .chart-grid.three { grid-template-columns: 1fr; }
+      .chart-card, .chart-card.tall { min-height: 280px; }
+      .table-wrap { max-height: none; overflow: visible; }
+      th { position: static; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="header-top">
-        <div class="header-copy">
-          <div class="header-meta">
-            <span class="meta-pill">Executive command center</span>
-            <span class="meta-pill" id="header-scope">Filtered operating scope</span>
-            <span class="meta-pill" id="header-updated">Updated from governed snapshot</span>
-          </div>
-          <div>
-          <h1 class="title">Supply Chain Service Level, Inventory Risk & Working Capital Intelligence System</h1>
-          <div class="subtitle">Executive Operations & Finance Review Dashboard: service reliability, stockout leakage, inventory efficiency, and intervention priorities.</div>
-        </div>
-        </div>
-        <div class="hero-panel">
-          <div class="hero-eyebrow">Current decision frame</div>
-          <div class="hero-headline" id="hero-headline"></div>
-          <div class="hero-summary" id="hero-summary"></div>
-          <div class="hero-grid">
-            <div class="hero-card">
-              <div class="hero-label">Immediate action</div>
-              <div class="hero-value" id="hero-primary"></div>
-              <div class="hero-detail" id="hero-primary-detail"></div>
-            </div>
-            <div class="hero-card">
-              <div class="hero-label">Largest exposure</div>
-              <div class="hero-value" id="hero-exposure"></div>
-              <div class="hero-detail" id="hero-exposure-detail"></div>
-            </div>
-            <div class="hero-card">
-              <div class="hero-label">Value at stake</div>
-              <div class="hero-value" id="hero-opportunity"></div>
-              <div class="hero-detail" id="hero-opportunity-detail"></div>
-            </div>
-          </div>
+  <a class="skip-link" href="#main-content">Skip to dashboard content</a>
+
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">SI</span>
+        <span class="brand-text">
+          <span class="brand-name">Service &amp; Inventory Intelligence</span>
+          <span class="brand-sub">Operating review</span>
+        </span>
+      </div>
+      <div class="masthead-actions">
+        <span class="chip chip-quiet chip-dot" id="meta-refresh">Snapshot loading</span>
+        <button class="btn btn-ghost" id="toggle-theme" type="button">Dark</button>
+        <button class="btn btn-ghost" id="print-dashboard" type="button">Print</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="page">
+    <section class="hero" aria-labelledby="page-title">
+      <div class="panel hero-head">
+        <p class="eyebrow">Supply chain operating review</p>
+        <h1 id="page-title">Service, inventory &amp; working-capital review</h1>
+        <p class="lead">Where the network loses service, where capital sits idle, and the SKU-location actions that recover the most value over the next 12 months.</p>
+        <div class="meta-row" aria-label="Dashboard metadata">
+          <span class="chip" id="meta-scope">All operating records</span>
+          <span class="chip" id="meta-period">Period loading</span>
         </div>
       </div>
-      <div id="consistency-alert" class="consistency-alert"></div>
-      <div id="no-data-alert" class="no-data-alert"></div>
 
-      <div class="header-toolbar">
-        <button class="toolbar-button toolbar-button-ghost" id="toggle-assumptions">Scenario Controls</button>
-        <button class="toolbar-button toolbar-button-ghost" id="toggle-methodology">Method Notes</button>
-        <button class="toolbar-button toolbar-button-accent" id="reset-filters">Reset Filters</button>
-        <button class="toolbar-button" id="toggle-theme">Dark Mode</button>
-        <button class="toolbar-button toolbar-button-ok" id="print-dashboard">Print / Export PDF</button>
-        <div class="toolbar-note">Primary controls stay visible. Scenario and method panels stay collapsed until needed.</div>
-      </div>
+      <aside class="panel verdict" aria-label="Current decision frame">
+        <p class="eyebrow">The call</p>
+        <p class="verdict-line" id="decision-title">Loading decision frame</p>
+        <p class="verdict-copy" id="decision-copy"></p>
+        <div class="verdict-foot">
+          <div class="verdict-stat">
+            <span class="verdict-k">Act first</span>
+            <span class="verdict-v" id="hero-action"></span>
+            <span class="verdict-d" id="hero-action-detail"></span>
+          </div>
+          <div class="verdict-stat">
+            <span class="verdict-k">12-month value at stake</span>
+            <span class="verdict-v num" id="hero-value"></span>
+            <span class="verdict-d" id="hero-value-detail"></span>
+          </div>
+        </div>
+      </aside>
+    </section>
 
+    <section class="panel controls" aria-label="Dashboard filters">
       <div class="filters">
-        <div class="filter-box"><label>Region</label><select id="filter-region"></select></div>
-        <div class="filter-box"><label>Warehouse</label><select id="filter-warehouse"></select></div>
-        <div class="filter-box"><label>Category</label><select id="filter-category"></select></div>
-        <div class="filter-box"><label>Supplier</label><select id="filter-supplier"></select></div>
-        <div class="filter-box"><label>ABC Class</label><select id="filter-abc"></select></div>
-        <div class="filter-box"><label>Date Start</label><input id="filter-start" type="month" /></div>
-        <div class="filter-box"><label>Date End</label><input id="filter-end" type="month" /></div>
+        <div class="field"><label for="filter-region">Region</label><select id="filter-region"></select></div>
+        <div class="field"><label for="filter-warehouse">Warehouse</label><select id="filter-warehouse"></select></div>
+        <div class="field"><label for="filter-category">Category</label><select id="filter-category"></select></div>
+        <div class="field"><label for="filter-supplier">Supplier</label><select id="filter-supplier"></select></div>
+        <div class="field"><label for="filter-abc">ABC class</label><select id="filter-abc"></select></div>
+        <div class="field"><label for="filter-start">From</label><input id="filter-start" type="month" /></div>
+        <div class="field"><label for="filter-end">To</label><input id="filter-end" type="month" /></div>
       </div>
-
-      <div class="methodology-panel" id="methodology-panel">
-        KPI and risk metrics use filtered monthly operational aggregates. Governance scores are interpretable weighted composites of service risk, stockout risk, excess inventory risk, supplier risk, and working-capital risk. Scenario controls recalculate the 12M opportunity proxy in real time; these values are directional planning estimates, not statutory accounting values.
+      <div class="controls-bar">
+        <button class="btn" id="reset-filters" type="button">Reset</button>
+        <button class="btn" id="toggle-scenario" type="button" aria-controls="scenario-panel" aria-expanded="false">Assumptions</button>
+        <button class="btn" id="toggle-method" type="button" aria-controls="method-panel" aria-expanded="false">Method</button>
       </div>
+    </section>
 
-      <div class="assumption-panel">
-        <div class="assumption-grid">
-          <div class="assumption-box">
-            <label>Recoverable Lost Margin Rate</label>
-            <input id="assump-margin-rate" type="range" min="10" max="60" step="1" />
-            <div class="assumption-value" id="assump-margin-rate-value"></div>
-          </div>
-          <div class="assumption-box">
-            <label>Releasable Working Capital Rate</label>
-            <input id="assump-wc-rate" type="range" min="5" max="60" step="1" />
-            <div class="assumption-value" id="assump-wc-rate-value"></div>
-          </div>
-          <div class="assumption-box">
-            <label>Slow-Moving Incremental Weight</label>
-            <input id="assump-slow-weight" type="range" min="0" max="100" step="1" />
-            <div class="assumption-value" id="assump-slow-weight-value"></div>
-          </div>
+    <div id="status-alert" class="status-alert" role="status"></div>
+
+    <section class="panel scenario-panel" id="scenario-panel" aria-label="Scenario assumptions">
+      <div class="scenario-grid">
+        <div class="field">
+          <label for="assump-margin-rate">Recoverable lost margin rate</label>
+          <input id="assump-margin-rate" type="range" min="10" max="60" step="1" />
+          <div class="scenario-value" id="assump-margin-rate-value"></div>
+        </div>
+        <div class="field">
+          <label for="assump-wc-rate">Releasable working capital rate</label>
+          <input id="assump-wc-rate" type="range" min="5" max="60" step="1" />
+          <div class="scenario-value" id="assump-wc-rate-value"></div>
+        </div>
+        <div class="field">
+          <label for="assump-slow-weight">Slow-moving incremental weight</label>
+          <input id="assump-slow-weight" type="range" min="0" max="100" step="1" />
+          <div class="scenario-value" id="assump-slow-weight-value"></div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="section">
-      <div class="section-head">
-        <div class="section-kicker">Portfolio scorecard</div>
-        <h2>Operating Scorecard</h2>
-        <div class="section-sub">Portfolio-level service, stockout, working-capital, supplier execution, and intervention-pressure KPIs.</div>
-      </div>
-      <div class="kpi-grid" id="kpi-grid"></div>
-    </div>
+    <section class="panel method-panel" id="method-panel">
+      Metrics are demand-weighted where required. Fill rate is fulfilled units divided by demanded units. Stockout rate is lost units divided by demanded units. The 12-month opportunity proxy combines annualized recoverable lost-sales margin and releasable trapped working capital under the visible scenario assumptions. Financial values are directional operating proxies, not accounting entries.
+    </section>
 
-    <div class="section">
-      <div class="section-head">
-        <div class="section-kicker">Priority signals</div>
-        <h2>Executive Decision Priorities</h2>
-        <div class="section-sub">Concise operating signals on where leadership attention should go first.</div>
-      </div>
-      <div class="callout-grid" id="callout-grid"></div>
-    </div>
+    <main id="main-content">
+      <section class="section" aria-labelledby="scorecard-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Portfolio signals</p>
+            <h2 id="scorecard-title">Current performance</h2>
+            <p class="section-sub">Demand-weighted service metrics, financial exposure proxies, and the active priority queue.</p>
+          </div>
+        </div>
+        <div class="kpi-grid" id="kpi-grid"></div>
+      </section>
 
-    <div class="section">
-      <div class="section-head">
-        <div class="section-kicker">Trend view</div>
-        <h2>Performance Over Time</h2>
-        <div class="section-sub">Trend diagnostics to separate temporary volatility from persistent operating drift.</div>
-      </div>
-      <div class="chart-grid-2">
-        <div class="chart-card" id="chart-service-trend"></div>
-        <div class="chart-card" id="chart-stockout-trend"></div>
-        <div class="chart-card" id="chart-lost-sales-trend"></div>
-        <div class="chart-card" id="chart-inventory-trend"></div>
-      </div>
-    </div>
+      <section class="section" aria-labelledby="priorities-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Priorities</p>
+            <h2 id="priorities-title">Priority actions</h2>
+            <p class="section-sub">The worst service site, largest supplier exposure, biggest capital pocket, and sharpest policy conflict in the current scope.</p>
+          </div>
+        </div>
+        <div class="triage-grid" id="priority-grid"></div>
+      </section>
 
-    <div class="section">
-      <div class="section-head">
-        <div class="section-kicker">Cross-section comparison</div>
-        <h2>Exposure by Node</h2>
-        <div class="section-sub">Cross-sectional comparison of warehouses, categories, regions, and suppliers to locate operational imbalance.</div>
-      </div>
-      <div class="chart-grid-3">
-        <div class="chart-card short" id="chart-fill-warehouse"></div>
-        <div class="chart-card short" id="chart-fill-category"></div>
-        <div class="chart-card short" id="chart-lostsales-region"></div>
-        <div class="chart-card short" id="chart-supplier-otd"></div>
-        <div class="chart-card short" id="chart-lead-var"></div>
-        <div class="chart-card short" id="chart-excess-category"></div>
-      </div>
-    </div>
+      <section class="section" aria-labelledby="charts-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Operational drivers</p>
+            <h2 id="charts-title">Performance and exposure</h2>
+            <p class="section-sub">Monthly trends and the warehouses and categories contributing most to current exposure.</p>
+          </div>
+        </div>
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-head"><h3 class="chart-title">Is service holding the 97% bar?</h3></div>
+            <div class="chart-body" id="chart-trend" role="img" aria-label="Monthly fill rate trend against the 97 percent service target"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-head"><h3 class="chart-title">Is value leakage revenue-led or capital-led?</h3></div>
+            <div class="chart-body" id="chart-value-trend" role="img" aria-label="Monthly lost sales and trapped working capital trend"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-head"><h3 class="chart-title">Which warehouse loses the most revenue?</h3></div>
+            <div class="chart-body" id="chart-bottlenecks" role="img" aria-label="Warehouse lost sales comparison"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-head"><h3 class="chart-title">Where is working capital trapped?</h3></div>
+            <div class="chart-body" id="chart-category-capital" role="img" aria-label="Category working capital concentration"></div>
+          </div>
+        </div>
+      </section>
 
-    <div class="section tradeoff">
-      <div class="section-head">
-        <div class="section-kicker">Portfolio balance</div>
-        <h2>Service vs Inventory Trade-off</h2>
-        <div class="section-sub">Quadrant and scatter analysis for identifying understock, overstock, and dual-failure segments.</div>
-      </div>
-      <div class="chart-grid-3">
-        <div class="chart-card tall" id="chart-service-vs-inventory"></div>
-        <div class="chart-card tall" id="chart-service-vs-dos"></div>
-        <div class="chart-card tall" id="chart-quadrant"></div>
-      </div>
-    </div>
+      <section class="section" aria-labelledby="tradeoff-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Policy trade-off</p>
+            <h2 id="tradeoff-title">Service and inventory conflict</h2>
+            <p class="section-sub">Identify understocked revenue exposure, capital-heavy pockets, and cases where service misses coexist with excess inventory.</p>
+          </div>
+        </div>
+        <div class="chart-grid three">
+          <div class="chart-card tall">
+            <div class="chart-head"><h3 class="chart-title">Which segments under-serve despite inventory?</h3></div>
+            <div class="chart-body" id="chart-tradeoff" role="img" aria-label="Service level versus days of supply by category and region"></div>
+          </div>
+          <div class="chart-card tall">
+            <div class="chart-head"><h3 class="chart-title">Which suppliers carry the largest exposure?</h3></div>
+            <div class="chart-body" id="chart-supplier" role="img" aria-label="Supplier execution and downstream lost sales"></div>
+          </div>
+          <div class="chart-card tall">
+            <div class="chart-head">
+              <h3 class="chart-title">How concentrated is the lost-sales problem?</h3>
+              <p class="chart-kicker" id="pareto-kicker"></p>
+            </div>
+            <div class="chart-body" id="chart-governance" role="img" aria-label="Concentration of lost sales across the highest exposure SKU locations"></div>
+          </div>
+        </div>
+      </section>
 
-    <div class="section">
-      <div class="section-head">
-        <div class="section-kicker">Execution queue</div>
-        <h2>Intervention Prioritization</h2>
-        <div class="section-sub">Action queue diagnostics by SKU, supplier, warehouse, and supplier-risk intensity.</div>
-      </div>
-      <div class="chart-grid-3">
-        <div class="chart-card tall" id="chart-top-governance"></div>
-        <div class="chart-card tall" id="chart-top-suppliers"></div>
-        <div class="chart-card tall" id="chart-top-warehouses"></div>
-      </div>
-      <div style="margin-top:10px" class="chart-card tall" id="chart-supplier-heatmap"></div>
-    </div>
+      <section class="section" aria-labelledby="detail-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Execution detail</p>
+            <h2 id="detail-title">Priority Action Queue</h2>
+            <p class="section-sub">Scores use the full-period governed baseline; operating metrics reflect the active filters.</p>
+          </div>
+        </div>
+        <div class="table-tools">
+          <input id="table-search" type="search" placeholder="Search SKU, product, warehouse, supplier, driver, action" aria-label="Search priority action queue" />
+          <div class="chip" id="table-meta">Rows loading</div>
+        </div>
+        <div class="table-wrap">
+          <table id="detail-table">
+            <caption class="sr-only">Full-period priority scores with operating metrics from the active filters</caption>
+            <thead>
+              <tr>
+                <th tabindex="0" class="num" data-key="governance_priority_score" aria-sort="descending">Priority</th>
+                <th tabindex="0" data-key="product_id" aria-sort="none">SKU</th>
+                <th tabindex="0" data-key="product_name" aria-sort="none">Product</th>
+                <th tabindex="0" data-key="warehouse_id" aria-sort="none">Warehouse</th>
+                <th tabindex="0" data-key="supplier_id" aria-sort="none">Supplier</th>
+                <th tabindex="0" class="num" data-key="fill_rate" aria-sort="none">Fill</th>
+                <th tabindex="0" class="num" data-key="stockout_rate" aria-sort="none">Stockout</th>
+                <th tabindex="0" class="num" data-key="lost_sales_revenue" aria-sort="none">Lost sales</th>
+                <th tabindex="0" data-key="risk_tier" aria-sort="none">Tier</th>
+                <th tabindex="0" data-key="main_risk_driver" aria-sort="none">Driver</th>
+                <th tabindex="0" data-key="recommended_action" aria-sort="none">Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
 
-    <div class="section">
-      <div class="section-head">
-        <div class="section-kicker">Execution detail</div>
-        <h2>Priority Action Table</h2>
-        <div class="section-sub">Sortable and filterable SKU-warehouse intervention table for tactical execution ownership.</div>
-      </div>
-      <div class="table-controls">
-        <input id="table-search" type="text" placeholder="Search product, warehouse, supplier, risk driver, action..." />
-        <div id="table-meta" class="footer-note"></div>
-      </div>
-      <div class="table-wrap">
-        <table id="detail-table">
-          <thead>
-            <tr>
-              <th data-key="product_id">SKU</th>
-              <th data-key="product_name">Product</th>
-              <th data-key="warehouse_id">Warehouse</th>
-              <th data-key="supplier_id">Supplier</th>
-              <th data-key="fill_rate">Fill Rate</th>
-              <th data-key="stockout_risk_score">Stockout Risk</th>
-              <th data-key="excess_inventory_score">Excess Risk</th>
-              <th data-key="working_capital_risk_score">WC Risk</th>
-              <th data-key="governance_priority_score">Priority Score</th>
-              <th data-key="risk_tier">Tier</th>
-              <th data-key="main_risk_driver">Primary Driver</th>
-              <th data-key="recommended_action">Recommended Action</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
+      <section class="section" aria-labelledby="brief-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Interpretation</p>
+            <h2 id="brief-title">Review summary</h2>
+            <p class="section-sub">Concise interpretation of the active filters and full-period priority baseline.</p>
+          </div>
+        </div>
+        <div class="brief-grid" id="brief-grid"></div>
+      </section>
 
-    <div class="section">
-      <div class="section-head">
-        <div class="section-kicker">Executive interpretation</div>
-        <h2>Executive Brief</h2>
-        <div class="section-sub">Decision-oriented interpretation summarizing what is wrong, where exposure sits, and what should happen next.</div>
-      </div>
-      <div class="narrative" id="narrative-panel"></div>
-      <div class="footer-note">Synthetic data demonstration. Replace source tables with company data extracts to operationalize.</div>
-    </div>
+      <footer class="foot" aria-label="Dataset provenance">
+        <span class="num" id="foot-provenance"></span>
+        <span>Demand-weighted metrics · financial values are directional operating proxies, not accounting entries</span>
+      </footer>
+    </main>
   </div>
 
-  <script>__PLOTLY_JS__</script>
+  <script src="__PLOTLY_CDN_URL__"></script>
   <script>
     const dashboardData = __DATA_JSON__;
 
     function decodeMonthlyFact(compact) {
-      const dim = compact.dim;
-      const rows = compact.rows || [];
-      return rows.map(r => ({
+      const dim = compact.dim || {};
+      return (compact.rows || []).map(r => ({
         month: dim.month[r[0]],
         region: dim.region[r[1]],
         warehouse_id: dim.warehouse_id[r[2]],
@@ -1425,30 +1188,21 @@ def _build_html(data_payload: dict) -> str:
         avg_days_of_supply: Number(r[12]),
         excess_inventory_proxy: Number(r[13]),
         slow_moving_proxy: Number(r[14]),
-        trapped_wc_proxy: Number(r[15]),
-        lost_sales_margin_proxy: Number(r[16]),
-        observation_days: Number(r[17]),
-        stockout_month_flag: Number(r[18]),
+        slow_moving_non_excess_proxy: Number(r[15]),
+        trapped_wc_proxy: Number(r[16]),
+        lost_sales_margin_proxy: Number(r[17]),
+        observation_days: Number(r[18]),
+        stockout_month_flag: Number(r[19]),
       }));
     }
 
     const monthlyFact = decodeMonthlyFact(dashboardData.monthly_sku_compact);
-    const supplierMeta = Object.fromEntries(dashboardData.suppliers.map(s => [s.supplier_id, s]));
-    const warehouseMeta = Object.fromEntries(dashboardData.warehouses.map(w => [w.warehouse_id, w]));
     const productMeta = dashboardData.product_name_map || {};
+    const supplierMeta = Object.fromEntries((dashboardData.suppliers || []).map(s => [s.supplier_id, s]));
+    const warehouseMeta = Object.fromEntries((dashboardData.warehouses || []).map(w => [w.warehouse_id, w]));
     const skuRiskBaselineMap = Object.fromEntries(
-      dashboardData.sku_risk_baseline.map(s => [`${s.product_id}|${s.warehouse_id}|${s.supplier_id}`, s])
+      (dashboardData.sku_risk_baseline || []).map(s => [`${s.product_id}|${s.warehouse_id}|${s.supplier_id}`, s])
     );
-    const PLOT_CONFIG = {
-      displayModeBar: false,
-      responsive: true,
-      scrollZoom: false
-    };
-    const printButton = document.getElementById('print-dashboard');
-    const resetButton = document.getElementById('reset-filters');
-    const themeToggle = document.getElementById('toggle-theme');
-    const methodologyToggle = document.getElementById('toggle-methodology');
-    const assumptionToggle = document.getElementById('toggle-assumptions');
 
     const filters = {
       region: document.getElementById('filter-region'),
@@ -1457,10 +1211,9 @@ def _build_html(data_payload: dict) -> str:
       supplier: document.getElementById('filter-supplier'),
       abc: document.getElementById('filter-abc'),
       start: document.getElementById('filter-start'),
-      end: document.getElementById('filter-end')
+      end: document.getElementById('filter-end'),
     };
-
-    const assumptions = {
+    const scenario = {
       marginRate: document.getElementById('assump-margin-rate'),
       wcRate: document.getElementById('assump-wc-rate'),
       slowWeight: document.getElementById('assump-slow-weight'),
@@ -1468,185 +1221,604 @@ def _build_html(data_payload: dict) -> str:
       wcRateValue: document.getElementById('assump-wc-rate-value'),
       slowWeightValue: document.getElementById('assump-slow-weight-value'),
     };
-
-    const tableSearch = document.getElementById('table-search');
     const tableBody = document.querySelector('#detail-table tbody');
+    const tableSearch = document.getElementById('table-search');
     const tableMeta = document.getElementById('table-meta');
-
+    const plotConfig = { displayModeBar: false, responsive: true, scrollZoom: false };
     let tableSort = { key: 'governance_priority_score', dir: 'desc' };
-    let lastAgg = null;
+    let currentAgg = null;
     let currentTheme = 'light';
 
-    function fmtPct(v) { return `${(v * 100).toFixed(1)}%`; }
-    function fmtNum(v) { return Number(v).toLocaleString(); }
-    function fmtEur(v) { return `EUR ${Number(v).toLocaleString(undefined, {maximumFractionDigits: 0})}`; }
-    function fmtEurM(v) { return `EUR ${(Number(v) / 1_000_000).toFixed(2)}M`; }
-    function fmtCompactEur(v) {
+    const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const fmtPct = v => `${((Number(v) || 0) * 100).toFixed(1)}%`;
+    const fmtNum = v => Number(v || 0).toLocaleString();
+    const fmtEur = v => `€${Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+    const fmtEurM = v => `€${(Number(v || 0) / 1_000_000).toFixed(2)}M`;
+    const fmtCompactEur = v => {
       const value = Math.abs(Number(v) || 0);
-      if (value >= 1_000_000_000) return `EUR ${(value / 1_000_000_000).toFixed(2)}B`;
-      if (value >= 1_000_000) return `EUR ${(value / 1_000_000).toFixed(2)}M`;
-      if (value >= 1_000) return `EUR ${(value / 1_000).toFixed(1)}K`;
-      return fmtEur(value);
-    }
-    function ellipsize(text, maxLen = 28) {
-      const value = String(text || '');
-      return value.length > maxLen ? `${value.slice(0, Math.max(0, maxLen - 1))}…` : value;
-    }
-    function dynamicLeftMargin(labels, floor = 120, ceil = 235, unit = 6.2) {
-      const maxLen = labels.reduce((acc, label) => Math.max(acc, String(label || '').length), 0);
-      return Math.max(floor, Math.min(ceil, Math.round(maxLen * unit)));
-    }
+      const sign = (Number(v) || 0) < 0 ? '-' : '';
+      if (value >= 1_000_000_000) return `${sign}€${(value / 1_000_000_000).toFixed(2)}B`;
+      if (value >= 1_000_000) return `${sign}€${(value / 1_000_000).toFixed(1)}M`;
+      if (value >= 1_000) return `${sign}€${(value / 1_000).toFixed(0)}K`;
+      return `${sign}€${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+    };
+    const short = (value, limit = 30) => {
+      const text = String(value || '');
+      return text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
+    };
+    const clamp = (x, min, max) => Math.max(min, Math.min(max, x));
+    const norm = (x, min, max) => max <= min ? 0 : clamp((x - min) / (max - min), 0, 1);
+    const cap = s => { const t = String(s || '').trim(); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
 
-    function clamp01(x) { return Math.max(0, Math.min(1, x)); }
-    function norm(v, low, high) {
-      if (high <= low) return 0;
-      return clamp01((v - low) / (high - low));
-    }
-
-    function computeBalancedShare(agg) {
-      return agg.skuRows.filter(r => r.fill_rate >= 0.97 && r.avg_dos >= 8 && r.avg_dos <= 35).length / Math.max(agg.skuRows.length, 1);
-    }
-
-    function classifyPosture(agg, balancedShare) {
-      if (agg.totals.fillRate < 0.95 && balancedShare < 0.35) return 'critical';
-      if (agg.totals.stockoutRate > 0.05 || agg.totals.totalExcess > agg.totals.totalInventory * 0.18) return 'watch';
-      return 'stable';
-    }
-
-    function getPreferredTheme() {
-      const saved = window.localStorage.getItem('dashboard_theme');
-      if (saved === 'dark' || saved === 'light') return saved;
-      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-
-    function getThemePalette() {
+    function palette() {
       if (currentTheme === 'dark') {
         return {
-          title: '#eaf4ff',
-          font: '#dbe8f5',
-          grid: '#2a4458',
-          zero: '#36556d',
-          paper: 'rgba(0,0,0,0)',
-          plot: 'rgba(0,0,0,0)',
-          hoverBg: '#0f1d29',
-          service: '#7db8e8',
-          stockout: '#df857c',
-          lostSales: '#e48f7c',
-          inventory: '#7da0c8',
-          warehouse: '#6d97c7',
-          category: '#64baac',
-          region: '#d68a72',
-          supplierOtd: '#9387d8',
-          leadVar: '#d89884',
-          excess: '#d3a563',
-          quadrant: '#7ca7d1',
-          governance: '#53a9c5',
-          supplierRisk: '#c88863',
-          warehouseRisk: '#d86f67',
-          lineRef: '#90a4b8',
-          annGood: '#6dc2af',
-          annBad: '#df857c',
+          paper: 'rgba(0,0,0,0)', plot: 'rgba(0,0,0,0)',
+          text: '#e8eef3', muted: '#8b96a1', faint: '#6a7682', grid: '#1d2630',
+          accent: '#45bccd', accentDim: 'rgba(69,188,205,0.32)',
+          good: '#57c089', warn: '#d6ad63', bad: '#ef8077', slate: '#73818f',
         };
       }
       return {
-        title: '#133a4d',
-        font: '#1c2f3b',
-        grid: '#eef2f5',
-        zero: '#dfe6eb',
-        paper: 'rgba(0,0,0,0)',
-        plot: 'rgba(0,0,0,0)',
-        hoverBg: '#0f2f40',
-        service: '#1b6784',
-        stockout: '#b14f48',
-        lostSales: '#c9654d',
-        inventory: '#5a83aa',
-        warehouse: '#4c7198',
-        category: '#2d8473',
-        region: '#b85d4d',
-        supplierOtd: '#7468b6',
-        leadVar: '#b77160',
-        excess: '#bf8a38',
-        quadrant: '#3f6f9a',
-        governance: '#0d607d',
-        supplierRisk: '#a86142',
-        warehouseRisk: '#b94f49',
-        lineRef: '#6b7280',
-        annGood: '#2d8473',
-        annBad: '#b14f48',
+        paper: 'rgba(0,0,0,0)', plot: 'rgba(0,0,0,0)',
+        text: '#0b1a24', muted: '#64727d', faint: '#8e9aa4', grid: '#edf1f4',
+        accent: '#0c6f7e', accentDim: 'rgba(12,111,126,0.16)',
+        good: '#1c7a4d', warn: '#8a5d05', bad: '#bb3a30', slate: '#94a2ae',
       };
     }
 
-    function applyTheme(mode, rerender = true) {
-      currentTheme = mode === 'dark' ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', currentTheme);
-      window.localStorage.setItem('dashboard_theme', currentTheme);
-      if (themeToggle) {
-        themeToggle.textContent = currentTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
-      }
-      if (rerender && lastAgg) {
-        renderCharts(lastAgg);
-      }
-    }
-
-    function togglePanel(panelId, triggerButton, closedLabel, openLabel) {
-      const panel = document.getElementById(panelId);
-      if (!panel || !triggerButton) return;
-      const willOpen = panel.style.display !== 'block';
-      panel.style.display = willOpen ? 'block' : 'none';
-      triggerButton.textContent = willOpen ? openLabel : closedLabel;
-      triggerButton.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-    }
-
-    function getUniqueValues(rows, key) {
-      return Array.from(new Set(rows.map(r => r[key]).filter(v => v !== null && v !== undefined && v !== ''))).sort();
-    }
-
-    function initializeAssumptions() {
-      const defaults = dashboardData.meta.assumptions_default || {
-        recoverable_margin_rate: 0.35,
-        releasable_wc_rate: 0.25,
-        slow_moving_incremental_weight: 0.50,
-      };
-
-      assumptions.marginRate.value = String(Math.round(defaults.recoverable_margin_rate * 100));
-      assumptions.wcRate.value = String(Math.round(defaults.releasable_wc_rate * 100));
-      assumptions.slowWeight.value = String(Math.round(defaults.slow_moving_incremental_weight * 100));
-      updateAssumptionLabels();
-    }
-
-    function readAssumptions() {
+    function baseLayout() {
+      const c = palette();
       return {
-        recoverableMarginRate: Number(assumptions.marginRate.value) / 100.0,
-        releasableWcRate: Number(assumptions.wcRate.value) / 100.0,
-        slowMovingIncrementalWeight: Number(assumptions.slowWeight.value) / 100.0,
+        paper_bgcolor: c.paper,
+        plot_bgcolor: c.plot,
+        font: { family: 'Geist, system-ui, sans-serif', size: 11.5, color: c.muted },
+        margin: { l: 64, r: 18, t: 14, b: 42 },
+        xaxis: { gridcolor: c.grid, zeroline: false, automargin: true, tickfont: { family: 'Geist Mono, monospace', size: 10.5, color: c.faint }, linecolor: c.grid },
+        yaxis: { gridcolor: c.grid, zeroline: false, automargin: true, tickfont: { family: 'Geist Mono, monospace', size: 10.5, color: c.faint } },
+        hoverlabel: { bgcolor: currentTheme === 'dark' ? '#1a232d' : '#0b1a24', bordercolor: 'rgba(0,0,0,0)', font: { color: '#ffffff', family: 'Geist, system-ui, sans-serif', size: 12 } },
+        showlegend: false,
+        dragmode: false,
       };
     }
 
-    function updateAssumptionLabels() {
-      const a = readAssumptions();
-      assumptions.marginRateValue.textContent = `${fmtPct(a.recoverableMarginRate)} of annualized lost-sales margin`;
-      assumptions.wcRateValue.textContent = `${fmtPct(a.releasableWcRate)} of trapped working capital`;
-      assumptions.slowWeightValue.textContent = `${fmtPct(a.slowMovingIncrementalWeight)} weight on non-excess slow-moving value`;
+    function getUnique(rows, key) {
+      return [...new Set(rows.map(r => r[key]).filter(Boolean))].sort();
     }
 
-    function populateFilters() {
-      const rows = monthlyFact;
-      const cfg = [
-        ['region', 'region'],
-        ['warehouse', 'warehouse_id'],
-        ['category', 'category'],
-        ['supplier', 'supplier_id'],
-        ['abc', 'abc_class']
-      ];
+    function populateSelect(select, values) {
+      select.innerHTML = '<option value="ALL">All</option>' + values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+    }
 
-      cfg.forEach(([id, key]) => {
-        const select = filters[id];
-        const values = getUniqueValues(rows, key);
-        select.innerHTML = '<option value="ALL">All</option>' + values.map(v => `<option value="${v}">${v}</option>`).join('');
-      });
-
+    function initializeControls() {
+      populateSelect(filters.region, getUnique(monthlyFact, 'region'));
+      populateSelect(filters.warehouse, getUnique(monthlyFact, 'warehouse_id'));
+      populateSelect(filters.category, getUnique(monthlyFact, 'category'));
+      populateSelect(filters.supplier, getUnique(monthlyFact, 'supplier_id'));
+      populateSelect(filters.abc, getUnique(monthlyFact, 'abc_class'));
       filters.start.value = dashboardData.meta.date_min.slice(0, 7);
       filters.end.value = dashboardData.meta.date_max.slice(0, 7);
+
+      const defaults = dashboardData.meta.assumptions_default || {};
+      scenario.marginRate.value = String(Math.round((defaults.recoverable_margin_rate ?? 0.35) * 100));
+      scenario.wcRate.value = String(Math.round((defaults.releasable_wc_rate ?? 0.25) * 100));
+      scenario.slowWeight.value = String(Math.round((defaults.slow_moving_incremental_weight ?? 0.50) * 100));
+      updateScenarioLabels();
+    }
+
+    function readScenario() {
+      return {
+        recoverableMarginRate: Number(scenario.marginRate.value) / 100,
+        releasableWcRate: Number(scenario.wcRate.value) / 100,
+        slowMovingIncrementalWeight: Number(scenario.slowWeight.value) / 100,
+      };
+    }
+
+    function updateScenarioLabels() {
+      const s = readScenario();
+      scenario.marginRateValue.textContent = `${fmtPct(s.recoverableMarginRate)} of annualized lost-sales margin`;
+      scenario.wcRateValue.textContent = `${fmtPct(s.releasableWcRate)} of trapped working capital`;
+      scenario.slowWeightValue.textContent = `${fmtPct(s.slowMovingIncrementalWeight)} incremental slow-moving value`;
+    }
+
+    function getDateRange() {
+      let start = `${filters.start.value || dashboardData.meta.date_min.slice(0, 7)}-01`;
+      let end = `${filters.end.value || dashboardData.meta.date_max.slice(0, 7)}-01`;
+      if (start > end) [start, end] = [end, start];
+      return { start, end };
+    }
+
+    function rowPasses(row, range) {
+      return (
+        (filters.region.value === 'ALL' || row.region === filters.region.value) &&
+        (filters.warehouse.value === 'ALL' || row.warehouse_id === filters.warehouse.value) &&
+        (filters.category.value === 'ALL' || row.category === filters.category.value) &&
+        (filters.supplier.value === 'ALL' || row.supplier_id === filters.supplier.value) &&
+        (filters.abc.value === 'ALL' || row.abc_class === filters.abc.value) &&
+        row.month >= range.start && row.month <= range.end
+      );
+    }
+
+    function ensure(map, key, seed) {
+      if (!map.has(key)) map.set(key, seed());
+      return map.get(key);
+    }
+
+    function aggregate(rows, s) {
+      const monthMap = new Map();
+      const warehouseMap = new Map();
+      const categoryMap = new Map();
+      const supplierMap = new Map();
+      const segmentMap = new Map();
+      const skuMap = new Map();
+      let demand = 0, fulfilled = 0, lost = 0, lostSales = 0, lostMargin = 0;
+
+      const addMonthlyBalance = (entity, month, obsDays, inventory, excess, trapped) => {
+        const balance = ensure(entity.balanceByMonth, month, () => ({ obsDays, inventory: 0, excess: 0, trapped: 0 }));
+        balance.inventory += inventory;
+        balance.excess += excess;
+        balance.trapped += trapped;
+      };
+      const finalizeBalance = entity => {
+        const balances = [...entity.balanceByMonth.values()];
+        const days = balances.reduce((sum, x) => sum + x.obsDays, 0);
+        const weighted = key => balances.reduce((sum, x) => sum + x[key] * x.obsDays, 0) / Math.max(days, 1);
+        const { balanceByMonth, ...clean } = entity;
+        return { ...clean, inventory: weighted('inventory'), excess: weighted('excess'), trapped: weighted('trapped') };
+      };
+
+      for (const r of rows) {
+        const d = r.units_demanded;
+        const f = r.units_fulfilled;
+        const l = r.units_lost_sales;
+        const ls = r.lost_sales_revenue;
+        const inv = r.inventory_value;
+        const ex = r.excess_inventory_proxy;
+        const trappedScenario = ex + s.slowMovingIncrementalWeight * r.slow_moving_non_excess_proxy;
+        const obsDays = r.observation_days;
+        demand += d; fulfilled += f; lost += l; lostSales += ls; lostMargin += r.lost_sales_margin_proxy;
+
+        const m = ensure(monthMap, r.month, () => ({ month: r.month, obsDays, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, inventory: 0, excess: 0, trapped: 0 }));
+        m.demand += d; m.fulfilled += f; m.lost += l; m.lostSales += ls; m.inventory += inv; m.trapped += trappedScenario;
+        m.excess += ex;
+
+        const wMeta = warehouseMeta[r.warehouse_id] || {};
+        const w = ensure(warehouseMap, r.warehouse_id, () => ({ warehouse_id: r.warehouse_id, warehouse_name: wMeta.warehouse_name || r.warehouse_id, region: r.region, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, balanceByMonth: new Map(), dosWeighted: 0, obsDays: 0 }));
+        w.demand += d; w.fulfilled += f; w.lost += l; w.lostSales += ls; w.dosWeighted += r.avg_days_of_supply * obsDays; w.obsDays += obsDays;
+        addMonthlyBalance(w, r.month, obsDays, inv, ex, trappedScenario);
+
+        const c = ensure(categoryMap, r.category, () => ({ category: r.category, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, balanceByMonth: new Map(), dosWeighted: 0, obsDays: 0 }));
+        c.demand += d; c.fulfilled += f; c.lost += l; c.lostSales += ls; c.dosWeighted += r.avg_days_of_supply * obsDays; c.obsDays += obsDays;
+        addMonthlyBalance(c, r.month, obsDays, inv, ex, trappedScenario);
+
+        const sMeta = supplierMeta[r.supplier_id] || {};
+        const sup = ensure(supplierMap, r.supplier_id, () => ({ supplier_id: r.supplier_id, supplier_name: sMeta.supplier_name || r.supplier_id, on_time_delivery_rate: Number(sMeta.on_time_delivery_rate || 0), average_delay_days: Number(sMeta.average_delay_days || 0), lead_time_variability: Number(sMeta.lead_time_variability || 0), demand: 0, fulfilled: 0, lost: 0, lostSales: 0 }));
+        sup.demand += d; sup.fulfilled += f; sup.lost += l; sup.lostSales += ls;
+
+        const segKey = `${r.category}|${r.region}`;
+        const seg = ensure(segmentMap, segKey, () => ({ segment: segKey, category: r.category, region: r.region, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, balanceByMonth: new Map(), dosWeighted: 0, obsDays: 0 }));
+        seg.demand += d; seg.fulfilled += f; seg.lost += l; seg.lostSales += ls; seg.dosWeighted += r.avg_days_of_supply * obsDays; seg.obsDays += obsDays;
+        addMonthlyBalance(seg, r.month, obsDays, inv, ex, trappedScenario);
+
+        const skuKey = `${r.product_id}|${r.warehouse_id}|${r.supplier_id}`;
+        const sku = ensure(skuMap, skuKey, () => ({ product_id: r.product_id, product_name: productMeta[r.product_id] || r.product_id, warehouse_id: r.warehouse_id, supplier_id: r.supplier_id, category: r.category, region: r.region, abc_class: r.abc_class, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, balanceByMonth: new Map(), dosWeighted: 0, obsDays: 0 }));
+        sku.demand += d; sku.fulfilled += f; sku.lost += l; sku.lostSales += ls; sku.dosWeighted += r.avg_days_of_supply * obsDays; sku.obsDays += obsDays;
+        addMonthlyBalance(sku, r.month, obsDays, inv, ex, trappedScenario);
+      }
+
+      const finalizeService = x => ({ ...x, fill_rate: x.demand > 0 ? x.fulfilled / x.demand : 1, stockout_rate: x.demand > 0 ? x.lost / x.demand : 0 });
+      const monthSeries = [...monthMap.values()].sort((a,b) => a.month.localeCompare(b.month)).map(finalizeService);
+      const warehouses = [...warehouseMap.values()].map(finalizeBalance).map(x => ({ ...finalizeService(x), avg_dos: x.obsDays > 0 ? x.dosWeighted / x.obsDays : 0 })).sort((a,b) => b.lostSales - a.lostSales);
+      const categories = [...categoryMap.values()].map(finalizeBalance).map(x => ({ ...finalizeService(x), avg_dos: x.obsDays > 0 ? x.dosWeighted / x.obsDays : 0 })).sort((a,b) => b.lostSales - a.lostSales);
+      const suppliers = [...supplierMap.values()].map(finalizeService).sort((a,b) => b.lostSales - a.lostSales);
+      const segments = [...segmentMap.values()].map(finalizeBalance).map(x => ({ ...finalizeService(x), avg_dos: x.obsDays > 0 ? x.dosWeighted / x.obsDays : 0 })).sort((a,b) => b.lostSales - a.lostSales);
+      const skuRows = [...skuMap.values()].map(finalizeBalance).map(x => {
+        const baseline = skuRiskBaselineMap[`${x.product_id}|${x.warehouse_id}|${x.supplier_id}`] || {};
+        return {
+          ...finalizeService(x),
+          avg_dos: x.obsDays > 0 ? x.dosWeighted / x.obsDays : 0,
+          service_risk_score: Number(baseline.service_risk_score || 0),
+          stockout_risk_score: Number(baseline.stockout_risk_score || 0),
+          excess_inventory_score: Number(baseline.excess_inventory_score || 0),
+          supplier_risk_score: Number(baseline.supplier_risk_score || 0),
+          working_capital_risk_score: Number(baseline.working_capital_risk_score || 0),
+          governance_priority_score: Number(baseline.governance_priority_score || 0),
+          risk_tier: baseline.risk_tier || 'Low',
+          main_risk_driver: baseline.main_risk_driver || 'No dominant driver',
+          recommended_action: baseline.recommended_action || 'monitor within normal replenishment cadence',
+        };
+      }).sort((a,b) => b.governance_priority_score - a.governance_priority_score);
+
+      const weightedSupplierOTD = suppliers.reduce((acc, x) => acc + x.on_time_delivery_rate * x.demand, 0) / Math.max(demand, 1);
+      const balanceDays = monthSeries.reduce((sum, x) => sum + x.obsDays, 0);
+      const annualizationFactor = 365 / Math.max(balanceDays, 1);
+      const averageBalance = key => monthSeries.reduce((sum, x) => sum + x[key] * x.obsDays, 0) / Math.max(balanceDays, 1);
+      const inventory = averageBalance('inventory');
+      const excess = averageBalance('excess');
+      const trapped = averageBalance('trapped');
+      const opportunity12m = lostMargin * annualizationFactor * s.recoverableMarginRate + trapped * s.releasableWcRate;
+      return {
+        monthSeries, warehouses, categories, suppliers, segments, skuRows,
+        totals: {
+          demand, fulfilled, lost, lostSales, inventory, excess, trapped, lostMargin,
+          fillRate: demand > 0 ? fulfilled / demand : 1,
+          stockoutRate: demand > 0 ? lost / demand : 0,
+          weightedSupplierOTD,
+          annualizationFactor,
+          opportunity12m,
+          recoverableMarginRate: s.recoverableMarginRate,
+          releasableWcRate: s.releasableWcRate,
+        }
+      };
+    }
+
+    function riskTone(value, good, warn, lowerIsBetter = false) {
+      if (lowerIsBetter) return value <= good ? 'good' : (value <= warn ? 'warn' : 'bad');
+      return value >= good ? 'good' : (value >= warn ? 'warn' : 'bad');
+    }
+
+    function sparklineSvg(values) {
+      const pts = values.filter(v => Number.isFinite(v));
+      if (pts.length < 2) return '';
+      const min = Math.min(...pts);
+      const max = Math.max(...pts);
+      const span = max - min || 1;
+      const w = 100, h = 26, pad = 2.5;
+      const step = w / (pts.length - 1);
+      const coords = pts.map((v, i) => `${(i * step).toFixed(2)},${(h - pad - ((v - min) / span) * (h - pad * 2)).toFixed(2)}`);
+      return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline class="spark-line" points="${coords.join(' ')}" vector-effect="non-scaling-stroke"></polyline></svg>`;
+    }
+
+    function splitHalves(monthSeries) {
+      if (monthSeries.length < 4) return null;
+      const mid = Math.ceil(monthSeries.length / 2);
+      const summarize = part => {
+        const demand = part.reduce((sum, x) => sum + x.demand, 0);
+        const fulfilled = part.reduce((sum, x) => sum + x.fulfilled, 0);
+        const lost = part.reduce((sum, x) => sum + x.lost, 0);
+        const days = part.reduce((sum, x) => sum + x.obsDays, 0);
+        return {
+          fill: demand > 0 ? fulfilled / demand : 1,
+          stockout: demand > 0 ? lost / demand : 0,
+          lostSalesMonthly: part.reduce((sum, x) => sum + x.lostSales, 0) / part.length,
+          trappedAvg: part.reduce((sum, x) => sum + x.trapped * x.obsDays, 0) / Math.max(days, 1),
+        };
+      };
+      return { first: summarize(monthSeries.slice(0, mid)), second: summarize(monthSeries.slice(mid)) };
+    }
+
+    function deltaSpan(diff, threshold, goodWhenDown, fmt) {
+      const up = diff > threshold;
+      const down = diff < -threshold;
+      if (!up && !down) return '<span class="delta-flat">— stable</span> vs first half';
+      const improving = goodWhenDown ? down : up;
+      const cls = improving ? 'delta-good' : 'delta-bad';
+      const arrow = up ? '▲' : '▼';
+      return `<span class="${cls}">${arrow} ${fmt(Math.abs(diff))}</span> vs first half`;
+    }
+
+    function renderHero(agg, range) {
+      const topSku = agg.skuRows[0];
+      const worstWarehouse = [...agg.warehouses].sort((a,b) => a.fill_rate - b.fill_rate)[0];
+      const topSupplier = [...agg.suppliers].sort((a,b) => (b.stockout_rate * b.lostSales) - (a.stockout_rate * a.lostSales))[0];
+      const topCategory = agg.categories[0];
+      const criticalCount = agg.skuRows.filter(x => x.risk_tier === 'High' || x.risk_tier === 'Critical').length;
+      const posture = agg.totals.fillRate < 0.95 || agg.totals.stockoutRate > 0.05 ? 'Service recovery is the immediate management agenda.' : 'Service is controlled; capital release is the next agenda.';
+
+      document.getElementById('decision-title').textContent = posture;
+      document.getElementById('decision-copy').textContent = `${fmtCompactEur(agg.totals.lostSales)} lost sales and ${fmtCompactEur(agg.totals.trapped)} trapped working-capital proxy are concentrated enough to manage through targeted exceptions, not broad inventory expansion.`;
+      document.getElementById('hero-action').textContent = topSku ? `${topSku.product_id} · ${topSku.warehouse_id}` : 'No priority item';
+      document.getElementById('hero-action-detail').textContent = topSku ? `Priority ${topSku.governance_priority_score.toFixed(1)}, led by ${topSku.main_risk_driver.toLowerCase()} — ${topSku.recommended_action}.` : 'No rows in current filter.';
+      document.getElementById('hero-value').textContent = fmtCompactEur(agg.totals.opportunity12m);
+      document.getElementById('hero-value-detail').textContent = topCategory ? `Largest lost-sales pocket: ${topCategory.category} at ${fmtCompactEur(topCategory.lostSales)}.` : 'No category exposure.';
+      document.getElementById('meta-scope').textContent = `${fmtNum(agg.skuRows.length)} SKU-location rows`;
+      document.getElementById('meta-period').textContent = `${range.start.slice(0, 7)} → ${range.end.slice(0, 7)}`;
+      document.getElementById('meta-refresh').textContent = `${dashboardData.generated_at}`;
+      return { topSku, worstWarehouse, topSupplier, topCategory, criticalCount };
+    }
+
+    function renderKPIs(agg, context) {
+      const series = agg.monthSeries;
+      const halves = splitHalves(series);
+      const fmtPp = v => `${(v * 100).toFixed(1)} pp`;
+      const fmtEurMo = v => `${fmtCompactEur(v)}/mo`;
+      const kpis = [
+        {
+          label: 'Fill rate', value: fmtPct(agg.totals.fillRate), tone: riskTone(agg.totals.fillRate, 0.97, 0.95),
+          spark: sparklineSvg(series.map(x => x.fill_rate)),
+          note: halves ? `${deltaSpan(halves.second.fill - halves.first.fill, 0.001, false, fmtPp)} · target <b>97%+</b>` : 'Target <b>97%+</b> · below 95% critical',
+        },
+        {
+          label: 'Stockout rate', value: fmtPct(agg.totals.stockoutRate), tone: riskTone(agg.totals.stockoutRate, 0.02, 0.05, true),
+          spark: sparklineSvg(series.map(x => x.stockout_rate)),
+          note: halves ? `${deltaSpan(halves.second.stockout - halves.first.stockout, 0.001, true, fmtPp)} · healthy <b>≤2%</b>` : 'Healthy <b>≤2%</b> · above 5% critical',
+        },
+        {
+          label: 'Lost-sales exposure', value: fmtCompactEur(agg.totals.lostSales), tone: agg.totals.lostSales > 1_000_000 ? 'bad' : 'warn',
+          spark: sparklineSvg(series.map(x => x.lostSales)),
+          note: halves ? `${deltaSpan(halves.second.lostSalesMonthly - halves.first.lostSalesMonthly, agg.totals.lostSales * 0.002, true, fmtEurMo)} · unmet demand at price` : 'Unmet demand at selling price',
+        },
+        {
+          label: 'Trapped working capital', value: fmtCompactEur(agg.totals.trapped), tone: agg.totals.trapped > agg.totals.inventory * 0.12 ? 'warn' : 'good',
+          spark: sparklineSvg(series.map(x => x.trapped)),
+          note: halves ? `${deltaSpan(halves.second.trappedAvg - halves.first.trappedAvg, agg.totals.trapped * 0.01, true, fmtCompactEur)} · excess + slow-moving` : 'Excess DOS + slow-moving proxy',
+        },
+        {
+          label: 'Supplier OTD', value: fmtPct(agg.totals.weightedSupplierOTD), tone: riskTone(agg.totals.weightedSupplierOTD, 0.92, 0.88),
+          spark: '',
+          note: 'Demand-weighted execution across active suppliers',
+        },
+        {
+          label: '12-month opportunity', value: fmtCompactEur(agg.totals.opportunity12m), tone: 'accent',
+          spark: '',
+          note: 'Recoverable margin + releasable capital at current assumptions',
+        },
+      ];
+      document.getElementById('kpi-grid').innerHTML = kpis.map(k => `
+        <article class="kpi ${k.tone}">
+          <div class="kpi-top"><span class="kpi-dot" aria-hidden="true"></span><span class="kpi-label">${escapeHtml(k.label)}</span></div>
+          <div class="kpi-value">${escapeHtml(k.value)}</div>
+          ${k.spark ? `<div class="kpi-spark">${k.spark}</div>` : ''}
+          <div class="kpi-note">${k.note}</div>
+        </article>
+      `).join('');
+    }
+
+    function renderPriorities(agg, context) {
+      const capitalCategory = [...agg.categories].sort((a,b) => b.excess - a.excess)[0];
+      const imbalance = [...agg.segments].sort((a,b) => {
+        const as = (1 - a.fill_rate) * 0.65 + norm(a.avg_dos, 20, 70) * 0.35;
+        const bs = (1 - b.fill_rate) * 0.65 + norm(b.avg_dos, 20, 70) * 0.35;
+        return bs - as;
+      })[0];
+      const cards = [
+        { tone: 'bad', label: 'Service recovery', title: context.worstWarehouse ? context.worstWarehouse.warehouse_name : 'No warehouse in scope', body: context.worstWarehouse ? `Lowest service in scope: ${fmtPct(context.worstWarehouse.fill_rate)} fill with ${fmtCompactEur(context.worstWarehouse.lostSales)} lost sales. Run replenishment exceptions here first.` : 'Current filter has no warehouse rows.' },
+        { tone: 'warn', label: 'Supplier exposure', title: context.topSupplier ? context.topSupplier.supplier_name : 'No supplier exposure', body: context.topSupplier ? `${fmtCompactEur(context.topSupplier.lostSales)} downstream lost sales at ${fmtPct(context.topSupplier.on_time_delivery_rate)} OTD. Review SLA recovery and backup sourcing.` : 'No supplier signal in current scope.' },
+        { tone: 'warn', label: 'Capital to release', title: capitalCategory ? capitalCategory.category : 'No excess pocket', body: capitalCategory ? `${fmtCompactEur(capitalCategory.excess)} excess-value proxy. Freeze avoidable replenishment and force DOS-cap exceptions.` : 'No capital concentration in current scope.' },
+        { tone: 'good', label: 'Policy conflict', title: imbalance ? `${imbalance.category} · ${imbalance.region}` : 'No segment', body: imbalance ? `${fmtPct(imbalance.fill_rate)} fill on ${imbalance.avg_dos.toFixed(0)} days of supply. Fix planning rules before adding network-wide inventory.` : 'No segment imbalance found.' },
+      ];
+      document.getElementById('priority-grid').innerHTML = cards.map(c => `
+        <article class="triage ${c.tone}">
+          <div class="triage-head"><span class="triage-dot" aria-hidden="true"></span><span class="triage-label">${escapeHtml(c.label)}</span></div>
+          <div class="triage-title">${escapeHtml(c.title)}</div>
+          <div class="triage-body">${escapeHtml(c.body)}</div>
+        </article>
+      `).join('');
+    }
+
+    function renderCharts(agg) {
+      const c = palette();
+      const months = agg.monthSeries.map(x => x.month.slice(0, 7));
+      const legendStyle = { orientation: 'h', y: -0.18, x: 0, xanchor: 'left', font: { family: 'Geist, system-ui, sans-serif', size: 11, color: c.muted } };
+      const monoTicks = { family: 'Geist Mono, monospace', size: 10.5, color: c.faint };
+
+      const fillValues = agg.monthSeries.map(x => x.fill_rate);
+      const fillFloor = Math.max(0, Math.min(...fillValues, 0.95) - 0.015);
+      Plotly.react('chart-trend', [
+        { x: months, y: fillValues, name: 'Fill rate', type: 'scatter', mode: 'lines', line: { color: c.accent, width: 2.5, shape: 'spline', smoothing: 0.6 }, hovertemplate: '%{x}<br>Fill rate  %{y:.1%}<extra></extra>' },
+      ], {
+        ...baseLayout(),
+        yaxis: { tickformat: '.0%', range: [fillFloor, 1.004], gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
+        xaxis: { gridcolor: 'rgba(0,0,0,0)', nticks: 7, tickfont: monoTicks },
+        shapes: [
+          { type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 0.97, y1: 0.97, line: { color: c.good, width: 1, dash: 'dot' }, layer: 'below' },
+          { type: 'rect', xref: 'paper', x0: 0, x1: 1, y0: fillFloor, y1: 0.95, fillcolor: c.bad, opacity: 0.05, line: { width: 0 }, layer: 'below' },
+        ],
+        annotations: [
+          { xref: 'paper', x: 1, y: 0.97, xanchor: 'right', yanchor: 'bottom', text: 'target 97%', showarrow: false, font: { family: 'Geist Mono, monospace', size: 10, color: c.good } },
+          { xref: 'paper', x: 0.005, y: 0.95, xanchor: 'left', yanchor: 'top', text: 'critical below 95%', showarrow: false, font: { family: 'Geist Mono, monospace', size: 10, color: c.bad } },
+        ],
+      }, plotConfig);
+
+      Plotly.react('chart-value-trend', [
+        { x: months, y: agg.monthSeries.map(x => x.lostSales), name: 'Lost sales', type: 'bar', marker: { color: c.accentDim, line: { color: c.accent, width: 1 } }, hovertemplate: 'Lost sales  €%{y:,.0f}<extra></extra>' },
+        { x: months, y: agg.monthSeries.map(x => x.trapped), name: 'Trapped WC', type: 'scatter', mode: 'lines', yaxis: 'y2', line: { color: c.slate, width: 2, shape: 'spline', smoothing: 0.6 }, hovertemplate: 'Trapped WC  €%{y:,.0f}<extra></extra>' },
+      ], {
+        ...baseLayout(),
+        showlegend: true,
+        legend: legendStyle,
+        bargap: 0.45,
+        margin: { l: 58, r: 54, t: 14, b: 46 },
+        yaxis: { tickprefix: '€', tickformat: '~s', gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
+        yaxis2: { tickprefix: '€', tickformat: '~s', overlaying: 'y', side: 'right', showgrid: false, zeroline: false, tickfont: monoTicks },
+        xaxis: { gridcolor: 'rgba(0,0,0,0)', nticks: 7, tickfont: monoTicks },
+      }, plotConfig);
+
+      const wh = [...agg.warehouses].sort((a,b) => b.lostSales - a.lostSales);
+      Plotly.react('chart-bottlenecks', [{
+        y: wh.map(x => short(x.warehouse_name, 26)).reverse(),
+        x: wh.map(x => x.lostSales).reverse(),
+        type: 'bar',
+        orientation: 'h',
+        marker: { color: wh.map(x => x.fill_rate < 0.95 ? c.bad : c.accent).reverse() },
+        text: wh.map(x => `${fmtCompactEur(x.lostSales)} · fill ${fmtPct(x.fill_rate)}`).reverse(),
+        textposition: 'outside',
+        cliponaxis: false,
+        textfont: { family: 'Geist Mono, monospace', size: 10.5, color: c.muted },
+        customdata: wh.map(x => `${x.warehouse_id} · fill ${fmtPct(x.fill_rate)}`).reverse(),
+        hovertemplate: '%{customdata}<br>Lost sales  €%{x:,.0f}<extra></extra>',
+      }], { ...baseLayout(), bargap: 0.42, xaxis: { tickprefix: '€', tickformat: '~s', gridcolor: c.grid, zeroline: false, tickfont: monoTicks, range: [0, Math.max(...wh.map(x => x.lostSales), 1) * 1.38] }, yaxis: { ticklabelstandoff: 10, tickfont: monoTicks }, margin: { l: 184, r: 16, t: 14, b: 40 } }, plotConfig);
+
+      const cat = [...agg.categories].sort((a,b) => b.trapped - a.trapped);
+      Plotly.react('chart-category-capital', [{
+        y: cat.map(x => x.category).reverse(),
+        x: cat.map(x => x.trapped).reverse(),
+        type: 'bar',
+        orientation: 'h',
+        marker: { color: c.accent },
+        text: cat.map(x => fmtCompactEur(x.trapped)).reverse(),
+        textposition: 'outside',
+        cliponaxis: false,
+        textfont: { family: 'Geist Mono, monospace', size: 10.5, color: c.muted },
+        hovertemplate: '%{y}<br>Trapped WC  €%{x:,.0f}<extra></extra>',
+      }], { ...baseLayout(), bargap: 0.42, xaxis: { tickprefix: '€', tickformat: '~s', gridcolor: c.grid, zeroline: false, tickfont: monoTicks, range: [0, Math.max(...cat.map(x => x.trapped), 1) * 1.22] }, yaxis: { ticklabelstandoff: 10, tickfont: monoTicks }, margin: { l: 124, r: 16, t: 14, b: 40 } }, plotConfig);
+
+      const seg = agg.segments;
+      const isConflict = x => x.fill_rate < 0.97 && x.avg_dos > 30;
+      Plotly.react('chart-tradeoff', [{
+        x: seg.map(x => x.avg_dos),
+        y: seg.map(x => x.fill_rate),
+        mode: 'markers',
+        marker: {
+          size: seg.map(x => clamp(x.lostSales / 180000, 9, 32)),
+          color: seg.map(x => isConflict(x) ? c.bad : c.accent),
+          line: { color: c.paper, width: 1 },
+          opacity: 0.85,
+        },
+        customdata: seg.map(x => `${x.category} · ${x.region} · excess ${fmtCompactEur(x.excess)}`),
+        hovertemplate: '%{customdata}<br>DOS %{x:.0f}  ·  Fill %{y:.1%}<extra></extra>',
+      }], {
+        ...baseLayout(),
+        xaxis: { title: { text: 'Average days of supply', font: { family: 'Geist, sans-serif', size: 11, color: c.muted } }, gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
+        yaxis: { title: { text: 'Fill rate', font: { family: 'Geist, sans-serif', size: 11, color: c.muted } }, tickformat: '.0%', gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
+        shapes: [
+          { type: 'line', x0: 30, x1: 30, y0: 0, y1: 1, yref: 'paper', line: { color: c.faint, dash: 'dot', width: 1 } },
+          { type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 0.97, y1: 0.97, line: { color: c.faint, dash: 'dot', width: 1 } },
+        ],
+        annotations: [
+          { x: 30, y: 1, yref: 'paper', xanchor: 'left', yanchor: 'top', text: ' 30d', showarrow: false, font: { family: 'Geist Mono, monospace', size: 10, color: c.faint } },
+          { xref: 'paper', x: 1, y: 0.97, xanchor: 'right', yanchor: 'bottom', text: '97% ', showarrow: false, font: { family: 'Geist Mono, monospace', size: 10, color: c.faint } },
+        ],
+      }, plotConfig);
+
+      const sup = [...agg.suppliers].sort((a,b) => b.lostSales - a.lostSales).slice(0, 8).reverse();
+      Plotly.react('chart-supplier', [{
+        y: sup.map(x => short(x.supplier_name, 22)),
+        x: sup.map(x => x.lostSales),
+        type: 'bar',
+        orientation: 'h',
+        marker: { color: sup.map(x => x.on_time_delivery_rate < 0.60 ? c.bad : c.accent) },
+        text: sup.map(x => `OTD ${fmtPct(x.on_time_delivery_rate)}`),
+        textposition: 'outside',
+        cliponaxis: false,
+        textfont: { family: 'Geist Mono, monospace', size: 10, color: c.muted },
+        customdata: sup.map(x => `OTD ${fmtPct(x.on_time_delivery_rate)} · delay ${x.average_delay_days.toFixed(1)}d`),
+        hovertemplate: '%{y}<br>%{customdata}<br>Lost sales  €%{x:,.0f}<extra></extra>',
+      }], { ...baseLayout(), bargap: 0.4, xaxis: { tickprefix: '€', tickformat: '~s', gridcolor: c.grid, zeroline: false, tickfont: monoTicks, range: [0, Math.max(...sup.map(x => x.lostSales), 1) * 1.5] }, yaxis: { ticklabelstandoff: 10, tickfont: monoTicks }, margin: { l: 104, r: 16, t: 14, b: 40 } }, plotConfig);
+
+      const ranked = [...agg.skuRows].sort((a,b) => b.lostSales - a.lostSales);
+      const totalLost = ranked.reduce((sum, x) => sum + x.lostSales, 0) || 1;
+      let running = 0;
+      const cumShare = ranked.map(x => (running += x.lostSales) / totalLost);
+      const topRanked = ranked.slice(0, 12);
+      const topShareIdx = Math.min(9, ranked.length - 1);
+      const topShare = ranked.length ? cumShare[topShareIdx] : 0;
+      Plotly.react('chart-governance', [
+        {
+          x: topRanked.map((_, i) => i + 1),
+          y: topRanked.map(x => x.lostSales),
+          type: 'bar',
+          name: 'Lost sales',
+          marker: { color: topRanked.map(x => x.risk_tier === 'Critical' || x.risk_tier === 'High' ? c.bad : c.accent) },
+          customdata: topRanked.map(x => `${x.product_id} · ${x.warehouse_id} · priority ${x.governance_priority_score.toFixed(1)}`),
+          hovertemplate: '%{customdata}<br>Lost sales  €%{y:,.0f}<extra></extra>',
+        },
+        {
+          x: topRanked.map((_, i) => i + 1),
+          y: cumShare.slice(0, topRanked.length),
+          yaxis: 'y2',
+          type: 'scatter',
+          mode: 'lines+markers',
+          name: 'Cumulative share',
+          line: { color: c.slate, width: 2 },
+          marker: { size: 5, color: c.slate },
+          hovertemplate: 'Top %{x} rows  %{y:.0%} of lost sales<extra></extra>',
+        },
+      ], {
+        ...baseLayout(),
+        bargap: 0.4,
+        margin: { l: 58, r: 50, t: 14, b: 50 },
+        xaxis: { title: { text: 'SKU-location rank by lost sales', font: { family: 'Geist, sans-serif', size: 11, color: c.muted } }, dtick: 1, gridcolor: 'rgba(0,0,0,0)', tickfont: monoTicks },
+        yaxis: { tickprefix: '€', tickformat: '~s', range: [0, Math.max(...topRanked.map(x => x.lostSales), 1) * 1.08], gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
+        yaxis2: { tickformat: '.0%', overlaying: 'y', side: 'right', range: [0, 1.04], showgrid: false, zeroline: false, tickfont: monoTicks },
+      }, plotConfig);
+      document.getElementById('pareto-kicker').innerHTML = ranked.length
+        ? `Top ${Math.min(10, ranked.length)} of ${fmtNum(ranked.length)} SKU-locations carry <b>${fmtPct(topShare)}</b> of lost sales`
+        : 'No rows in current scope';
+    }
+
+    function renderTable(rows) {
+      const query = (tableSearch.value || '').toLowerCase().trim();
+      let data = rows.filter(r => {
+        if (!query) return true;
+        return `${r.product_id} ${r.product_name} ${r.warehouse_id} ${r.supplier_id} ${r.main_risk_driver} ${r.recommended_action}`.toLowerCase().includes(query);
+      });
+      data.sort((a,b) => {
+        const dir = tableSort.dir === 'asc' ? 1 : -1;
+        const av = a[tableSort.key], bv = b[tableSort.key];
+        if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+        return String(av).localeCompare(String(bv)) * dir;
+      });
+      const shown = data.slice(0, 250);
+      tableBody.innerHTML = shown.map(r => `
+        <tr>
+          <td class="score num">${r.governance_priority_score.toFixed(1)}</td>
+          <td><b style="font-weight:600">${escapeHtml(r.product_id)}</b></td>
+          <td class="wrap">${escapeHtml(r.product_name)}</td>
+          <td>${escapeHtml(r.warehouse_id)}</td>
+          <td>${escapeHtml(r.supplier_id)}</td>
+          <td class="num">${fmtPct(r.fill_rate)}</td>
+          <td class="num">${fmtPct(r.stockout_rate)}</td>
+          <td class="num">${fmtCompactEur(r.lostSales)}</td>
+          <td><span class="badge tier-${escapeHtml(String(r.risk_tier).toLowerCase())}">${escapeHtml(r.risk_tier)}</span></td>
+          <td>${escapeHtml(r.main_risk_driver)}</td>
+          <td class="wrap">${escapeHtml(r.recommended_action)}</td>
+        </tr>
+      `).join('');
+      tableMeta.textContent = `Showing ${fmtNum(shown.length)} of ${fmtNum(data.length)} rows`;
+    }
+
+    function renderBrief(agg, context) {
+      const balancedShare = agg.skuRows.filter(x => x.fill_rate >= 0.97 && x.avg_dos >= 8 && x.avg_dos <= 35).length / Math.max(agg.skuRows.length, 1);
+      const cards = [
+        ['Service position', `Fill is ${fmtPct(agg.totals.fillRate)} and stockout is ${fmtPct(agg.totals.stockoutRate)}. Use the priority queue to manage the highest-score SKU locations.`],
+        ['Operational impact', `${fmtCompactEur(agg.totals.lostSales)} observed lost sales sits alongside ${fmtCompactEur(agg.totals.trapped)} trapped working-capital proxy. Both sides of the service-capital trade-off need active control.`],
+        ['Supplier signal to investigate', context.topSupplier ? `${context.topSupplier.supplier_name} has ${fmtPct(context.topSupplier.on_time_delivery_rate)} OTD and ${fmtCompactEur(context.topSupplier.lostSales)} downstream lost sales. Validate supplier recovery before changing network-wide safety stock.` : 'No supplier signal in this filtered view.'],
+        ['Decision rule', `Only ${fmtPct(balancedShare)} of rows are balanced efficient. Raise service on the top queue first, then release capital from excess pockets after confirming demand risk.`],
+      ];
+      document.getElementById('brief-grid').innerHTML = cards.map(([title, body]) => `
+        <article class="brief">
+          <div class="brief-title">${escapeHtml(title)}</div>
+          <div class="brief-copy">${escapeHtml(body)}</div>
+        </article>
+      `).join('');
+    }
+
+    function renderStatus(agg, range, rows) {
+      const alert = document.getElementById('status-alert');
+      if (!rows.length) {
+        alert.style.display = 'block';
+        alert.textContent = 'No records match the current filters. Reset filters or widen the date range.';
+        return;
+      }
+      const fullRange = range.start === `${dashboardData.meta.date_min.slice(0, 7)}-01` && range.end === `${dashboardData.meta.date_max.slice(0, 7)}-01`;
+      const allFilters = Object.entries(filters).filter(([k]) => !['start', 'end'].includes(k)).every(([,el]) => el.value === 'ALL');
+      const snap = dashboardData.meta.official_snapshot || {};
+      const reconciles = Math.abs((snap.overall_fill_rate || 0) - agg.totals.fillRate) <= 0.0005 &&
+        Math.abs((snap.overall_stockout_rate || 0) - agg.totals.stockoutRate) <= 0.0005 &&
+        Math.abs((snap.total_lost_sales_revenue || 0) - agg.totals.lostSales) <= 1 &&
+        Math.abs((snap.trapped_working_capital_proxy_average || 0) - agg.totals.trapped) <= 1;
+      if (fullRange && allFilters && !reconciles) {
+        alert.style.display = 'block';
+        alert.textContent = 'QA warning: default dashboard KPIs do not reconcile to the official governed snapshot.';
+        return;
+      }
+      alert.style.display = 'none';
+      alert.textContent = '';
+    }
+
+    function updateDashboard() {
+      const range = getDateRange();
+      const rows = monthlyFact.filter(r => rowPasses(r, range));
+      const agg = aggregate(rows, readScenario());
+      currentAgg = agg;
+      const context = renderHero(agg, range);
+      renderKPIs(agg, context);
+      renderPriorities(agg, context);
+      renderCharts(agg);
+      renderTable(agg.skuRows);
+      renderBrief(agg, context);
+      renderStatus(agg, range, rows);
     }
 
     function resetFilters() {
@@ -1657,930 +1829,74 @@ def _build_html(data_payload: dict) -> str:
       filters.abc.value = 'ALL';
       filters.start.value = dashboardData.meta.date_min.slice(0, 7);
       filters.end.value = dashboardData.meta.date_max.slice(0, 7);
-      if (tableSearch) {
-        tableSearch.value = '';
-      }
+      tableSearch.value = '';
       tableSort = { key: 'governance_priority_score', dir: 'desc' };
+      document.querySelectorAll('#detail-table th').forEach(header => header.setAttribute('aria-sort', 'none'));
+      document.querySelector('#detail-table th[data-key="governance_priority_score"]').setAttribute('aria-sort', 'descending');
       updateDashboard();
     }
 
-    function getNormalizedDateRange() {
-      let start = (filters.start.value || dashboardData.meta.date_min.slice(0, 7)) + '-01';
-      let end = (filters.end.value || dashboardData.meta.date_max.slice(0, 7)) + '-01';
-      if (start > end) {
-        const temp = start;
-        start = end;
-        end = temp;
-      }
-      return { start, end };
+    function togglePanel(id, button, openLabel, closedLabel) {
+      const panel = document.getElementById(id);
+      const open = panel.style.display !== 'block';
+      panel.style.display = open ? 'block' : 'none';
+      button.setAttribute('aria-expanded', open ? 'true' : 'false');
+      button.textContent = open ? openLabel : closedLabel;
     }
 
-    function passesFilter(row, dateRange) {
-      return (
-        (filters.region.value === 'ALL' || row.region === filters.region.value) &&
-        (filters.warehouse.value === 'ALL' || row.warehouse_id === filters.warehouse.value) &&
-        (filters.category.value === 'ALL' || row.category === filters.category.value) &&
-        (filters.supplier.value === 'ALL' || row.supplier_id === filters.supplier.value) &&
-        (filters.abc.value === 'ALL' || row.abc_class === filters.abc.value) &&
-        row.month >= dateRange.start && row.month <= dateRange.end
-      );
-    }
-
-    function aggregate(rows, assumptionSet) {
-      const monthMap = new Map();
-      const whMap = new Map();
-      const catMap = new Map();
-      const regionMap = new Map();
-      const supplierMap = new Map();
-      const segmentMap = new Map();
-      const skuMap = new Map();
-
-      let totalDemand = 0;
-      let totalFulfilled = 0;
-      let totalLost = 0;
-      let totalLostSales = 0;
-      let totalInventory = 0;
-      let totalExcess = 0;
-      let totalTrappedWCObserved = 0;
-      let totalTrappedWCScenario = 0;
-      let totalSlow = 0;
-      let totalLostSalesMargin = 0;
-
-      for (const r of rows) {
-        const demand = Number(r.units_demanded);
-        const fulfilled = Number(r.units_fulfilled);
-        const lost = Number(r.units_lost_sales);
-        const lostSales = Number(r.lost_sales_revenue);
-        const inv = Number(r.inventory_value);
-        const excess = Number(r.excess_inventory_proxy);
-        const trapped = Number(r.trapped_wc_proxy);
-        const slow = Number(r.slow_moving_proxy);
-        const slowNonExcess = Math.max(slow - excess, 0);
-        const trappedScenario = excess + assumptionSet.slowMovingIncrementalWeight * slowNonExcess;
-        const lostSalesMargin = Number(r.lost_sales_margin_proxy || 0);
-        const dos = Number(r.avg_days_of_supply);
-        const obsDays = Number(r.observation_days);
-        const stockoutMonthFlag = Number(r.stockout_month_flag);
-
-        totalDemand += demand;
-        totalFulfilled += fulfilled;
-        totalLost += lost;
-        totalLostSales += lostSales;
-        totalInventory += inv;
-        totalExcess += excess;
-        totalTrappedWCObserved += trapped;
-        totalTrappedWCScenario += trappedScenario;
-        totalSlow += slow;
-        totalLostSalesMargin += lostSalesMargin;
-
-        const monthKey = r.month;
-        if (!monthMap.has(monthKey)) monthMap.set(monthKey, { month: monthKey, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, inventory: 0 });
-        const m = monthMap.get(monthKey);
-        m.demand += demand; m.fulfilled += fulfilled; m.lost += lost; m.lostSales += lostSales; m.inventory += inv;
-
-        const whKey = r.warehouse_id;
-        if (!whMap.has(whKey)) whMap.set(whKey, { warehouse_id: whKey, warehouse_name: (warehouseMeta[whKey] || {}).warehouse_name || whKey, region: r.region, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, inventory: 0, dosWeighted: 0, obsDays: 0 });
-        const w = whMap.get(whKey);
-        w.demand += demand; w.fulfilled += fulfilled; w.lost += lost; w.lostSales += lostSales; w.inventory += inv; w.dosWeighted += dos * obsDays; w.obsDays += obsDays;
-
-        const catKey = r.category;
-        if (!catMap.has(catKey)) catMap.set(catKey, { category: catKey, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, inventory: 0, excess: 0, trapped: 0, dosWeighted: 0, obsDays: 0 });
-        const c = catMap.get(catKey);
-        c.demand += demand; c.fulfilled += fulfilled; c.lost += lost; c.lostSales += lostSales; c.inventory += inv; c.excess += excess; c.trapped += trapped; c.dosWeighted += dos * obsDays; c.obsDays += obsDays;
-
-        const regKey = r.region;
-        if (!regionMap.has(regKey)) regionMap.set(regKey, { region: regKey, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, inventory: 0 });
-        const rg = regionMap.get(regKey);
-        rg.demand += demand; rg.fulfilled += fulfilled; rg.lost += lost; rg.lostSales += lostSales; rg.inventory += inv;
-
-        const supKey = r.supplier_id;
-        if (!supplierMap.has(supKey)) {
-          const meta = supplierMeta[supKey] || {};
-          supplierMap.set(supKey, {
-            supplier_id: supKey,
-            supplier_name: meta.supplier_name || supKey,
-            on_time_delivery_rate: Number(meta.on_time_delivery_rate || 0),
-            average_delay_days: Number(meta.average_delay_days || 0),
-            lead_time_variability: Number(meta.lead_time_variability || 0),
-            supplier_service_risk_proxy: Number(meta.supplier_service_risk_proxy || 0),
-            demand: 0, fulfilled: 0, lost: 0, lostSales: 0, inventory: 0
-          });
-        }
-        const s = supplierMap.get(supKey);
-        s.demand += demand; s.fulfilled += fulfilled; s.lost += lost; s.lostSales += lostSales; s.inventory += inv;
-
-        const segKey = `${r.category}|${r.region}`;
-        if (!segmentMap.has(segKey)) segmentMap.set(segKey, { segment: segKey, category: r.category, region: r.region, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, inventory: 0, dosWeighted: 0, obsDays: 0 });
-        const sg = segmentMap.get(segKey);
-        sg.demand += demand; sg.fulfilled += fulfilled; sg.lost += lost; sg.lostSales += lostSales; sg.inventory += inv; sg.dosWeighted += dos * obsDays; sg.obsDays += obsDays;
-
-        const skuKey = `${r.product_id}|${r.warehouse_id}|${r.supplier_id}`;
-        if (!skuMap.has(skuKey)) skuMap.set(skuKey, {
-          product_id: r.product_id,
-          product_name: productMeta[r.product_id] || r.product_id,
-          warehouse_id: r.warehouse_id,
-          supplier_id: r.supplier_id,
-          category: r.category,
-          region: r.region,
-          abc_class: r.abc_class,
-          demand: 0,
-          fulfilled: 0,
-          lost: 0,
-          lostSales: 0,
-          inventory: 0,
-          excess: 0,
-          trapped: 0,
-          slow: 0,
-          dosWeighted: 0,
-          obsDays: 0,
-          monthCount: 0,
-          stockoutMonthCount: 0,
-        });
-
-        const k = skuMap.get(skuKey);
-        k.demand += demand; k.fulfilled += fulfilled; k.lost += lost; k.lostSales += lostSales;
-        k.inventory += inv; k.excess += excess; k.trapped += trapped; k.slow += slow;
-        k.dosWeighted += dos * obsDays; k.obsDays += obsDays;
-        k.monthCount += 1;
-        k.stockoutMonthCount += stockoutMonthFlag;
-      }
-
-      const monthSeries = Array.from(monthMap.values()).sort((a,b) => a.month.localeCompare(b.month)).map(m => ({
-        ...m,
-        fill_rate: m.demand > 0 ? m.fulfilled / m.demand : 1,
-        stockout_rate: m.demand > 0 ? m.lost / m.demand : 0
-      }));
-
-      const warehouses = Array.from(whMap.values()).map(w => ({
-        ...w,
-        fill_rate: w.demand > 0 ? w.fulfilled / w.demand : 1,
-        stockout_rate: w.demand > 0 ? w.lost / w.demand : 0,
-        avg_dos: w.obsDays > 0 ? w.dosWeighted / w.obsDays : 0
-      })).sort((a,b)=>b.lostSales-a.lostSales);
-
-      const categories = Array.from(catMap.values()).map(c => ({
-        ...c,
-        fill_rate: c.demand > 0 ? c.fulfilled / c.demand : 1,
-        stockout_rate: c.demand > 0 ? c.lost / c.demand : 0,
-        avg_dos: c.obsDays > 0 ? c.dosWeighted / c.obsDays : 0
-      })).sort((a,b)=>b.lostSales-a.lostSales);
-
-      const regions = Array.from(regionMap.values()).map(r => ({
-        ...r,
-        fill_rate: r.demand > 0 ? r.fulfilled / r.demand : 1,
-        stockout_rate: r.demand > 0 ? r.lost / r.demand : 0
-      })).sort((a,b)=>b.lostSales-a.lostSales);
-
-      const suppliers = Array.from(supplierMap.values()).map(s => ({
-        ...s,
-        fill_rate: s.demand > 0 ? s.fulfilled / s.demand : 1,
-        stockout_rate: s.demand > 0 ? s.lost / s.demand : 0
-      })).sort((a,b)=>b.lostSales-a.lostSales);
-
-      const segments = Array.from(segmentMap.values()).map(s => ({
-        ...s,
-        fill_rate: s.demand > 0 ? s.fulfilled / s.demand : 1,
-        stockout_rate: s.demand > 0 ? s.lost / s.demand : 0,
-        avg_dos: s.obsDays > 0 ? s.dosWeighted / s.obsDays : 0
-      }));
-
-      const skuRows = Array.from(skuMap.values()).map(k => {
-        const fillRate = k.demand > 0 ? k.fulfilled / k.demand : 1;
-        const stockoutRate = k.demand > 0 ? k.lost / k.demand : 0;
-        const avgDos = k.obsDays > 0 ? k.dosWeighted / k.obsDays : 0;
-        const stockoutPersistence = k.monthCount > 0 ? k.stockoutMonthCount / k.monthCount : 0;
-        const baseline = skuRiskBaselineMap[`${k.product_id}|${k.warehouse_id}|${k.supplier_id}`] || {};
-
-        const serviceRiskScore = Number(baseline.service_risk_score || 0);
-        const stockoutRiskScore = Number(baseline.stockout_risk_score || 0);
-        const excessInventoryScore = Number(baseline.excess_inventory_score || 0);
-        const supplierRiskScore = Number(baseline.supplier_risk_score || 0);
-        const workingCapitalRiskScore = Number(baseline.working_capital_risk_score || 0);
-        const governancePriorityScore = Number(baseline.governance_priority_score || 0);
-
-        return {
-          product_id: k.product_id,
-          product_name: productMeta[k.product_id] || k.product_id,
-          warehouse_id: k.warehouse_id,
-          supplier_id: k.supplier_id,
-          category: k.category,
-          region: k.region,
-          abc_class: k.abc_class,
-          fill_rate: fillRate,
-          stockout_rate: stockoutRate,
-          avg_dos: avgDos,
-          lost_sales_revenue: k.lostSales,
-          inventory_value: k.inventory,
-          excess_inventory_proxy: k.excess,
-          trapped_wc_proxy: k.trapped,
-          service_risk_score: serviceRiskScore,
-          stockout_risk_score: stockoutRiskScore,
-          excess_inventory_score: excessInventoryScore,
-          supplier_risk_score: supplierRiskScore,
-          working_capital_risk_score: workingCapitalRiskScore,
-          governance_priority_score: governancePriorityScore,
-          risk_tier: baseline.risk_tier || "Low",
-          main_risk_driver: baseline.main_risk_driver || "Service Risk",
-          recommended_action: baseline.recommended_action || "review planning assumptions",
-          stockout_persistence: stockoutPersistence,
-        };
-      }).sort((a,b)=>b.governance_priority_score-a.governance_priority_score);
-
-      const weightedSupplierOTD = suppliers.reduce((acc, s) => acc + s.on_time_delivery_rate * s.demand, 0) / Math.max(totalDemand, 1);
-      const scenarioOpportunity12m =
-        (totalLostSalesMargin * assumptionSet.recoverableMarginRate) +
-        (totalTrappedWCScenario * assumptionSet.releasableWcRate);
-
-      return {
-        totals: {
-          totalDemand, totalFulfilled, totalLost,
-          totalLostSales, totalInventory, totalExcess, totalTrappedWCObserved, totalTrappedWCScenario, totalSlow, totalLostSalesMargin,
-          scenarioOpportunity12m,
-          fillRate: totalDemand > 0 ? totalFulfilled / totalDemand : 1,
-          stockoutRate: totalDemand > 0 ? totalLost / totalDemand : 0,
-          weightedSupplierOTD: Number.isFinite(weightedSupplierOTD) ? weightedSupplierOTD : 0,
-          recoverableMarginRate: assumptionSet.recoverableMarginRate,
-          releasableWcRate: assumptionSet.releasableWcRate,
-          slowMovingIncrementalWeight: assumptionSet.slowMovingIncrementalWeight,
-        },
-        monthSeries,
-        warehouses,
-        categories,
-        regions,
-        suppliers,
-        segments,
-        skuRows,
-      };
-    }
-
-    function renderHeaderSummary(agg, dateRange) {
-      const balancedShare = computeBalancedShare(agg);
-      const posture = classifyPosture(agg, balancedShare);
-      const topSku = agg.skuRows[0];
-      const topSupplier = [...agg.suppliers].sort((a,b) => (b.stockout_rate * b.lostSales) - (a.stockout_rate * a.lostSales))[0];
-      const topWarehouse = [...agg.warehouses].sort((a,b) => b.lostSales - a.lostSales)[0];
-      const headerScope = document.getElementById('header-scope');
-      const headerUpdated = document.getElementById('header-updated');
-      const headline = document.getElementById('hero-headline');
-      const summary = document.getElementById('hero-summary');
-
-      if (headerScope) {
-        headerScope.textContent = `${fmtNum(agg.skuRows.length)} SKU-warehouse positions | ${fmtNum(agg.warehouses.length)} warehouses | ${fmtNum(agg.suppliers.length)} suppliers`;
-      }
-      if (headerUpdated) {
-        headerUpdated.textContent = `${dateRange.start.slice(0, 7)} to ${dateRange.end.slice(0, 7)} | ${dashboardData.generated_at}`;
-      }
-
-      if (headline) {
-        if (posture === 'critical') {
-          headline.textContent = 'Service is under target while capital remains trapped in the network.';
-        } else if (posture === 'watch') {
-          headline.textContent = 'Targeted intervention is required to recover service without adding broad inventory.';
-        } else {
-          headline.textContent = 'Portfolio is broadly controlled, but concentration pockets still require active management.';
-        }
-      }
-
-      if (summary) {
-        summary.textContent = `This view isolates the filtered operating scope and surfaces the trade-off between customer service, supplier execution, and working-capital drag. Balanced positions currently represent ${fmtPct(balancedShare)} of the active portfolio.`;
-      }
-
-      const primary = document.getElementById('hero-primary');
-      const primaryDetail = document.getElementById('hero-primary-detail');
-      if (primary) {
-        primary.textContent = topSku ? `${topSku.product_id} @ ${topSku.warehouse_id}` : 'No priority item';
-      }
-      if (primaryDetail) {
-        primaryDetail.textContent = topSku
-          ? `Priority score ${topSku.governance_priority_score.toFixed(1)}. Main driver: ${topSku.main_risk_driver}.`
-          : 'No governed SKU priority is available in the current slice.';
-      }
-
-      const exposure = document.getElementById('hero-exposure');
-      const exposureDetail = document.getElementById('hero-exposure-detail');
-      if (exposure) {
-        exposure.textContent = topSupplier ? topSupplier.supplier_name : (topWarehouse ? topWarehouse.warehouse_name : 'No exposure pocket');
-      }
-      if (exposureDetail) {
-        exposureDetail.textContent = topSupplier
-          ? `${fmtEurM(topSupplier.lostSales)} linked lost sales, OTD ${fmtPct(topSupplier.on_time_delivery_rate)}.`
-          : (topWarehouse ? `${fmtEurM(topWarehouse.lostSales)} lost sales exposure in the most pressured warehouse.` : 'No material exposure pocket in the current slice.');
-      }
-
-      const opportunity = document.getElementById('hero-opportunity');
-      const opportunityDetail = document.getElementById('hero-opportunity-detail');
-      if (opportunity) {
-        opportunity.textContent = fmtCompactEur(agg.totals.scenarioOpportunity12m);
-      }
-      if (opportunityDetail) {
-        opportunityDetail.textContent = `${fmtPct(agg.totals.recoverableMarginRate)} lost-margin recovery + ${fmtPct(agg.totals.releasableWcRate)} releasable working capital assumption.`;
-      }
-    }
-
-    function buildCallouts(agg) {
-      const topSku = agg.skuRows[0];
-      const whWorst = [...agg.warehouses].sort((a,b) => a.fill_rate - b.fill_rate)[0];
-      const supWorst = [...agg.suppliers].sort((a,b) => (b.stockout_rate * b.lostSales) - (a.stockout_rate * a.lostSales))[0];
-      const catExcess = [...agg.categories].sort((a,b)=>b.excess-a.excess)[0];
-      const segmentImbalance = [...agg.segments].sort((a,b)=>{
-        const aScore = (1-a.fill_rate)*0.65 + norm(a.avg_dos, 20, 70)*0.35;
-        const bScore = (1-b.fill_rate)*0.65 + norm(b.avg_dos, 20, 70)*0.35;
-        return bScore - aScore;
-      })[0];
-
-      const callouts = [];
-
-      if (topSku) {
-        callouts.push({
-          tone: 'critical',
-          eyebrow: 'Priority 1',
-          title: `${topSku.product_id} @ ${topSku.warehouse_id}`,
-          body: `Start with the highest-governance item. Score ${topSku.governance_priority_score.toFixed(1)} with ${topSku.main_risk_driver} as the lead driver.`
-        });
-      }
-
-      if (supWorst) {
-        callouts.push({
-          tone: 'watch',
-          eyebrow: 'Supplier escalation',
-          title: supWorst.supplier_name,
-          body: `${fmtEurM(supWorst.lostSales)} lost sales exposure sits behind this supplier. Weighted OTD is ${fmtPct(supWorst.on_time_delivery_rate)}.`
-        });
-      }
-
-      if (whWorst) {
-        callouts.push({
-          tone: 'watch',
-          eyebrow: 'Warehouse pressure',
-          title: whWorst.warehouse_name,
-          body: `Fill rate is ${fmtPct(whWorst.fill_rate)} with ${fmtEurM(whWorst.lostSales)} in lost sales. Replenishment settings need review before broad network changes.`
-        });
-      }
-
-      if (catExcess) {
-        callouts.push({
-          tone: 'neutral',
-          eyebrow: 'Capital concentration',
-          title: catExcess.category,
-          body: `${fmtEurM(catExcess.excess)} of excess-value proxy is concentrated here, making it the cleanest release candidate.`
-        });
-      }
-
-      if (segmentImbalance) {
-        callouts.push({
-          tone: 'positive',
-          eyebrow: 'Trade-off lens',
-          title: `${segmentImbalance.category} | ${segmentImbalance.region}`,
-          body: `${fmtPct(segmentImbalance.fill_rate)} fill rate with ${segmentImbalance.avg_dos.toFixed(1)} days of supply. This is the clearest service-versus-capital imbalance in the current slice.`
-        });
-      }
-
-      return callouts.slice(0, 4);
-    }
-
-    function renderKPIs(agg) {
-      const highRiskSkuCount = agg.skuRows.filter(r => r.risk_tier === 'High' || r.risk_tier === 'Critical').length;
-      const kpis = [
-        {
-          label: 'Fill Rate',
-          value: fmtPct(agg.totals.fillRate),
-          context: 'Target operating threshold: 97%+.',
-          tone: agg.totals.fillRate >= 0.97 ? 'positive' : (agg.totals.fillRate >= 0.95 ? 'watch' : 'critical'),
-        },
-        {
-          label: 'Stockout Rate',
-          value: fmtPct(agg.totals.stockoutRate),
-          context: 'Direct indicator of demand leakage.',
-          tone: agg.totals.stockoutRate <= 0.02 ? 'positive' : (agg.totals.stockoutRate <= 0.05 ? 'watch' : 'critical'),
-        },
-        {
-          label: 'Lost Sales Value',
-          value: fmtCompactEur(agg.totals.totalLostSales),
-          context: 'Current filtered revenue exposure.',
-          tone: agg.totals.totalLostSales <= 500000 ? 'neutral' : 'critical',
-        },
-        {
-          label: '12M Opportunity',
-          value: fmtCompactEur(agg.totals.scenarioOpportunity12m),
-          context: 'Scenario-based upside from service recovery + capital release.',
-          tone: 'positive',
-        },
-        {
-          label: 'Working Capital at Risk',
-          value: fmtCompactEur(agg.totals.totalTrappedWCObserved),
-          context: 'Observed value currently trapped in inventory.',
-          tone: agg.totals.totalTrappedWCObserved <= agg.totals.totalInventory * 0.12 ? 'neutral' : 'watch',
-        },
-        {
-          label: 'Excess Inventory',
-          value: fmtCompactEur(agg.totals.totalExcess),
-          context: 'Value above days-of-supply caps.',
-          tone: agg.totals.totalExcess <= agg.totals.totalInventory * 0.08 ? 'positive' : 'watch',
-        },
-        {
-          label: 'Supplier OTD',
-          value: fmtPct(agg.totals.weightedSupplierOTD),
-          context: 'Demand-weighted supplier execution quality.',
-          tone: agg.totals.weightedSupplierOTD >= 0.92 ? 'positive' : (agg.totals.weightedSupplierOTD >= 0.88 ? 'watch' : 'critical'),
-        },
-        {
-          label: 'High-Risk SKU Count',
-          value: fmtNum(highRiskSkuCount),
-          context: 'High + critical governed intervention items.',
-          tone: highRiskSkuCount <= 20 ? 'positive' : (highRiskSkuCount <= 50 ? 'watch' : 'critical'),
-        },
-      ];
-
-      const grid = document.getElementById('kpi-grid');
-      grid.innerHTML = kpis.map(k => `
-        <div class="kpi kpi-${k.tone}">
-          <div class="label">${k.label}</div>
-          <div class="value">${k.value}</div>
-          <div class="context">${k.context}</div>
-        </div>
-      `).join('');
-    }
-
-    function renderCallouts(callouts) {
-      document.getElementById('callout-grid').innerHTML = callouts.map(c => `
-        <div class="callout callout-${c.tone}">
-          <div class="callout-eyebrow">${c.eyebrow}</div>
-          <div class="callout-title">${c.title}</div>
-          <div class="callout-body">${c.body}</div>
-        </div>
-      `).join('');
-    }
-
-    function chartLayout(title) {
-      const c = getThemePalette();
-      return {
-        title: { text: title, x: 0.01, xanchor: 'left', font: { size: 15, color: c.title } },
-        margin: { l: 68, r: 20, t: 58, b: 58 },
-        paper_bgcolor: c.paper,
-        plot_bgcolor: c.plot,
-        font: { family: 'IBM Plex Sans, Avenir Next, Source Sans 3, Segoe UI, sans-serif', size: 12, color: c.font },
-        xaxis: { gridcolor: c.grid, zerolinecolor: c.zero, automargin: true, tickangle: 0, tickfont: { size: 11 } },
-        yaxis: { gridcolor: c.grid, zerolinecolor: c.zero, automargin: true, tickfont: { size: 11 } },
-        showlegend: false,
-        hoverlabel: { bgcolor: c.hoverBg, font: { color: '#ffffff' } },
-        dragmode: false
-      };
-    }
-
-    function renderCharts(agg) {
-      const monthSeries = agg.monthSeries;
-      const c = getThemePalette();
-
-      Plotly.react('chart-service-trend', [{
-        x: monthSeries.map(d => d.month),
-        y: monthSeries.map(d => d.fill_rate),
-        mode: 'lines+markers',
-        line: { color: c.service, width: 2.5 },
-        marker: { size: 6 },
-        hovertemplate: 'Month %{x}<br>Fill Rate %{y:.1%}<extra></extra>'
-      }], { ...chartLayout('Service Level Trend'), hovermode: 'x unified', xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickformat: '.0%', gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
-
-      Plotly.react('chart-stockout-trend', [{
-        x: monthSeries.map(d => d.month),
-        y: monthSeries.map(d => d.stockout_rate),
-        mode: 'lines+markers',
-        line: { color: c.stockout, width: 2.5 },
-        marker: { size: 6 },
-        hovertemplate: 'Month %{x}<br>Stockout %{y:.1%}<extra></extra>'
-      }], { ...chartLayout('Stockout Rate Trend'), hovermode: 'x unified', xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickformat: '.0%', gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
-
-      Plotly.react('chart-lost-sales-trend', [{
-        x: monthSeries.map(d => d.month),
-        y: monthSeries.map(d => d.lostSales),
-        type: 'bar',
-        marker: { color: c.lostSales },
-        hovertemplate: 'Month %{x}<br>Lost Sales %{y:$,.0f}<extra></extra>'
-      }], { ...chartLayout('Lost Sales Exposure Trend'), hovermode: 'x unified', xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickprefix: 'EUR ', separatethousands: true, gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
-
-      Plotly.react('chart-inventory-trend', [{
-        x: monthSeries.map(d => d.month),
-        y: monthSeries.map(d => d.inventory),
-        type: 'bar',
-        marker: { color: c.inventory },
-        hovertemplate: 'Month %{x}<br>Inventory %{y:$,.0f}<extra></extra>'
-      }], { ...chartLayout('Inventory Value Trend'), hovermode: 'x unified', xaxis: { gridcolor: c.grid, nticks: 7 }, yaxis: { tickprefix: 'EUR ', separatethousands: true, gridcolor: c.grid, nticks: 6 } }, PLOT_CONFIG);
-
-      const wh = [...agg.warehouses].sort((a,b)=>a.fill_rate-b.fill_rate);
-      const whLabels = wh.map(d=>ellipsize(d.warehouse_name, 26));
-      const whMargin = dynamicLeftMargin(whLabels, 128, 230, 6.8);
-      Plotly.react('chart-fill-warehouse', [{
-        y: whLabels,
-        x: wh.map(d=>d.fill_rate),
-        type:'bar',
-        orientation:'h',
-        marker:{color:c.warehouse},
-        hovertemplate: '%{customdata}<br>Fill Rate %{x:.1%}<extra></extra>',
-        customdata: wh.map(d=>d.warehouse_name)
-      }], {
-        ...chartLayout('Fill Rate by Warehouse'),
-        xaxis:{tickformat:'.0%', gridcolor:c.grid, nticks: 5},
-        yaxis:{gridcolor:c.grid, automargin:true, tickfont:{size:11}},
-        margin:{l:whMargin, r:20, t:52, b:58}
-      }, PLOT_CONFIG);
-
-      const cat = [...agg.categories].sort((a,b)=>a.fill_rate-b.fill_rate);
-      const catLabels = cat.map(d=>ellipsize(d.category, 24));
-      Plotly.react('chart-fill-category', [{
-        y: catLabels,
-        x: cat.map(d=>d.fill_rate),
-        type:'bar',
-        orientation:'h',
-        marker:{color:c.category},
-        hovertemplate: '%{customdata}<br>Fill Rate %{x:.1%}<extra></extra>',
-        customdata: cat.map(d=>d.category)
-      }], { ...chartLayout('Fill Rate by Category'), xaxis:{tickformat:'.0%', gridcolor:c.grid, nticks: 5}, margin:{l: dynamicLeftMargin(catLabels, 124, 220, 6.5), r:20, t:52, b:58} }, PLOT_CONFIG);
-
-      const reg = [...agg.regions].sort((a,b)=>b.lostSales-a.lostSales);
-      Plotly.react('chart-lostsales-region', [{
-        y: reg.map(d=>ellipsize(d.region, 26)),
-        x: reg.map(d=>d.lostSales),
-        type:'bar',
-        orientation:'h',
-        marker:{color:c.region},
-        hovertemplate: '%{customdata}<br>Lost Sales %{x:$,.0f}<extra></extra>',
-        customdata: reg.map(d=>d.region)
-      }], { ...chartLayout('Lost Sales Exposure by Region'), xaxis:{tickprefix:'EUR ', separatethousands:true, gridcolor:c.grid, nticks: 5} }, PLOT_CONFIG);
-
-      const sup = [...agg.suppliers].sort((a,b)=>a.on_time_delivery_rate-b.on_time_delivery_rate);
-      const supLabels = sup.map(d=>ellipsize(d.supplier_name, 24));
-      Plotly.react('chart-supplier-otd', [{
-        y: supLabels,
-        x: sup.map(d=>d.on_time_delivery_rate),
-        type:'bar',
-        orientation:'h',
-        marker:{color:c.supplierOtd},
-        hovertemplate: '%{customdata}<br>OTD %{x:.1%}<extra></extra>',
-        customdata: sup.map(d=>d.supplier_name)
-      }], { ...chartLayout('Supplier On-Time Delivery Comparison'), xaxis:{tickformat:'.0%', gridcolor:c.grid, nticks: 5}, margin:{l: dynamicLeftMargin(supLabels, 126, 225, 6.5), r:20, t:52, b:58} }, PLOT_CONFIG);
-
-      const supVar = [...agg.suppliers].sort((a,b)=>b.lead_time_variability-a.lead_time_variability);
-      Plotly.react('chart-lead-var', [{
-        y: supVar.map(d=>ellipsize(d.supplier_name, 24)),
-        x: supVar.map(d=>d.lead_time_variability),
-        type:'bar',
-        orientation:'h',
-        marker:{color:c.leadVar},
-        hovertemplate: '%{customdata}<br>Lead Time Variability %{x:.2f}<extra></extra>',
-        customdata: supVar.map(d=>d.supplier_name)
-      }], { ...chartLayout('Lead Time Variability by Supplier'), xaxis:{gridcolor:c.grid, nticks: 5}, margin:{l: dynamicLeftMargin(supVar.map(d=>ellipsize(d.supplier_name, 24)), 126, 225, 6.5), r:20, t:52, b:58} }, PLOT_CONFIG);
-
-      const catEx = [...agg.categories].sort((a,b)=>b.excess-a.excess);
-      Plotly.react('chart-excess-category', [{
-        y: catEx.map(d=>ellipsize(d.category, 24)),
-        x: catEx.map(d=>d.excess),
-        type:'bar',
-        orientation:'h',
-        marker:{color:c.excess},
-        hovertemplate: '%{customdata}<br>Excess Proxy %{x:$,.0f}<extra></extra>',
-        customdata: catEx.map(d=>d.category)
-      }], { ...chartLayout('Excess Inventory Exposure by Category'), xaxis:{tickprefix:'EUR ', separatethousands:true, gridcolor:c.grid, nticks: 5}, margin:{l: dynamicLeftMargin(catEx.map(d=>ellipsize(d.category, 24)), 124, 220, 6.5), r:20, t:52, b:58} }, PLOT_CONFIG);
-
-      const segments = agg.segments;
-      const segmentColorScale = currentTheme === 'dark'
-        ? [[0, '#24465a'], [0.55, '#4f8ca7'], [1, '#96e0df']]
-        : [[0, '#cbe8de'], [0.55, '#5ea8a0'], [1, '#1f6f78']];
-      Plotly.react('chart-service-vs-inventory', [{
-        x: segments.map(s=>s.inventory),
-        y: segments.map(s=>s.fill_rate),
-        mode:'markers',
-        marker:{
-          size: segments.map(s=>Math.max(10, Math.min(30, s.lostSales / 220000))),
-          color: segments.map(s=>s.lostSales),
-          colorscale:segmentColorScale,
-          showscale:true,
-          colorbar:{
-            title:{text:'Lost Sales', font:{color:c.font}},
-            thickness: 11,
-            tickfont:{color:c.font}
-          }
-        },
-        customdata: segments.map(s=>`${s.category} | ${s.region}`),
-        hovertemplate: '%{customdata}<br>Inventory %{x:$,.0f}<br>Fill %{y:.1%}<br>Lost Sales %{marker.color:$,.0f}<extra></extra>'
-      }], {
-        ...chartLayout('Service Level vs Inventory Value (By Category-Region)'),
-        yaxis:{tickformat:'.0%', gridcolor:c.grid, automargin:true, nticks: 6},
-        xaxis:{tickprefix:'EUR ', separatethousands:true, gridcolor:c.grid, automargin:true, nticks: 6}
-      }, PLOT_CONFIG);
-
-      Plotly.react('chart-service-vs-dos', [{
-        x: segments.map(s=>s.avg_dos),
-        y: segments.map(s=>s.fill_rate),
-        mode:'markers',
-        marker:{ size: 9, color:c.category, opacity: 0.82 },
-        customdata: segments.map(s=>`${s.category} | ${s.region}`),
-        hovertemplate: '%{customdata}<br>DOS %{x:.1f}<br>Fill %{y:.1%}<extra></extra>'
-      }], {
-        ...chartLayout('Service Level vs Days of Supply'),
-        yaxis:{tickformat:'.0%', gridcolor:c.grid, automargin:true, nticks: 6},
-        xaxis:{automargin:true, nticks: 6}
-      }, PLOT_CONFIG);
-
-      const dosMedian = wh.reduce((acc,d)=>acc+d.avg_dos,0)/Math.max(wh.length,1);
-      const fillMedian = wh.reduce((acc,d)=>acc+d.fill_rate,0)/Math.max(wh.length,1);
-      const rankedWh = [...wh].sort((a,b)=>b.stockout_rate-a.stockout_rate);
-      const annotatedWh = rankedWh.slice(0, Math.min(4, rankedWh.length)).map(d => d.warehouse_id);
-      Plotly.react('chart-quadrant', [{
-        x: wh.map(d=>d.avg_dos),
-        y: wh.map(d=>d.fill_rate),
-        mode:'markers+text',
-        text: wh.map(d=>annotatedWh.includes(d.warehouse_id) ? d.warehouse_id : ''),
-        customdata: wh.map(d=>d.warehouse_id),
-        textposition:'top center',
-        textfont:{size:10, color:c.font},
-        marker:{ size: wh.map(d=>Math.max(14, Math.min(48, d.lostSales / 350000))), color:c.quadrant, opacity:0.8 },
-        hovertemplate: '%{customdata}<br>DOS %{x:.1f}<br>Fill %{y:.1%}<extra></extra>'
-      }], {
-        ...chartLayout('Warehouse Service vs Working-Capital Quadrant'),
-        yaxis:{tickformat:'.0%', gridcolor:c.grid, nticks: 6},
-        xaxis:{gridcolor:c.grid, nticks: 6},
-        shapes:[
-          {type:'line', x0:dosMedian, x1:dosMedian, y0:0, y1:1, yref:'paper', line:{dash:'dash', color:c.lineRef}},
-          {type:'line', x0:0, x1:1, xref:'paper', y0:fillMedian, y1:fillMedian, line:{dash:'dash', color:c.lineRef}}
-        ],
-        annotations:[
-          {x:0.22, y:0.94, xref:'paper', yref:'paper', text:'Service-Healthy / Lean', showarrow:false, font:{size:10, color:c.annGood}},
-          {x:0.78, y:0.94, xref:'paper', yref:'paper', text:'Service-Healthy / Capital-Heavy', showarrow:false, font:{size:10, color:c.inventory}},
-          {x:0.22, y:0.06, xref:'paper', yref:'paper', text:'Understocked Risk', showarrow:false, font:{size:10, color:c.annBad}},
-          {x:0.78, y:0.06, xref:'paper', yref:'paper', text:'Dual Failure', showarrow:false, font:{size:10, color:c.annBad}}
-        ]
-      }, PLOT_CONFIG);
-
-      const topGov = agg.skuRows.slice(0, 15).reverse();
-      Plotly.react('chart-top-governance', [{
-        y: topGov.map(d=>`${d.product_id} | ${d.warehouse_id}`),
-        x: topGov.map(d=>d.governance_priority_score),
-        type:'bar',
-        orientation:'h',
-        marker:{color:c.governance},
-        hovertemplate: '%{y}<br>Governance Score %{x:.1f}<extra></extra>'
-      }], { ...chartLayout('Top Governance Priority SKUs'), xaxis:{gridcolor:c.grid, nticks: 5}, margin:{l: 162, r:20, t:52, b:58} }, PLOT_CONFIG);
-
-      const topSup = [...agg.suppliers].sort((a,b)=>b.stockout_rate-a.stockout_rate).slice(0,12).reverse();
-      Plotly.react('chart-top-suppliers', [{
-        y: topSup.map(d=>d.supplier_name),
-        x: topSup.map(d=>d.stockout_rate),
-        type:'bar',
-        orientation:'h',
-        marker:{color:c.supplierRisk},
-        hovertemplate: '%{y}<br>Downstream Stockout %{x:.1%}<extra></extra>'
-      }], { ...chartLayout('Highest-Risk Suppliers (Downstream Stockout)'), xaxis:{tickformat:'.0%', gridcolor:c.grid, nticks: 5}, margin:{l: 150, r:20, t:52, b:58} }, PLOT_CONFIG);
-
-      const topWh = [...agg.warehouses].sort((a,b)=>b.stockout_rate-a.stockout_rate).slice(0, 12).reverse();
-      Plotly.react('chart-top-warehouses', [{
-        y: topWh.map(d=>d.warehouse_name),
-        x: topWh.map(d=>d.stockout_rate),
-        type:'bar',
-        orientation:'h',
-        marker:{color:c.warehouseRisk},
-        hovertemplate: '%{y}<br>Stockout Rate %{x:.1%}<extra></extra>'
-      }], { ...chartLayout('Highest-Risk Warehouses (Stockout Rate)'), xaxis:{tickformat:'.0%', gridcolor:c.grid, nticks: 5}, margin:{l: 160, r:20, t:52, b:58} }, PLOT_CONFIG);
-
-      const heatSup = [...agg.suppliers].sort((a,b)=>b.supplier_service_risk_proxy-a.supplier_service_risk_proxy).slice(0,10);
-      const heatmapScale = currentTheme === 'dark'
-        ? [[0, '#173042'], [0.45, '#5a7e95'], [1, '#d07f68']]
-        : [[0, '#e6eef3'], [0.45, '#8caab8'], [1, '#ba604b']];
-      const z = [
-        heatSup.map(s=>1 - s.on_time_delivery_rate),
-        heatSup.map(s=>s.average_delay_days / Math.max(...heatSup.map(x=>x.average_delay_days), 1)),
-        heatSup.map(s=>s.lead_time_variability / Math.max(...heatSup.map(x=>x.lead_time_variability), 1)),
-        heatSup.map(s=>s.supplier_service_risk_proxy / Math.max(...heatSup.map(x=>x.supplier_service_risk_proxy), 1)),
-      ];
-      Plotly.react('chart-supplier-heatmap', [{
-        z,
-        x: heatSup.map(s=>s.supplier_name),
-        y: ['OTD Gap', 'Delay Severity', 'Lead-Time Volatility', 'Composite Risk'],
-        type: 'heatmap',
-        colorscale: heatmapScale,
-        colorbar: {
-          tickfont: { color: c.font },
-        },
-        hovertemplate: '%{y}<br>%{x}<br>Intensity %{z:.2f}<extra></extra>'
-      }], {
-        ...chartLayout('Supplier-Risk Heatmap (Relative Intensity)'),
-        margin:{l:132, r:20, t:52, b:132},
-        xaxis:{tickangle:-28, automargin:true, tickfont:{size:10}},
-        yaxis:{automargin:true, tickfont:{size:11}}
-      }, PLOT_CONFIG);
-    }
-
-    function renderTable(rows) {
-      const q = (tableSearch.value || '').toLowerCase().trim();
-      let data = rows.filter(r => {
-        if (!q) return true;
-        const blob = `${r.product_id} ${r.product_name} ${r.warehouse_id} ${r.supplier_id} ${r.main_risk_driver} ${r.recommended_action}`.toLowerCase();
-        return blob.includes(q);
-      });
-
-      data.sort((a,b) => {
-        const key = tableSort.key;
-        const dir = tableSort.dir === 'asc' ? 1 : -1;
-        const av = a[key];
-        const bv = b[key];
-        if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
-        return String(av).localeCompare(String(bv)) * dir;
-      });
-
-      const maxRows = 250;
-      const shown = data.slice(0, maxRows);
-
-      tableBody.innerHTML = shown.map(r => {
-        const tierClass = `risk-${r.risk_tier.toLowerCase()}`;
-        return `<tr>
-          <td class="entity-cell">${r.product_id}</td>
-          <td class="action-cell">${r.product_name}</td>
-          <td>${r.warehouse_id}</td>
-          <td>${r.supplier_id}</td>
-          <td>${fmtPct(r.fill_rate)}</td>
-          <td>${r.stockout_risk_score.toFixed(1)}</td>
-          <td>${r.excess_inventory_score.toFixed(1)}</td>
-          <td>${r.working_capital_risk_score.toFixed(1)}</td>
-          <td class="priority-cell">${r.governance_priority_score.toFixed(1)}</td>
-          <td><span class="risk-badge ${tierClass}">${r.risk_tier}</span></td>
-          <td>${r.main_risk_driver}</td>
-          <td class="action-cell">${r.recommended_action}</td>
-        </tr>`;
-      }).join('');
-
-      tableMeta.textContent = `Showing ${shown.length.toLocaleString()} of ${data.length.toLocaleString()} filtered rows (cap ${maxRows}).`;
-    }
-
-    function renderNarrative(agg) {
-      const topWarehouse = [...agg.warehouses].sort((a,b)=>a.fill_rate-b.fill_rate)[0];
-      const topSupplier = [...agg.suppliers].sort((a,b)=>b.stockout_rate-a.stockout_rate)[0];
-      const topCategoryExcess = [...agg.categories].sort((a,b)=>b.excess-a.excess)[0];
-      const topSku = agg.skuRows[0];
-      const balancedShare = computeBalancedShare(agg);
-      const html = `
-        <div class="brief-grid">
-          <div class="brief-item">
-            <div class="brief-label">What is off plan</div>
-            <div class="brief-copy">Fill rate is <strong>${fmtPct(agg.totals.fillRate)}</strong> while stockout rate is <strong>${fmtPct(agg.totals.stockoutRate)}</strong>. Service is still leaking demand and should not be treated as a transient fluctuation.</div>
-          </div>
-          <div class="brief-item">
-            <div class="brief-label">Where exposure sits</div>
-            <div class="brief-copy">Pressure is concentrated in <strong>${topWarehouse ? topWarehouse.warehouse_name : 'n/a'}</strong>, supplier instability is led by <strong>${topSupplier ? topSupplier.supplier_name : 'n/a'}</strong>, and excess value is most visible in <strong>${topCategoryExcess ? topCategoryExcess.category : 'n/a'}</strong>.</div>
-          </div>
-          <div class="brief-item">
-            <div class="brief-label">What leadership should do first</div>
-            <div class="brief-copy">Start with <strong>${topSku ? `${topSku.product_id} @ ${topSku.warehouse_id}` : 'the top filtered SKU'}</strong>, then address the supplier and warehouse policies driving the highest combined service and capital penalty.</div>
-          </div>
-          <div class="brief-item">
-            <div class="brief-label">Trade-off to manage</div>
-            <div class="brief-copy">Only <strong>${fmtPct(balancedShare)}</strong> of filtered SKU-warehouse positions sit in a balanced zone. The objective is targeted service recovery without broad inventory expansion.</div>
-          </div>
-        </div>
-      `;
-
-      document.getElementById('narrative-panel').innerHTML = html;
-    }
-
-    function renderConsistencyAlert(agg, dateRange) {
-      const alert = document.getElementById('consistency-alert');
-      const fullRange = (
-        dateRange.start === `${dashboardData.meta.date_min.slice(0, 7)}-01` &&
-        dateRange.end === `${dashboardData.meta.date_max.slice(0, 7)}-01`
-      );
-      const allFilters = (
-        filters.region.value === 'ALL' &&
-        filters.warehouse.value === 'ALL' &&
-        filters.category.value === 'ALL' &&
-        filters.supplier.value === 'ALL' &&
-        filters.abc.value === 'ALL'
-      );
-      if (!allFilters || !fullRange) {
-        alert.style.display = 'none';
-        alert.textContent = '';
-        return;
-      }
-
-      const snap = dashboardData.meta.official_snapshot || {};
-      const fillDiff = Math.abs((snap.overall_fill_rate || 0) - agg.totals.fillRate);
-      const stockoutDiff = Math.abs((snap.overall_stockout_rate || 0) - agg.totals.stockoutRate);
-      const lostDiff = Math.abs((snap.total_lost_sales_revenue || 0) - agg.totals.totalLostSales);
-      const mismatch = fillDiff > 0.0005 || stockoutDiff > 0.0005 || lostDiff > 1;
-
-      if (mismatch) {
-        alert.style.display = 'block';
-        alert.textContent = 'Dashboard QA warning: default filter KPIs do not reconcile to official governed snapshot. Review dashboard build inputs before distribution.';
-      } else {
-        alert.style.display = 'none';
-        alert.textContent = '';
-      }
-    }
-
-    function renderNoDataAlert(hasRows) {
-      const alert = document.getElementById('no-data-alert');
-      if (!alert) return;
-      if (hasRows) {
-        alert.style.display = 'none';
-        alert.textContent = '';
-        return;
-      }
-      alert.style.display = 'block';
-      alert.textContent = 'No records match the current filter combination. Reset filters or widen the date range.';
-    }
-
-    function updateDashboard() {
-      const dateRange = getNormalizedDateRange();
-      const filteredRows = monthlyFact.filter(r => passesFilter(r, dateRange));
-      renderNoDataAlert(filteredRows.length > 0);
-      const agg = aggregate(filteredRows, readAssumptions());
-      lastAgg = agg;
-      renderHeaderSummary(agg, dateRange);
-      renderKPIs(agg);
-      renderCallouts(buildCallouts(agg));
-      renderCharts(agg);
-      renderTable(agg.skuRows);
-      renderNarrative(agg);
-      renderConsistencyAlert(agg, dateRange);
-    }
-
-    function initTableSorting() {
-      const headers = document.querySelectorAll('#detail-table thead th');
-      headers.forEach(h => {
-        h.addEventListener('click', () => {
-          const key = h.dataset.key;
-          if (!key) return;
-          if (tableSort.key === key) {
-            tableSort.dir = tableSort.dir === 'asc' ? 'desc' : 'asc';
-          } else {
-            tableSort.key = key;
-            tableSort.dir = 'desc';
-          }
-          if (lastAgg) {
-            renderTable(lastAgg.skuRows);
-          }
-        });
-      });
+    function applyTheme(mode, redraw = true) {
+      currentTheme = mode === 'dark' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      localStorage.setItem('supply_chain_dashboard_theme', currentTheme);
+      document.getElementById('toggle-theme').textContent = currentTheme === 'dark' ? 'Light' : 'Dark';
+      if (redraw && currentAgg) renderCharts(currentAgg);
     }
 
     function initEvents() {
       Object.values(filters).forEach(el => el.addEventListener('change', updateDashboard));
-      tableSearch.addEventListener('input', () => {
-        if (lastAgg) {
-          renderTable(lastAgg.skuRows);
-        }
-      });
-      [assumptions.marginRate, assumptions.wcRate, assumptions.slowWeight].forEach(el => {
+      [scenario.marginRate, scenario.wcRate, scenario.slowWeight].forEach(el => {
         el.addEventListener('input', () => {
-          updateAssumptionLabels();
+          updateScenarioLabels();
           updateDashboard();
         });
       });
-
-      if (methodologyToggle) {
-        methodologyToggle.setAttribute('aria-expanded', 'false');
-        methodologyToggle.addEventListener('click', () => {
-          togglePanel('methodology-panel', methodologyToggle, 'Method Notes', 'Hide Method Notes');
-        });
-      }
-      if (assumptionToggle) {
-        assumptionToggle.setAttribute('aria-expanded', 'false');
-        assumptionToggle.addEventListener('click', () => {
-          togglePanel('assumption-panel', assumptionToggle, 'Scenario Controls', 'Hide Scenario Controls');
-        });
-      }
-      if (themeToggle) {
-        themeToggle.addEventListener('click', () => {
-          const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-          applyTheme(nextTheme);
-        });
-      }
-      if (printButton) {
-        printButton.addEventListener('click', () => {
-          window.print();
-        });
-      }
-      if (resetButton) {
-        resetButton.addEventListener('click', resetFilters);
-      }
-
-      window.addEventListener('resize', () => {
-        if (!lastAgg) return;
-        [
-          'chart-service-trend', 'chart-stockout-trend', 'chart-lost-sales-trend', 'chart-inventory-trend',
-          'chart-fill-warehouse', 'chart-fill-category', 'chart-lostsales-region', 'chart-supplier-otd',
-          'chart-lead-var', 'chart-excess-category', 'chart-service-vs-inventory', 'chart-service-vs-dos',
-          'chart-quadrant', 'chart-top-governance', 'chart-top-suppliers', 'chart-top-warehouses',
-          'chart-supplier-heatmap'
-        ].forEach((id) => {
-          const el = document.getElementById(id);
-          if (el) {
-            Plotly.Plots.resize(el);
+      tableSearch.addEventListener('input', () => currentAgg && renderTable(currentAgg.skuRows));
+      document.getElementById('reset-filters').addEventListener('click', resetFilters);
+      document.getElementById('print-dashboard').addEventListener('click', () => window.print());
+      document.getElementById('toggle-scenario').addEventListener('click', e => togglePanel('scenario-panel', e.currentTarget, 'Hide scenario controls', 'Scenario controls'));
+      document.getElementById('toggle-method').addEventListener('click', e => togglePanel('method-panel', e.currentTarget, 'Hide method notes', 'Method notes'));
+      document.getElementById('toggle-theme').addEventListener('click', () => applyTheme(currentTheme === 'dark' ? 'light' : 'dark'));
+      document.querySelectorAll('#detail-table th').forEach(th => {
+        const sort = () => {
+          const key = th.dataset.key;
+          tableSort = tableSort.key === key ? { key, dir: tableSort.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' };
+          document.querySelectorAll('#detail-table th').forEach(header => header.setAttribute('aria-sort', 'none'));
+          th.setAttribute('aria-sort', tableSort.dir === 'asc' ? 'ascending' : 'descending');
+          if (currentAgg) renderTable(currentAgg.skuRows);
+        };
+        th.addEventListener('click', sort);
+        th.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            sort();
           }
+        });
+      });
+      window.addEventListener('resize', () => {
+        if (!currentAgg) return;
+        ['chart-trend', 'chart-value-trend', 'chart-bottlenecks', 'chart-category-capital', 'chart-tradeoff', 'chart-supplier', 'chart-governance'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) Plotly.Plots.resize(el);
         });
       });
     }
 
-    populateFilters();
-    initializeAssumptions();
-    applyTheme(getPreferredTheme(), false);
-    initTableSorting();
+    initializeControls();
+    document.getElementById('foot-provenance').textContent =
+      `Dataset ${dashboardData.dashboard_version} · ${dashboardData.generated_at} · ${fmtNum(dashboardData.meta.row_count_monthly_sku)} monthly records`;
+    const savedTheme = localStorage.getItem('supply_chain_dashboard_theme');
+    const preferredTheme = savedTheme || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(preferredTheme, false);
     initEvents();
     updateDashboard();
   </script>
@@ -2588,48 +1904,14 @@ def _build_html(data_payload: dict) -> str:
 </html>
 """
 
-    return (
-        template.replace("__PLOTLY_JS__", plotly_js)
-        .replace("__DATA_JSON__", data_json)
-    )
+    rendered = template.replace("__PLOTLY_CDN_URL__", PLOTLY_CDN_URL).replace("__DATA_JSON__", data_json)
+    return "\n".join(line.rstrip() for line in rendered.splitlines()) + "\n"
 
 
 def build_executive_dashboard() -> Path:
     data_payload = _prepare_dashboard_data()
     html = _build_html(data_payload)
     OUTPUT_DASHBOARD_FILE.write_text(html, encoding="utf-8")
-    DOCS_DASHBOARD_ENTRY.parent.mkdir(parents=True, exist_ok=True)
-    DOCS_DASHBOARD_ENTRY.write_text(
-        """<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0; url=../index.html" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Supply Chain Dashboard Redirect</title>
-  </head>
-  <body>
-    <p>Redirecting to dashboard...</p>
-    <p>If redirect does not work, open <a href="../index.html">../index.html</a>.</p>
-  </body>
-</html>
-""",
-        encoding="utf-8",
-    )
-
-    build_info = pd.DataFrame(
-        [
-            {
-                "dashboard_version": data_payload["dashboard_version"],
-                "generated_at_utc": data_payload["generated_at"],
-                "html_path": str(OUTPUT_DASHBOARD_FILE),
-                "html_size_bytes": OUTPUT_DASHBOARD_FILE.stat().st_size,
-                "html_sha256": _sha256_for_file(OUTPUT_DASHBOARD_FILE),
-                "dataset_hash": data_payload["meta"]["dataset_hash"],
-            }
-        ]
-    )
-    build_info.to_csv(OUTPUT_TABLES_DIR / "dashboard_release_manifest.csv", index=False)
 
     return OUTPUT_DASHBOARD_FILE
 

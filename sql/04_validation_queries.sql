@@ -165,25 +165,3 @@ SELECT 'available_units_consistency', issue_count,
        CASE WHEN issue_count = 0 THEN 'PASS' ELSE 'FAIL' END
 FROM invalid_available_units
 ORDER BY check_name;
-
-
--- ============================================================
--- Optional detailed drill-down snippets for failures
--- ============================================================
-
--- Duplicate demand rows (if any)
--- SELECT date, warehouse_id, product_id, COUNT(*) AS row_count
--- FROM demand_history
--- GROUP BY 1,2,3
--- HAVING COUNT(*) > 1
--- ORDER BY row_count DESC;
-
--- Inventory value mismatches (if any)
--- SELECT i.snapshot_date, i.warehouse_id, i.product_id,
---        i.inventory_value,
---        CAST(i.on_hand_units AS DOUBLE) * p.unit_cost AS expected_inventory_value
--- FROM inventory_snapshots i
--- JOIN products p ON i.product_id = p.product_id
--- WHERE ABS(i.inventory_value - (CAST(i.on_hand_units AS DOUBLE) * p.unit_cost)) > 0.05
--- ORDER BY ABS(i.inventory_value - (CAST(i.on_hand_units AS DOUBLE) * p.unit_cost)) DESC
--- LIMIT 100;

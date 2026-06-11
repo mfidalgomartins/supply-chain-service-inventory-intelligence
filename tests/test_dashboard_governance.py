@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.executive_dashboard import _build_html
+from src.executive_dashboard import PLOTLY_CDN_URL, _build_html
 
 
 def _minimal_payload() -> dict:
@@ -24,6 +24,7 @@ def _minimal_payload() -> dict:
                 "avg_days_of_supply",
                 "excess_inventory_proxy",
                 "slow_moving_proxy",
+                "slow_moving_non_excess_proxy",
                 "trapped_wc_proxy",
                 "lost_sales_margin_proxy",
                 "observation_days",
@@ -53,7 +54,7 @@ def _minimal_payload() -> dict:
                 "overall_fill_rate": 0.92,
                 "overall_stockout_rate": 0.08,
                 "total_lost_sales_revenue": 1000000.0,
-                "trapped_working_capital_proxy_observed": 2000000.0,
+                "trapped_working_capital_proxy_average": 2000000.0,
                 "opportunity_total_12m_proxy": 500000.0,
             },
             "assumptions_default": {
@@ -80,3 +81,15 @@ def test_dashboard_template_avoids_frontend_scoring_formulas() -> None:
     assert "function recommendedAction(" not in html
     assert "0.24 * serviceRiskScore" not in html
     assert "skuRiskBaselineMap" in html
+
+
+def test_dashboard_loads_pinned_plotly_bundle_from_cdn() -> None:
+    html = _build_html(_minimal_payload())
+    assert f'src="{PLOTLY_CDN_URL}"' in html
+    assert "__PLOTLY_CDN_URL__" not in html
+
+
+def test_dashboard_sortable_table_announces_sort_state() -> None:
+    html = _build_html(_minimal_payload())
+    assert 'aria-sort="descending">Priority</th>' in html
+    assert "<caption" in html

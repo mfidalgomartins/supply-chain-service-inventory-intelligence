@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -16,7 +15,6 @@ except ModuleNotFoundError:
 
 CONTRACT_FILE = PROJECT_ROOT / "configs" / "table_contracts.json"
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
-OUTPUT_REPORTS_DIR = PROJECT_ROOT / "outputs" / "reports"
 
 
 @dataclass
@@ -39,8 +37,16 @@ def evaluate_dataframe_contract(df: pd.DataFrame, contract: dict) -> list[Contra
     checks: list[ContractCheck] = []
     name = contract["name"]
 
-    required_cols = contract.get("required_columns", [])
-    missing = sorted([c for c in required_cols if c not in df.columns])
+    required_cols = set(contract.get("required_columns", []))
+    contract_columns = (
+        required_cols
+        | set(contract.get("unique_key", []))
+        | set(contract.get("critical_columns", []))
+        | set(contract.get("non_negative", []))
+        | set(contract.get("value_ranges", {}))
+        | set(contract.get("allowed_values", {}))
+    )
+    missing = sorted(contract_columns - set(df.columns))
     checks.append(
         ContractCheck(
             table_name=name,
@@ -49,7 +55,11 @@ def evaluate_dataframe_contract(df: pd.DataFrame, contract: dict) -> list[Contra
             status="PASS" if len(missing) == 0 else "FAIL",
             observed=str(len(missing)),
             expected="0",
-            details="All required columns must exist." if not missing else f"Missing columns: {', '.join(missing)}",
+            details=(
+                "All contract-referenced columns must exist."
+                if not missing
+                else f"Missing columns: {', '.join(missing)}"
+            ),
         )
     )
 
@@ -101,21 +111,87 @@ def evaluate_dataframe_contract(df: pd.DataFrame, contract: dict) -> list[Contra
             )
         )
 
+    value_ranges = contract.get("value_ranges", {})
+    for column, bounds in value_ranges.items():
+        minimum = bounds.get("min")
+        maximum = bounds.get("max")
+        out_of_range = pd.Series(False, index=df.index)
+        if minimum is not None:
+            out_of_range |= df[column] < minimum
+        if maximum is not None:
+            out_of_range |= df[column] > maximum
+        invalid_count = int(out_of_range.sum())
+        checks.append(
+            ContractCheck(
+                table_name=name,
+                check_name=f"{column}_value_range",
+                severity="HIGH",
+                status="PASS" if invalid_count == 0 else "FAIL",
+                observed=str(invalid_count),
+                expected=f"[{minimum}, {maximum}]",
+                details=f"{column} values must stay inside the configured domain.",
+            )
+        )
+
+    allowed_values = contract.get("allowed_values", {})
+    for column, allowed in allowed_values.items():
+        invalid_values = sorted(df.loc[~df[column].isin(allowed), column].dropna().astype(str).unique())
+        checks.append(
+            ContractCheck(
+                table_name=name,
+                check_name=f"{column}_allowed_values",
+                severity="HIGH",
+                status="PASS" if not invalid_values else "FAIL",
+                observed=", ".join(invalid_values) if invalid_values else "0",
+                expected=", ".join(map(str, allowed)),
+                details=f"{column} must use the configured categorical domain.",
+            )
+        )
+
     return checks
+
+
+def evaluate_reference_contract(
+    tables: dict[str, pd.DataFrame],
+    relationship: dict,
+) -> ContractCheck:
+    source_table = relationship["source_table"]
+    source_column = relationship["source_column"]
+    target_table = relationship["target_table"]
+    target_column = relationship["target_column"]
+
+    source = tables[source_table][source_column].dropna()
+    target = set(tables[target_table][target_column].dropna())
+    missing_values = sorted(set(source) - target)
+
+    return ContractCheck(
+        table_name=source_table,
+        check_name=f"{source_column}_references_{target_table}.{target_column}",
+        severity="HIGH",
+        status="PASS" if not missing_values else "FAIL",
+        observed=str(len(missing_values)),
+        expected="0",
+        details=(
+            f"All {source_table}.{source_column} values must exist in "
+            f"{target_table}.{target_column}."
+        ),
+    )
 
 
 def run_data_contracts() -> None:
     OUTPUT_TABLES_DIR.mkdir(parents=True, exist_ok=True)
-    OUTPUT_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    contracts = json.loads(CONTRACT_FILE.read_text(encoding="utf-8"))["tables"]
+    contract_spec = json.loads(CONTRACT_FILE.read_text(encoding="utf-8"))
+    contracts = contract_spec["tables"]
 
     check_rows: list[ContractCheck] = []
     profile_rows: list[dict] = []
+    tables: dict[str, pd.DataFrame] = {}
 
     for contract in contracts:
         table_name = contract["name"]
         path = PROJECT_ROOT / contract["path"]
+        display_path = path.relative_to(PROJECT_ROOT).as_posix()
 
         if not path.exists():
             check_rows.append(
@@ -126,7 +202,7 @@ def run_data_contracts() -> None:
                     status="FAIL",
                     observed="0",
                     expected="1",
-                    details=f"Missing file: {path}",
+                    details=f"Missing file: {display_path}",
                 )
             )
             continue
@@ -139,15 +215,16 @@ def run_data_contracts() -> None:
                 status="PASS",
                 observed="1",
                 expected="1",
-                details=f"File found: {path}",
+                details=f"File found: {display_path}",
             )
         )
 
         df = pd.read_csv(path)
+        tables[table_name] = df
         profile_rows.append(
             {
                 "table_name": table_name,
-                "path": str(path),
+                "path": display_path,
                 "row_count": int(len(df)),
                 "column_count": int(len(df.columns)),
                 "file_size_bytes": int(path.stat().st_size),
@@ -157,6 +234,10 @@ def run_data_contracts() -> None:
 
         check_rows.extend(evaluate_dataframe_contract(df, contract))
 
+    for relationship in contract_spec.get("relationships", []):
+        if relationship["source_table"] in tables and relationship["target_table"] in tables:
+            check_rows.append(evaluate_reference_contract(tables, relationship))
+
     checks_df = pd.DataFrame([asdict(r) for r in check_rows])
     profile_df = pd.DataFrame(profile_rows)
 
@@ -165,28 +246,6 @@ def run_data_contracts() -> None:
 
     fail_count = int((checks_df["status"] == "FAIL").sum())
     warn_count = int((checks_df["status"] == "WARN").sum())
-
-    lines = [
-        "# Data Contracts Summary",
-        "",
-        f"- Generated at: **{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}**",
-        f"- Contract file: `{CONTRACT_FILE}`",
-        f"- Tables covered: **{len(contracts)}**",
-        f"- Checks: **{len(checks_df)}**",
-        f"- Fails: **{fail_count}**",
-        f"- Warnings: **{warn_count}**",
-        "",
-        "## Check Results",
-        "| Table | Check | Severity | Status | Observed | Expected |",
-        "|---|---|---|---|---:|---:|",
-    ]
-
-    for r in checks_df.itertuples(index=False):
-        lines.append(
-            f"| {r.table_name} | {r.check_name} | {r.severity} | {r.status} | {r.observed} | {r.expected} |"
-        )
-
-    (OUTPUT_REPORTS_DIR / "data_contracts_summary.md").write_text("\n".join(lines), encoding="utf-8")
 
     print("Data contracts validation complete.")
     print(f"Tables covered: {len(contracts)}")

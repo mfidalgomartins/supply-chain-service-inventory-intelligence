@@ -2,10 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
 try:
     from src.config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
@@ -14,8 +12,6 @@ except ModuleNotFoundError:
 
 
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
-OUTPUT_CHARTS_DIR = PROJECT_ROOT / "outputs" / "charts"
-OUTPUT_REPORTS_DIR = PROJECT_ROOT / "outputs" / "reports"
 
 
 @dataclass(frozen=True)
@@ -109,46 +105,55 @@ def enrich_daily(daily: pd.DataFrame, products: pd.DataFrame, suppliers: pd.Data
 
     out["lost_sales_revenue_annualized"] = out["lost_sales_revenue"] * annualization_factor
     out["lost_sales_margin_proxy_annualized"] = out["lost_sales_margin_proxy"] * annualization_factor
-    out["excess_inventory_value_proxy_annualized"] = out["excess_inventory_value_proxy"] * annualization_factor
-    out["trapped_working_capital_proxy_annualized"] = out["trapped_working_capital_proxy"] * annualization_factor
-    out["slow_moving_value_proxy_annualized"] = out["slow_moving_value_proxy"] * annualization_factor
     out["supplier_delay_impact_proxy_annualized"] = out["supplier_delay_impact_proxy"] * annualization_factor
-
-    out["opportunity_margin_recovery_12m_proxy"] = (
-        out["lost_sales_margin_proxy_annualized"] * ASSUMPTIONS.recoverable_lost_margin_rate_12m
-    )
-    out["opportunity_wc_release_12m_proxy"] = (
-        out["trapped_working_capital_proxy_annualized"] * ASSUMPTIONS.releasable_trapped_wc_rate_12m
-    )
-    out["opportunity_total_12m_proxy"] = (
-        out["opportunity_margin_recovery_12m_proxy"] + out["opportunity_wc_release_12m_proxy"]
-    )
 
     return out, annualization_factor
 
 
 def aggregate_impact(df: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame:
-    out = (
+    analysis_days = int(df["date"].nunique())
+    annualization_factor = 365.0 / max(analysis_days, 1)
+
+    flows = (
         df.groupby(group_cols, as_index=False)
         .agg(
             units_demanded=("units_demanded", "sum"),
             units_lost_sales=("units_lost_sales", "sum"),
             lost_sales_revenue_observed=("lost_sales_revenue", "sum"),
             lost_sales_margin_proxy_observed=("lost_sales_margin_proxy", "sum"),
-            excess_inventory_value_proxy_observed=("excess_inventory_value_proxy", "sum"),
-            trapped_working_capital_proxy_observed=("trapped_working_capital_proxy", "sum"),
-            slow_moving_value_proxy_observed=("slow_moving_value_proxy", "sum"),
             supplier_delay_impact_proxy_observed=("supplier_delay_impact_proxy", "sum"),
-            lost_sales_revenue_annualized=("lost_sales_revenue_annualized", "sum"),
-            lost_sales_margin_proxy_annualized=("lost_sales_margin_proxy_annualized", "sum"),
-            excess_inventory_value_proxy_annualized=("excess_inventory_value_proxy_annualized", "sum"),
-            trapped_working_capital_proxy_annualized=("trapped_working_capital_proxy_annualized", "sum"),
-            slow_moving_value_proxy_annualized=("slow_moving_value_proxy_annualized", "sum"),
-            supplier_delay_impact_proxy_annualized=("supplier_delay_impact_proxy_annualized", "sum"),
-            opportunity_margin_recovery_12m_proxy=("opportunity_margin_recovery_12m_proxy", "sum"),
-            opportunity_wc_release_12m_proxy=("opportunity_wc_release_12m_proxy", "sum"),
-            opportunity_total_12m_proxy=("opportunity_total_12m_proxy", "sum"),
         )
+    )
+
+    daily_balances = (
+        df.groupby([*group_cols, "date"], as_index=False)
+        .agg(
+            excess_inventory_value_proxy=("excess_inventory_value_proxy", "sum"),
+            trapped_working_capital_proxy=("trapped_working_capital_proxy", "sum"),
+            slow_moving_value_proxy=("slow_moving_value_proxy", "sum"),
+        )
+        .groupby(group_cols, as_index=False)
+        .agg(
+            excess_inventory_value_proxy_average=("excess_inventory_value_proxy", "mean"),
+            trapped_working_capital_proxy_average=("trapped_working_capital_proxy", "mean"),
+            slow_moving_value_proxy_average=("slow_moving_value_proxy", "mean"),
+        )
+    )
+
+    out = flows.merge(daily_balances, on=group_cols, how="left", validate="one_to_one")
+    out["lost_sales_revenue_annualized"] = out["lost_sales_revenue_observed"] * annualization_factor
+    out["lost_sales_margin_proxy_annualized"] = out["lost_sales_margin_proxy_observed"] * annualization_factor
+    out["supplier_delay_impact_proxy_annualized"] = (
+        out["supplier_delay_impact_proxy_observed"] * annualization_factor
+    )
+    out["opportunity_margin_recovery_12m_proxy"] = (
+        out["lost_sales_margin_proxy_annualized"] * ASSUMPTIONS.recoverable_lost_margin_rate_12m
+    )
+    out["opportunity_wc_release_12m_proxy"] = (
+        out["trapped_working_capital_proxy_average"] * ASSUMPTIONS.releasable_trapped_wc_rate_12m
+    )
+    out["opportunity_total_12m_proxy"] = (
+        out["opportunity_margin_recovery_12m_proxy"] + out["opportunity_wc_release_12m_proxy"]
     )
 
     out["stockout_rate"] = np.where(
@@ -165,23 +170,35 @@ def aggregate_impact(df: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame:
 
 
 def build_overall_summary(df: pd.DataFrame, annualization_factor: float) -> pd.DataFrame:
-    observed = {
+    flows = {
         "lost_sales_revenue_observed": df["lost_sales_revenue"].sum(),
         "lost_sales_margin_proxy_observed": df["lost_sales_margin_proxy"].sum(),
-        "excess_inventory_value_proxy_observed": df["excess_inventory_value_proxy"].sum(),
-        "trapped_working_capital_proxy_observed": df["trapped_working_capital_proxy"].sum(),
-        "slow_moving_value_proxy_observed": df["slow_moving_value_proxy"].sum(),
         "supplier_delay_impact_proxy_observed": df["supplier_delay_impact_proxy"].sum(),
     }
 
+    daily_balances = (
+        df.groupby("date", as_index=False)
+        .agg(
+            excess_inventory_value_proxy=("excess_inventory_value_proxy", "sum"),
+            trapped_working_capital_proxy=("trapped_working_capital_proxy", "sum"),
+            slow_moving_value_proxy=("slow_moving_value_proxy", "sum"),
+        )
+        .mean(numeric_only=True)
+    )
+    balances = {
+        "excess_inventory_value_proxy_average": daily_balances["excess_inventory_value_proxy"],
+        "trapped_working_capital_proxy_average": daily_balances["trapped_working_capital_proxy"],
+        "slow_moving_value_proxy_average": daily_balances["slow_moving_value_proxy"],
+    }
+
     annualized = {
-        k.replace("_observed", "_annualized"): v * annualization_factor for k, v in observed.items()
+        k.replace("_observed", "_annualized"): v * annualization_factor for k, v in flows.items()
     }
 
     opportunity = {
         "opportunity_margin_recovery_12m_proxy": annualized["lost_sales_margin_proxy_annualized"]
         * ASSUMPTIONS.recoverable_lost_margin_rate_12m,
-        "opportunity_wc_release_12m_proxy": annualized["trapped_working_capital_proxy_annualized"]
+        "opportunity_wc_release_12m_proxy": balances["trapped_working_capital_proxy_average"]
         * ASSUMPTIONS.releasable_trapped_wc_rate_12m,
     }
     opportunity["opportunity_total_12m_proxy"] = (
@@ -193,28 +210,33 @@ def build_overall_summary(df: pd.DataFrame, annualization_factor: float) -> pd.D
         ("annualization_factor", annualization_factor, "365 / analysis_days"),
         (
             "lost_sales_revenue_observed",
-            observed["lost_sales_revenue_observed"],
+            flows["lost_sales_revenue_observed"],
             "Observed lost sales value from stockout unmet demand",
         ),
         (
-            "excess_inventory_value_proxy_observed",
-            observed["excess_inventory_value_proxy_observed"],
-            "Proxy value of inventory above ABC DOS policy caps",
-        ),
-        (
-            "trapped_working_capital_proxy_observed",
-            observed["trapped_working_capital_proxy_observed"],
-            "Proxy of inefficient inventory capital (excess + incremental slow-moving)",
-        ),
-        (
-            "slow_moving_value_proxy_observed",
-            observed["slow_moving_value_proxy_observed"],
-            "Observed inventory value in slow-moving days",
+            "lost_sales_margin_proxy_observed",
+            flows["lost_sales_margin_proxy_observed"],
+            "Observed lost-sales margin proxy",
         ),
         (
             "supplier_delay_impact_proxy_observed",
-            observed["supplier_delay_impact_proxy_observed"],
+            flows["supplier_delay_impact_proxy_observed"],
             "Proxy lost-sales value associated with supplier delay severity",
+        ),
+        (
+            "excess_inventory_value_proxy_average",
+            balances["excess_inventory_value_proxy_average"],
+            "Average daily inventory value above ABC DOS policy caps",
+        ),
+        (
+            "trapped_working_capital_proxy_average",
+            balances["trapped_working_capital_proxy_average"],
+            "Average daily inefficient inventory capital proxy",
+        ),
+        (
+            "slow_moving_value_proxy_average",
+            balances["slow_moving_value_proxy_average"],
+            "Average daily inventory value exposed on slow-moving days",
         ),
         (
             "lost_sales_revenue_annualized",
@@ -222,24 +244,24 @@ def build_overall_summary(df: pd.DataFrame, annualization_factor: float) -> pd.D
             "Annualized observed lost sales value from stockouts",
         ),
         (
-            "excess_inventory_value_proxy_annualized",
-            annualized["excess_inventory_value_proxy_annualized"],
-            "Annualized proxy value of inventory above DOS policy caps",
-        ),
-        (
-            "trapped_working_capital_proxy_annualized",
-            annualized["trapped_working_capital_proxy_annualized"],
-            "Annualized inefficient working-capital proxy",
-        ),
-        (
-            "slow_moving_value_proxy_annualized",
-            annualized["slow_moving_value_proxy_annualized"],
-            "Annualized slow-moving inventory value proxy",
+            "lost_sales_margin_proxy_annualized",
+            annualized["lost_sales_margin_proxy_annualized"],
+            "Annualized lost-sales margin proxy",
         ),
         (
             "supplier_delay_impact_proxy_annualized",
             annualized["supplier_delay_impact_proxy_annualized"],
             "Annualized supplier delay impact proxy",
+        ),
+        (
+            "opportunity_margin_recovery_12m_proxy",
+            opportunity["opportunity_margin_recovery_12m_proxy"],
+            "Recoverable annual lost-sales margin under the scenario rate",
+        ),
+        (
+            "opportunity_wc_release_12m_proxy",
+            opportunity["opportunity_wc_release_12m_proxy"],
+            "Releasable average trapped working capital under the scenario rate",
         ),
         (
             "opportunity_total_12m_proxy",
@@ -285,7 +307,7 @@ def build_opportunity_priority_view(
                 "opportunity_margin_recovery_12m_proxy",
                 "opportunity_wc_release_12m_proxy",
                 "lost_sales_revenue_annualized",
-                "trapped_working_capital_proxy_annualized",
+                "trapped_working_capital_proxy_average",
                 "supplier_delay_impact_proxy_annualized",
                 "opportunity_share",
             ]
@@ -301,78 +323,6 @@ def build_opportunity_priority_view(
     return pd.concat(blocks, ignore_index=True).sort_values(
         ["entity_type", "opportunity_rank"], ascending=[True, True]
     )
-
-
-def create_charts(
-    overall: pd.DataFrame,
-    sku: pd.DataFrame,
-    warehouse: pd.DataFrame,
-    supplier: pd.DataFrame,
-    category: pd.DataFrame,
-) -> None:
-    OUTPUT_CHARTS_DIR.mkdir(parents=True, exist_ok=True)
-    sns.set_theme(style="whitegrid")
-
-    overall_plot = overall[overall["metric"].str.contains("_annualized|opportunity_total_12m_proxy")].copy()
-    overall_plot = overall_plot[~overall_plot["metric"].eq("annualization_factor")]
-
-    plt.figure(figsize=(10, 5))
-    sns.barplot(data=overall_plot, x="metric", y="value", color="#2F855A")
-    plt.xticks(rotation=30, ha="right")
-    plt.ylabel("EUR")
-    plt.title("Annualized Financial Exposure and 12M Opportunity Proxy")
-    plt.tight_layout()
-    plt.savefig(OUTPUT_CHARTS_DIR / "impact_01_overall_exposure.png", dpi=180)
-    plt.close()
-
-    top_sku = sku.head(15).copy()
-    top_sku["sku_label"] = top_sku["product_id"] + " | " + top_sku["warehouse_id"]
-    plt.figure(figsize=(11, 7))
-    sns.barplot(data=top_sku, y="sku_label", x="opportunity_total_12m_proxy", color="#1F4E79")
-    plt.xlabel("12M Opportunity Proxy (EUR)")
-    plt.ylabel("SKU | Warehouse")
-    plt.title("Top SKU-Warehouse Opportunities by Estimated 12M Value")
-    plt.tight_layout()
-    plt.savefig(OUTPUT_CHARTS_DIR / "impact_02_top_sku_opportunity.png", dpi=180)
-    plt.close()
-
-    plt.figure(figsize=(9, 5))
-    sns.barplot(data=warehouse, x="warehouse_name", y="opportunity_total_12m_proxy", color="#C05621")
-    plt.xticks(rotation=20, ha="right")
-    plt.ylabel("12M Opportunity Proxy (EUR)")
-    plt.title("Warehouse Opportunity Prioritization")
-    plt.tight_layout()
-    plt.savefig(OUTPUT_CHARTS_DIR / "impact_03_warehouse_opportunity.png", dpi=180)
-    plt.close()
-
-    top_supplier = supplier.head(12).copy()
-    plt.figure(figsize=(10, 6))
-    sns.barplot(data=top_supplier, y="supplier_name", x="supplier_delay_impact_proxy_annualized", color="#7B341E")
-    plt.xlabel("Annualized Supplier Delay Impact Proxy (EUR)")
-    plt.ylabel("Supplier")
-    plt.title("Supplier Delay Impact Proxy (Lost-Sales Linkage)")
-    plt.tight_layout()
-    plt.savefig(OUTPUT_CHARTS_DIR / "impact_04_supplier_delay_proxy.png", dpi=180)
-    plt.close()
-
-    plt.figure(figsize=(10, 6))
-    sns.scatterplot(
-        data=category,
-        x="excess_inventory_value_proxy_annualized",
-        y="lost_sales_revenue_annualized",
-        size="opportunity_total_12m_proxy",
-        sizes=(80, 800),
-        legend=False,
-        color="#2D3748",
-    )
-    for row in category.itertuples(index=False):
-        plt.text(row.excess_inventory_value_proxy_annualized, row.lost_sales_revenue_annualized, row.category, fontsize=8)
-    plt.xlabel("Annualized Excess Inventory Value Proxy (EUR)")
-    plt.ylabel("Annualized Lost Sales Revenue (EUR)")
-    plt.title("Category Trade-off: Overstock Exposure vs Service Failure")
-    plt.tight_layout()
-    plt.savefig(OUTPUT_CHARTS_DIR / "impact_05_category_tradeoff_scatter.png", dpi=180)
-    plt.close()
 
 
 def run_impact_analysis() -> None:
@@ -395,18 +345,11 @@ def run_impact_analysis() -> None:
     overall = build_overall_summary(enriched, annualization_factor)
     opportunity = build_opportunity_priority_view(sku, warehouse, supplier, category)
 
-    sku.to_csv(OUTPUT_TABLES_DIR / "impact_by_sku.csv", index=False)
-    warehouse.to_csv(OUTPUT_TABLES_DIR / "impact_by_warehouse.csv", index=False)
-    supplier.to_csv(OUTPUT_TABLES_DIR / "impact_by_supplier.csv", index=False)
-    category.to_csv(OUTPUT_TABLES_DIR / "impact_by_category.csv", index=False)
     overall.to_csv(OUTPUT_TABLES_DIR / "impact_overall_summary.csv", index=False)
     opportunity.to_csv(OUTPUT_TABLES_DIR / "impact_opportunity_priority.csv", index=False)
 
-    create_charts(overall, sku, warehouse, supplier, category)
-
     print("Impact analysis complete.")
     print(f"Tables written to: {OUTPUT_TABLES_DIR}")
-    print(f"Charts written to: {OUTPUT_CHARTS_DIR}")
 
 
 if __name__ == "__main__":

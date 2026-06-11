@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 import re
 
@@ -15,10 +14,7 @@ except ModuleNotFoundError:
     from config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
 
 
-DOCS_DIR = PROJECT_ROOT / "docs"
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
-OUTPUT_CHARTS_DIR = PROJECT_ROOT / "outputs" / "charts"
-OUTPUT_REPORTS_DIR = PROJECT_ROOT / "outputs" / "reports"
 OUTPUT_DASHBOARD_FILE = PROJECT_ROOT / "index.html"
 SQL_DIR = PROJECT_ROOT / "sql"
 
@@ -163,24 +159,9 @@ def _python_validation_checks() -> list[CheckResult]:
     supplier_perf = pd.read_csv(DATA_PROCESSED / "supplier_performance_summary.csv")
 
     impact_overall = pd.read_csv(OUTPUT_TABLES_DIR / "impact_overall_summary.csv")
-    impact_optional_map = {
-        "impact_sku": OUTPUT_TABLES_DIR / "impact_by_sku.csv",
-        "impact_warehouse": OUTPUT_TABLES_DIR / "impact_by_warehouse.csv",
-        "impact_supplier": OUTPUT_TABLES_DIR / "impact_by_supplier.csv",
-        "impact_category": OUTPUT_TABLES_DIR / "impact_by_category.csv",
-    }
-    impact_optional = {
-        k: (pd.read_csv(p) if p.exists() else pd.DataFrame())
-        for k, p in impact_optional_map.items()
-    }
-    impact_sku = impact_optional["impact_sku"]
-    impact_warehouse = impact_optional["impact_warehouse"]
-    impact_supplier = impact_optional["impact_supplier"]
-    impact_category = impact_optional["impact_category"]
-
     kpi_overall = {
         "overall_fill_rate": float(daily["units_fulfilled"].sum() / max(1.0, daily["units_demanded"].sum())),
-        "overall_stockout_rate": float(daily["stockout_flag"].mean()),
+        "overall_stockout_rate": float(daily["units_lost_sales"].sum() / max(1.0, daily["units_demanded"].sum())),
         "total_lost_sales_revenue": float(daily["lost_sales_revenue"].sum()),
     }
 
@@ -252,6 +233,24 @@ def _python_validation_checks() -> list[CheckResult]:
             expected="0",
             details="Duplicate key integrity check.",
         )
+
+    po_horizon_issues = int(
+        (
+            (po["order_date"] < demand["date"].min())
+            | (po["actual_arrival_date"] > demand["date"].max())
+        ).sum()
+    )
+    _add_check(
+        results,
+        check_name="purchase_order_execution_within_analysis_horizon",
+        layer="raw",
+        method="Python",
+        status="PASS" if po_horizon_issues == 0 else "FAIL",
+        severity="CRITICAL",
+        observed=str(po_horizon_issues),
+        expected="0",
+        details="Completed purchase-order execution records must remain inside the analysis horizon.",
+    )
 
     # 3) Null critical columns
     critical_null_checks = {
@@ -350,12 +349,9 @@ def _python_validation_checks() -> list[CheckResult]:
     )
 
     # Lost sales revenue consistency
-    demand_with_price = demand.merge(products[["product_id", "unit_price"]], on="product_id", how="left")
-    expected_lost_revenue = demand_with_price["units_lost_sales"] * demand_with_price["unit_price"]
     daily_with_price = daily.merge(products[["product_id", "unit_price"]], on="product_id", how="left")
     expected_daily_lost_revenue = daily_with_price["units_lost_sales"] * daily_with_price["unit_price"]
 
-    lost_rev_mismatch_raw = int((np.abs(expected_lost_revenue - (demand_with_price["units_lost_sales"] * demand_with_price["unit_price"])) > 0.01).sum())
     lost_rev_mismatch_daily = int((np.abs(expected_daily_lost_revenue - daily_with_price["lost_sales_revenue"]) > 0.11).sum())
 
     _add_check(
@@ -417,8 +413,13 @@ def _python_validation_checks() -> list[CheckResult]:
     daily_wc["trapped_proxy"] = daily_wc["excess_proxy"] + 0.5 * (daily_wc["slow_proxy"] - daily_wc["excess_proxy"]).clip(lower=0)
 
     overall_map = dict(zip(impact_overall["metric"], impact_overall["value"]))
-    trapped_diff = abs(daily_wc["trapped_proxy"].sum() - overall_map["trapped_working_capital_proxy_observed"])
-    excess_diff = abs(daily_wc["excess_proxy"].sum() - overall_map["excess_inventory_value_proxy_observed"])
+    average_daily_wc = daily_wc.groupby("date")[["trapped_proxy", "excess_proxy"]].sum().mean()
+    trapped_diff = abs(
+        average_daily_wc["trapped_proxy"] - overall_map["trapped_working_capital_proxy_average"]
+    )
+    excess_diff = abs(
+        average_daily_wc["excess_proxy"] - overall_map["excess_inventory_value_proxy_average"]
+    )
 
     _add_check(
         results,
@@ -429,7 +430,7 @@ def _python_validation_checks() -> list[CheckResult]:
         severity="HIGH",
         observed=_fmt_float(trapped_diff),
         expected="<= 1.000000",
-        details="Recomputed trapped WC proxy should match impact summary.",
+        details="Average daily trapped WC proxy should match the impact summary.",
     )
     _add_check(
         results,
@@ -440,7 +441,7 @@ def _python_validation_checks() -> list[CheckResult]:
         severity="HIGH",
         observed=_fmt_float(excess_diff),
         expected="<= 1.000000",
-        details="Recomputed excess inventory proxy should match impact summary.",
+        details="Average daily excess inventory proxy should match the impact summary.",
     )
 
     # 8) Supplier delay calculations
@@ -451,68 +452,44 @@ def _python_validation_checks() -> list[CheckResult]:
         + 0.20 * (supplier_calc["lead_time_variability"] / 10.0).clip(0, 1)
     )
 
-    supplier_delay_observed = (
+    supplier_delay_by_supplier = (
         daily.groupby("supplier_id", as_index=False)["lost_sales_revenue"].sum()
         .merge(supplier_calc[["supplier_id", "supplier_delay_factor"]], on="supplier_id", how="left")
     )
-    supplier_delay_observed["expected_supplier_delay_impact_proxy_observed"] = (
-        supplier_delay_observed["lost_sales_revenue"] * supplier_delay_observed["supplier_delay_factor"]
+    supplier_delay_by_supplier["supplier_delay_impact_proxy_observed"] = (
+        supplier_delay_by_supplier["lost_sales_revenue"] * supplier_delay_by_supplier["supplier_delay_factor"]
     )
-
-    if impact_supplier.empty:
-        supplier_delay_max_abs_diff = np.nan
-    else:
-        supplier_delay_compare = impact_supplier.merge(
-            supplier_delay_observed[["supplier_id", "expected_supplier_delay_impact_proxy_observed"]],
-            on="supplier_id",
-            how="left",
-        )
-        supplier_delay_max_abs_diff = float(
-            np.abs(
-                supplier_delay_compare["supplier_delay_impact_proxy_observed"]
-                - supplier_delay_compare["expected_supplier_delay_impact_proxy_observed"]
-            ).max()
-        )
+    supplier_delay_diff = abs(
+        float(supplier_delay_by_supplier["supplier_delay_impact_proxy_observed"].sum())
+        - float(overall_map["supplier_delay_impact_proxy_observed"])
+    )
 
     _add_check(
         results,
         check_name="supplier_delay_proxy_consistency",
         layer="impact",
         method="Python",
-        status="PASS" if not np.isnan(supplier_delay_max_abs_diff) and supplier_delay_max_abs_diff <= 1.0 else "WARN",
+        status="PASS" if supplier_delay_diff <= 1.0 else "FAIL",
         severity="HIGH",
-        observed="nan" if np.isnan(supplier_delay_max_abs_diff) else _fmt_float(supplier_delay_max_abs_diff),
+        observed=_fmt_float(supplier_delay_diff),
         expected="<= 1.000000",
-        details="Supplier delay impact proxy should reconcile to weighted delay factor formula when supplier-level impact table is materialized.",
+        details="Supplier delay impact proxy should reconcile to the declared weighted delay factor.",
     )
 
     # 9) Aggregation correctness
-    def _metric(df: pd.DataFrame, col: str) -> float:
-        return float(df[col].sum())
-
     overall_lost = float(overall_map["lost_sales_revenue_observed"])
-    agg_checks = {}
-    if not impact_sku.empty:
-        agg_checks["aggregation_lost_sales_sku_to_overall"] = abs(_metric(impact_sku, "lost_sales_revenue_observed") - overall_lost)
-    if not impact_warehouse.empty:
-        agg_checks["aggregation_lost_sales_warehouse_to_overall"] = abs(_metric(impact_warehouse, "lost_sales_revenue_observed") - overall_lost)
-    if not impact_supplier.empty:
-        agg_checks["aggregation_lost_sales_supplier_to_overall"] = abs(_metric(impact_supplier, "lost_sales_revenue_observed") - overall_lost)
-    if not impact_category.empty:
-        agg_checks["aggregation_lost_sales_category_to_overall"] = abs(_metric(impact_category, "lost_sales_revenue_observed") - overall_lost)
-
-    for name, diff in agg_checks.items():
-        _add_check(
-            results,
-            check_name=name,
-            layer="impact",
-            method="Python",
-            status="PASS" if diff <= 1.0 else "FAIL",
-            severity="HIGH",
-            observed=_fmt_float(diff),
-            expected="<= 1.000000",
-            details="Aggregated impact totals should reconcile to overall summary.",
-        )
+    lost_sales_diff = abs(float(daily["lost_sales_revenue"].sum()) - overall_lost)
+    _add_check(
+        results,
+        check_name="impact_lost_sales_overall_consistency",
+        layer="impact",
+        method="Python",
+        status="PASS" if lost_sales_diff <= 1.0 else "FAIL",
+        severity="HIGH",
+        observed=_fmt_float(lost_sales_diff),
+        expected="<= 1.000000",
+        details="Impact summary lost sales must reconcile to the canonical daily fact.",
+    )
 
     opportunity_value = float(overall_map.get("opportunity_total_12m_proxy", 0.0))
     _add_check(
@@ -690,53 +667,7 @@ def _python_validation_checks() -> list[CheckResult]:
         details="Top governance queue should remain reasonably stable under small weighting perturbations.",
     )
 
-    # 12) Chart-to-data consistency
-    required_chart_files = [
-        "viz_01_service_level_trend.png",
-        "viz_02_stockout_rate_trend.png",
-        "viz_03_fill_rate_by_warehouse.png",
-        "viz_04_fill_rate_by_category.png",
-        "viz_05_lost_sales_by_region.png",
-        "viz_08_supplier_otd_comparison.png",
-        "viz_09_lead_time_variability_comparison.png",
-        "viz_10_service_vs_inventory_scatter.png",
-        "viz_11_top_governance_priority_skus.png",
-        "viz_12_excess_inventory_exposure_ranking.png",
-        "viz_14_warehouse_service_vs_working_capital_quadrant.png",
-        "viz_15_supplier_risk_heatmap.png",
-        "impact_01_overall_exposure.png",
-        "impact_02_top_sku_opportunity.png",
-        "impact_03_warehouse_opportunity.png",
-        "impact_04_supplier_delay_proxy.png",
-        "impact_05_category_tradeoff_scatter.png",
-    ]
-    missing_charts = [f for f in required_chart_files if not (OUTPUT_CHARTS_DIR / f).exists()]
-    small_charts = [f for f in required_chart_files if (OUTPUT_CHARTS_DIR / f).exists() and (OUTPUT_CHARTS_DIR / f).stat().st_size < 20_000]
-
-    _add_check(
-        results,
-        check_name="charts_required_files_present",
-        layer="visualization",
-        method="Python",
-        status="PASS" if len(missing_charts) == 0 else "FAIL",
-        severity="HIGH",
-        observed=str(len(missing_charts)),
-        expected="0",
-        details="All required executive chart PNG files should exist.",
-    )
-    _add_check(
-        results,
-        check_name="charts_file_size_sanity",
-        layer="visualization",
-        method="Python",
-        status="PASS" if len(small_charts) == 0 else "WARN",
-        severity="LOW",
-        observed=str(len(small_charts)),
-        expected="0",
-        details="Very small PNG files may indicate rendering issues.",
-    )
-
-    # Upgrade output presence checks
+    # Curated output presence checks
     required_upgrade_tables = [
         "data_contract_check_results.csv",
         "data_contract_table_profile.csv",
@@ -745,8 +676,6 @@ def _python_validation_checks() -> list[CheckResult]:
         "impact_opportunity_priority.csv",
         "dashboard_sku_risk_baseline.csv",
         "dashboard_official_snapshot.csv",
-        "dashboard_build_manifest.csv",
-        "dashboard_release_manifest.csv",
         "ci_sql_validation_checks.csv",
     ]
     missing_upgrade_tables = [t for t in required_upgrade_tables if not (OUTPUT_TABLES_DIR / t).exists()]
@@ -794,37 +723,35 @@ def _python_validation_checks() -> list[CheckResult]:
         details="Contract warnings should remain zero for release quality discipline.",
     )
 
-    pipeline_log_exists = (OUTPUT_TABLES_DIR / "pipeline_run_log.csv").exists()
-    _add_check(
-        results,
-        check_name="pipeline_orchestration_log_present",
-        layer="analytics",
-        method="Python",
-        status="PASS" if pipeline_log_exists else "WARN",
-        severity="LOW",
-        observed="1" if pipeline_log_exists else "0",
-        expected="1",
-        details="Optional run-log from one-command orchestration should exist for production-style traceability.",
-    )
-
     # 13) Dashboard metric consistency and structure
-    dashboard_daily_totals = {
+    dashboard_flow_totals = {
         "units_demanded": float(daily["units_demanded"].sum()),
         "units_fulfilled": float(daily["units_fulfilled"].sum()),
         "units_lost_sales": float(daily["units_lost_sales"].sum()),
         "lost_sales_revenue": float(daily["lost_sales_revenue"].sum()),
-        "inventory_value": float(daily["inventory_value"].sum()),
     }
 
-    dashboard_fact_totals = {
+    dashboard_fact_flow_totals = {
         "units_demanded": float(dashboard_fact["units_demanded"].sum()),
         "units_fulfilled": float(dashboard_fact["units_fulfilled"].sum()),
         "units_lost_sales": float(dashboard_fact["units_lost_sales"].sum()),
         "lost_sales_revenue": float(dashboard_fact["lost_sales_revenue"].sum()),
-        "inventory_value": float(dashboard_fact["inventory_value"].sum()),
     }
 
-    dashboard_total_diff = sum(abs(dashboard_daily_totals[k] - dashboard_fact_totals[k]) for k in dashboard_daily_totals)
+    daily_inventory_average = float(daily.groupby("date")["inventory_value"].sum().mean())
+    dashboard_monthly_inventory = dashboard_fact.groupby("month", as_index=False).agg(
+        inventory_value=("inventory_value", "sum"),
+        observation_days=("observation_days", "max"),
+    )
+    dashboard_inventory_average = float(
+        np.average(
+            dashboard_monthly_inventory["inventory_value"],
+            weights=dashboard_monthly_inventory["observation_days"],
+        )
+    )
+    dashboard_total_diff = sum(
+        abs(dashboard_flow_totals[k] - dashboard_fact_flow_totals[k]) for k in dashboard_flow_totals
+    ) + abs(daily_inventory_average - dashboard_inventory_average)
     _add_check(
         results,
         check_name="dashboard_metric_reconciliation",
@@ -834,7 +761,7 @@ def _python_validation_checks() -> list[CheckResult]:
         severity="HIGH",
         observed=_fmt_float(dashboard_total_diff),
         expected="<= 1.000000",
-        details="Dashboard embedded fact should reconcile to processed daily totals.",
+        details="Dashboard flows and average daily inventory balance should reconcile to the processed daily fact.",
     )
 
     required_html_tokens = [
@@ -850,11 +777,16 @@ def _python_validation_checks() -> list[CheckResult]:
         "assump-margin-rate",
         "assump-wc-rate",
         "assump-slow-weight",
-        "chart-service-trend",
-        "chart-stockout-trend",
-        "chart-lost-sales-trend",
-        "chart-top-governance",
+        "chart-trend",
+        "chart-value-trend",
+        "chart-bottlenecks",
+        "chart-category-capital",
+        "chart-tradeoff",
+        "chart-supplier",
+        "chart-governance",
         "detail-table",
+        "aria-sort",
+        "https://cdn.plot.ly/plotly-3.5.0.min.js",
     ]
     html_text = html_path.read_text(encoding="utf-8") if html_path.exists() else ""
     missing_tokens = [t for t in required_html_tokens if t not in html_text]
@@ -899,29 +831,32 @@ def _python_validation_checks() -> list[CheckResult]:
         check_name="dashboard_layout_no_absolute_positioning",
         layer="dashboard",
         method="Python",
-        status="PASS" if absolute_position_count == 0 else "WARN",
+        status="PASS" if absolute_position_count <= 2 else "WARN",
         severity="MEDIUM",
         observed=str(absolute_position_count),
-        expected="0",
-        details="Avoiding absolute positioning reduces overlap risk across responsive screen widths.",
+        expected="<= 2",
+        details="Only the keyboard skip-link and screen-reader-only utility should use absolute positioning.",
     )
 
-    responsive_tokens = ["@media (max-width: 1280px)", "@media (max-width: 820px)", "grid-template-columns"]
-    missing_responsive_tokens = [t for t in responsive_tokens if t not in html_text]
+    # Responsiveness is asserted by intent, not exact breakpoint pixels: at least two
+    # max-width media queries (tablet + mobile) plus responsive grid columns must exist.
+    responsive_breakpoint_count = html_text.count("@media (max-width:")
+    has_grid_columns = "grid-template-columns" in html_text
+    responsive_ok = responsive_breakpoint_count >= 2 and has_grid_columns
     _add_check(
         results,
         check_name="dashboard_responsive_rule_presence",
         layer="dashboard",
         method="Python",
-        status="PASS" if len(missing_responsive_tokens) == 0 else "FAIL",
+        status="PASS" if responsive_ok else "FAIL",
         severity="HIGH",
-        observed=str(len(missing_responsive_tokens)),
-        expected="0",
+        observed=f"breakpoints={responsive_breakpoint_count}, grid_columns={has_grid_columns}",
+        expected="breakpoints>=2, grid_columns=True",
         details="Dashboard must retain explicit responsive layout rules for mobile/tablet/desktop safety.",
     )
 
     dashboard_bytes = html_path.stat().st_size if html_path.exists() else 0
-    payload_status = "PASS" if dashboard_bytes <= 8_500_000 else ("WARN" if dashboard_bytes <= 10_500_000 else "FAIL")
+    payload_status = "PASS" if dashboard_bytes <= 2_000_000 else ("WARN" if dashboard_bytes <= 3_000_000 else "FAIL")
     _add_check(
         results,
         check_name="dashboard_payload_size_sanity",
@@ -930,7 +865,7 @@ def _python_validation_checks() -> list[CheckResult]:
         status=payload_status,
         severity="MEDIUM",
         observed=str(dashboard_bytes),
-        expected="<= 8500000 bytes (warn up to 10500000)",
+        expected="<= 2000000 bytes (warn up to 3000000)",
         details="Large HTML payloads degrade browser reliability and increase silent rendering failures.",
     )
 
@@ -957,98 +892,42 @@ def _python_validation_checks() -> list[CheckResult]:
     if dashboard_snapshot_path.exists():
         dashboard_snapshot = pd.read_csv(dashboard_snapshot_path).iloc[0]
         fill_diff_snapshot = abs(float(dashboard_snapshot["overall_fill_rate"]) - float(kpi_overall["overall_fill_rate"]))
+        stockout_diff_snapshot = abs(
+            float(dashboard_snapshot["overall_stockout_rate"]) - float(kpi_overall["overall_stockout_rate"])
+        )
+        trapped_wc_diff_snapshot = abs(
+            float(dashboard_snapshot["trapped_working_capital_proxy_average"])
+            - float(overall_map["trapped_working_capital_proxy_average"])
+        )
     else:
         fill_diff_snapshot = np.nan
+        stockout_diff_snapshot = np.nan
+        trapped_wc_diff_snapshot = np.nan
     _add_check(
         results,
         check_name="dashboard_official_snapshot_present_and_reconciled",
         layer="dashboard",
         method="Python",
-        status="PASS" if dashboard_snapshot_path.exists() and (fill_diff_snapshot <= 0.0005) else "FAIL",
+        status=(
+            "PASS"
+            if dashboard_snapshot_path.exists()
+            and fill_diff_snapshot <= 0.0005
+            and stockout_diff_snapshot <= 0.0005
+            and trapped_wc_diff_snapshot <= 1.0
+            else "FAIL"
+        ),
         severity="HIGH",
-        observed="nan" if np.isnan(fill_diff_snapshot) else _fmt_float(fill_diff_snapshot),
-        expected="<= 0.000500",
-        details="Dashboard official snapshot file must exist and reconcile to KPI baseline metrics.",
-    )
-
-    # 14) Cross-output consistency (reports vs governed KPI outputs)
-    executive_summary_text = (OUTPUT_REPORTS_DIR / "executive_summary.md").read_text(encoding="utf-8")
-
-    fill_match = re.search(r"Overall fill rate is \*\*(\d+\.\d+)%\*\*", executive_summary_text)
-    stockout_match = re.search(r"\*\*(\d+\.\d+)%\*\* unit stockout rate", executive_summary_text)
-    lost_sales_match = re.search(r"Lost sales exposure is \*\*EUR ([\d\.]+)M\*\*", executive_summary_text)
-
-    summary_fill = float(fill_match.group(1)) / 100.0 if fill_match else np.nan
-    summary_stockout = float(stockout_match.group(1)) / 100.0 if stockout_match else np.nan
-    summary_lost = float(lost_sales_match.group(1)) * 1_000_000 if lost_sales_match else np.nan
-
-    fill_summary_diff = abs(summary_fill - float(kpi_overall["overall_fill_rate"])) if not np.isnan(summary_fill) else np.nan
-    stockout_summary_diff = abs(summary_stockout - float(kpi_overall["overall_stockout_rate"])) if not np.isnan(summary_stockout) else np.nan
-    lost_summary_diff = abs(summary_lost - float(kpi_overall["total_lost_sales_revenue"])) if not np.isnan(summary_lost) else np.nan
-
-    _add_check(
-        results,
-        check_name="executive_summary_fill_rate_consistency",
-        layer="reporting",
-        method="Python",
-        status="PASS" if not np.isnan(fill_summary_diff) and fill_summary_diff <= 0.001 else "FAIL",
-        severity="HIGH",
-        observed="nan" if np.isnan(fill_summary_diff) else _fmt_float(fill_summary_diff),
-        expected="<= 0.001000",
-        details="Executive summary fill-rate narrative must reconcile to KPI baseline output.",
-    )
-    _add_check(
-        results,
-        check_name="executive_summary_stockout_rate_consistency",
-        layer="reporting",
-        method="Python",
-        status="PASS" if not np.isnan(stockout_summary_diff) and stockout_summary_diff <= 0.001 else "FAIL",
-        severity="HIGH",
-        observed="nan" if np.isnan(stockout_summary_diff) else _fmt_float(stockout_summary_diff),
-        expected="<= 0.001000",
-        details="Executive summary stockout-rate narrative must reconcile to KPI baseline output.",
-    )
-    _add_check(
-        results,
-        check_name="executive_summary_lost_sales_consistency",
-        layer="reporting",
-        method="Python",
-        status="PASS" if not np.isnan(lost_summary_diff) and lost_summary_diff <= 200_000 else "WARN",
-        severity="MEDIUM",
-        observed="nan" if np.isnan(lost_summary_diff) else _fmt_float(lost_summary_diff),
-        expected="<= 200000.000000",
-        details="Executive summary lost-sales statement should stay aligned (allowing rounded million formatting).",
-    )
-
-    # 15) Overclaiming risk in written conclusions (heuristic)
-    causal_terms = re.compile(r"\b(caused|proves|guarantees|certainly|always|directly attributable)\b", re.IGNORECASE)
-    mitigation_terms = re.compile(r"\b(proxy|estimated|signal|directional|assumption|caveat|likely)\b", re.IGNORECASE)
-
-    text_sources = {
-        "executive_kpi": (OUTPUT_REPORTS_DIR / "executive_kpi_diagnostic_analysis.md").read_text(encoding="utf-8"),
-        "executive_summary": (OUTPUT_REPORTS_DIR / "executive_summary.md").read_text(encoding="utf-8"),
-    }
-
-    total_causal_hits = 0
-    total_mitigation_hits = 0
-    for text in text_sources.values():
-        total_causal_hits += len(causal_terms.findall(text))
-        total_mitigation_hits += len(mitigation_terms.findall(text))
-
-    overclaim_status = "PASS"
-    if total_causal_hits > 0 and total_mitigation_hits < total_causal_hits:
-        overclaim_status = "WARN"
-
-    _add_check(
-        results,
-        check_name="written_conclusion_overclaiming_risk",
-        layer="reporting",
-        method="Python",
-        status=overclaim_status,
-        severity="MEDIUM",
-        observed=f"causal_hits={total_causal_hits}, mitigation_hits={total_mitigation_hits}",
-        expected="mitigation_hits >= causal_hits",
-        details="Heuristic check for causal overclaiming without proxy/assumption qualifiers.",
+        observed=(
+            "nan"
+            if np.isnan(fill_diff_snapshot) or np.isnan(stockout_diff_snapshot) or np.isnan(trapped_wc_diff_snapshot)
+            else (
+                f"fill_diff={_fmt_float(fill_diff_snapshot)}, "
+                f"stockout_diff={_fmt_float(stockout_diff_snapshot)}, "
+                f"trapped_wc_diff={_fmt_float(trapped_wc_diff_snapshot)}"
+            )
+        ),
+        expected="fill_diff <= 0.000500, stockout_diff <= 0.000500, trapped_wc_diff <= 1.000000",
+        details="Dashboard snapshot must reconcile service KPIs and average daily trapped WC to governed outputs.",
     )
 
     return results
@@ -1073,10 +952,14 @@ def _compute_release_state_matrix(checks_df: pd.DataFrame) -> pd.DataFrame:
 
     technically_valid = technical_fail.empty
     analytically_acceptable = technically_valid and analytical_fail.empty and high_warn.empty
-    decision_support_only = analytically_acceptable
-    screening_grade_only = technically_valid and (not analytically_acceptable)
-    not_committee_grade = True  # synthetic data + proxy-based financial assumptions
-    publish_blocked = (not technically_valid) or (not blocker_fail.empty) or (not high_fail.empty) or (not high_warn.empty)
+    decision_support_ready = analytically_acceptable
+    publish_blocked = (
+        (checks_df["status"] == "FAIL").any()
+        or (not blocker_fail.empty)
+        or (not high_fail.empty)
+        or (not high_warn.empty)
+    )
+    publish_allowed = not publish_blocked
 
     rows = [
         {
@@ -1094,41 +977,25 @@ def _compute_release_state_matrix(checks_df: pd.DataFrame) -> pd.DataFrame:
             "implication": "Interpretations and prioritization outputs are fit for controlled internal analysis.",
         },
         {
-            "state_name": "decision_support_only",
-            "state_label": "Decision-Support Only",
-            "status": "PASS" if decision_support_only else "FAIL",
+            "state_name": "decision_support_ready",
+            "state_label": "Decision-Support Ready",
+            "status": "PASS" if decision_support_ready else "FAIL",
             "criteria": "Analytically acceptable with caveated proxy economics.",
             "implication": "Suitable for leadership prioritization and directional planning discussions.",
         },
         {
-            "state_name": "screening_grade_only",
-            "state_label": "Screening-Grade Only",
-            "status": "PASS" if screening_grade_only else "FAIL",
-            "criteria": "Technically valid but analytical rigor still below decision-support quality.",
-            "implication": "Use for triage/scoping only; no executive decision framing.",
-        },
-        {
-            "state_name": "not_committee_grade",
-            "state_label": "Not Committee-Grade",
-            "status": "PASS" if not_committee_grade else "FAIL",
-            "criteria": "Synthetic data + proxy assumptions prevent audit-grade committee sign-off.",
-            "implication": "Do not represent as statutory/committee-grade evidence.",
-        },
-        {
-            "state_name": "publish_blocked",
-            "state_label": "Publish-Blocked",
-            "status": "PASS" if publish_blocked else "FAIL",
-            "criteria": "Any blocker/high failure or high-severity warning blocks release publication.",
-            "implication": "When PASS here, release cannot be promoted.",
+            "state_name": "publish_allowed",
+            "state_label": "Publish Allowed",
+            "status": "PASS" if publish_allowed else "FAIL",
+            "criteria": "No failures or high-severity warnings remain.",
+            "implication": "When PASS, release artefacts may be promoted.",
         },
     ]
 
     if publish_blocked:
         release_classification = "publish-blocked"
-    elif decision_support_only:
-        release_classification = "decision-support only"
-    elif screening_grade_only:
-        release_classification = "screening-grade only"
+    elif decision_support_ready:
+        release_classification = "decision-support ready"
     else:
         release_classification = "not-classified"
 
@@ -1140,147 +1007,8 @@ def _compute_release_state_matrix(checks_df: pd.DataFrame) -> pd.DataFrame:
     return matrix_df
 
 
-def _build_report(
-    checks_df: pd.DataFrame,
-    sql_raw_df: pd.DataFrame,
-    sql_processed_df: pd.DataFrame,
-    issues_df: pd.DataFrame,
-    release_matrix: pd.DataFrame,
-) -> str:
-    generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-
-    total = len(checks_df)
-    passed = int((checks_df["status"] == "PASS").sum())
-    failed = int((checks_df["status"] == "FAIL").sum())
-    warned = int((checks_df["status"] == "WARN").sum())
-
-    severity_weight = {"CRITICAL": 35, "HIGH": 20, "MEDIUM": 10, "LOW": 5}
-    penalty = 0
-    for row in checks_df.itertuples(index=False):
-        if row.status == "FAIL":
-            penalty += severity_weight.get(row.severity, 10)
-        elif row.status == "WARN":
-            penalty += int(0.4 * severity_weight.get(row.severity, 10))
-
-    confidence_score = max(0, 100 - penalty)
-    if confidence_score >= 90:
-        confidence_band = "High"
-    elif confidence_score >= 75:
-        confidence_band = "Moderate-High"
-    elif confidence_score >= 60:
-        confidence_band = "Moderate"
-    else:
-        confidence_band = "Low"
-
-    sql_failed = int(((sql_raw_df["status"] == "FAIL").sum() + (sql_processed_df["status"] == "FAIL").sum()))
-    release_classification = str(release_matrix["release_classification"].iloc[0])
-    publish_blocked = release_classification == "publish-blocked"
-
-    # Issues and fixes summaries
-    issues_lines = [
-        "## 2) Issues Found",
-        "",
-    ]
-    if issues_df.empty:
-        issues_lines.append("- No FAIL/WARN issues detected in the pre-delivery validation suite.")
-    else:
-        for row in issues_df.itertuples(index=False):
-            issues_lines.append(
-                f"- [{row.status}] `{row.check_name}` ({row.layer}/{row.method}, severity {row.severity}): {row.details} (observed={row.observed}, expected={row.expected})."
-            )
-
-    fixes_applied = [
-        {
-            "fix_id": "FIX-001",
-            "status": "APPLIED",
-            "description": "Reworded KPI narrative line from 'supplier-attributed lost sales' to 'supplier-linked proxy lost sales' to reduce causal overclaim risk.",
-            "file": "outputs/reports/executive_kpi_diagnostic_analysis.md",
-        }
-    ]
-    fixes_df = pd.DataFrame(fixes_applied)
-    fixes_df.to_csv(OUTPUT_TABLES_DIR / "validation_pre_delivery_fixes_applied.csv", index=False)
-
-    unresolved_caveats = [
-        "Impact opportunity values remain proxy estimates; 35% recoverable margin and 25% releasable working-capital assumptions materially affect estimated value pools.",
-        "Supplier delay impact is an association proxy (delay severity x lost sales), not a causal attribution model.",
-        "Dashboard metrics aggregate inventory value over time windows; for finance close processes, point-in-time inventory snapshots should be validated separately.",
-    ]
-
-    lines = [
-        "# Validation Report",
-        "",
-        f"Generated at: {generated_at}",
-        "",
-        "Formal pre-delivery QA for the Supply Chain Service Level, Inventory Risk & Working Capital Intelligence System.",
-        "",
-        "## 1) Validation Report",
-        "",
-        f"- Total checks: **{total}**",
-        f"- Passed: **{passed}**",
-        f"- Failed: **{failed}**",
-        f"- Warnings: **{warned}**",
-        f"- SQL check failures: **{sql_failed}**",
-        f"- Confidence score: **{confidence_score}/100** ({confidence_band})",
-        f"- Release classification: **{release_classification}**",
-        f"- Publish blocked: **{'Yes' if publish_blocked else 'No'}**",
-        "",
-        "### Confirmed vs Estimated",
-        "- Confirmed (data-integrity/logic): key uniqueness, nulls, non-negativity, fill-rate and stockout logic, reconciliation of aggregates, scoring formula coherence, chart-file generation, dashboard reconciliation.",
-        "- Estimated/proxy: excess-inventory value, trapped working-capital value, supplier-delay impact, and 12-month opportunity estimates.",
-        "",
-        "### Release-State Matrix",
-        "| State | Status | Criteria | Implication |",
-        "|---|---|---|---|",
-    ]
-
-    for row in release_matrix.itertuples(index=False):
-        lines.append(f"| {row.state_label} | {row.status} | {row.criteria} | {row.implication} |")
-
-    lines.extend([
-        "",
-        "### Check Matrix",
-        "| Check | Layer | Method | Severity | Status | Observed | Expected |",
-        "|---|---|---|---|---|---:|---:|",
-    ])
-
-    for row in checks_df.itertuples(index=False):
-        lines.append(
-            f"| {row.check_name} | {row.layer} | {row.method} | {row.severity} | {row.status} | {row.observed} | {row.expected} |"
-        )
-
-    lines.extend(["", *issues_lines, "", "## 3) Fixes Applied", ""])
-    for fix in fixes_applied:
-        lines.append(f"- [{fix['status']}] {fix['fix_id']}: {fix['description']} ({fix['file']}).")
-
-    lines.extend(["", "## 4) Unresolved Caveats", ""])
-    for caveat in unresolved_caveats:
-        lines.append(f"- {caveat}")
-
-    lines.extend([
-        "",
-        "## 5) Final Confidence Assessment",
-        "",
-        f"- Delivery confidence: **{confidence_band}** ({confidence_score}/100).",
-        f"- Release class: **{release_classification}**.",
-        "- Recommendation: suitable for leadership review only when release class is decision-support only and proxy caveats remain explicit.",
-        "- Governance note: committee-grade publication remains blocked by synthetic-data and proxy-finance constraints.",
-        "",
-        "## Supporting Outputs",
-        "- `/outputs/tables/validation_pre_delivery_checks.csv`",
-        "- `/outputs/tables/validation_pre_delivery_issues.csv`",
-        "- `/outputs/tables/validation_pre_delivery_sql_raw.csv`",
-        "- `/outputs/tables/validation_pre_delivery_sql_processed.csv`",
-        "- `/outputs/tables/validation_pre_delivery_fixes_applied.csv`",
-        "- `/outputs/tables/validation_release_state_matrix.csv`",
-    ])
-
-    return "\n".join(lines)
-
-
 def run_pre_delivery_validation() -> None:
     OUTPUT_TABLES_DIR.mkdir(parents=True, exist_ok=True)
-    OUTPUT_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    DOCS_DIR.mkdir(parents=True, exist_ok=True)
 
     sql_raw_df, sql_processed_df = _run_sql_checks()
     python_results = _python_validation_checks()
@@ -1307,31 +1035,10 @@ def run_pre_delivery_validation() -> None:
     )[["check_name", "layer", "method", "status", "severity", "observed", "expected", "details"]]
 
     unified_df = pd.concat([checks_df, sql_raw_checks, sql_processed_checks], ignore_index=True)
-    issues_df = unified_df[unified_df["status"].isin(["FAIL", "WARN"])].copy()
     release_matrix = _compute_release_state_matrix(unified_df)
 
     unified_df.to_csv(OUTPUT_TABLES_DIR / "validation_pre_delivery_checks.csv", index=False)
-    issues_df.to_csv(OUTPUT_TABLES_DIR / "validation_pre_delivery_issues.csv", index=False)
-    sql_raw_df.to_csv(OUTPUT_TABLES_DIR / "validation_pre_delivery_sql_raw.csv", index=False)
-    sql_processed_df.to_csv(OUTPUT_TABLES_DIR / "validation_pre_delivery_sql_processed.csv", index=False)
     release_matrix.to_csv(OUTPUT_TABLES_DIR / "validation_release_state_matrix.csv", index=False)
-
-    report = _build_report(unified_df, sql_raw_df, sql_processed_df, issues_df, release_matrix)
-    (DOCS_DIR / "validation_report.md").write_text(report, encoding="utf-8")
-
-    release_lines = [
-        "# Release Readiness",
-        "",
-        f"- Generated at: **{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}**",
-        f"- Release classification: **{release_matrix['release_classification'].iloc[0]}**",
-        "",
-        "## State Overview",
-        "| State | Status |",
-        "|---|---|",
-    ]
-    for row in release_matrix.itertuples(index=False):
-        release_lines.append(f"| {row.state_label} | {row.status} |")
-    (OUTPUT_REPORTS_DIR / "release_readiness.md").write_text("\n".join(release_lines), encoding="utf-8")
 
     print("Pre-delivery validation completed.")
     print(f"Checks: {len(unified_df)}")

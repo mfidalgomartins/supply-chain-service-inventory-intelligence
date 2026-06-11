@@ -3,6 +3,7 @@
 Thumbs.db
 .idea/
 .vscode/
+.claude/
 
 # Python
 .venv/
@@ -20,6 +21,12 @@ htmlcov/
 
 # Local runtime/cache artifacts
 .cache/
+
+# Reproducible pipeline outputs
+data/raw/*.csv
+data/processed/*.csv
+outputs/tables/*.csv
+outputs/dashboard/
 
 # Environment files
 .env

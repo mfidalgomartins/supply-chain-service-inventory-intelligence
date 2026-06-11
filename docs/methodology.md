@@ -13,7 +13,7 @@ Core business question:
 Included:
 - End-to-end synthetic data generation at daily grain for a multi-warehouse distribution network.
 - SQL-based analytical modeling for canonical daily and entity-level views.
-- Python-based feature engineering, scoring, diagnostics, impact estimation, visualization, and dashboard packaging.
+- Python-based scoring, impact estimation, and dashboard packaging.
 - Formal pre-delivery validation (SQL + Python checks) before executive outputs.
 
 Excluded:
@@ -45,7 +45,7 @@ Current generated volume:
 - `warehouses`: 4
 - `inventory_snapshots`: 350,880
 - `demand_history`: 350,880
-- `purchase_orders`: 13,369
+- `purchase_orders`: 13,610
 - `product_classification`: 120
 
 ## Analytical Workflow
@@ -62,46 +62,50 @@ Current generated volume:
   - `product_inventory_profile`
   - `warehouse_service_profile`
 
-3. Python feature engineering
-- Script: `src/feature_engineering.py`
-- Recomputes behavior proxies from daily detail and writes `sku_risk_table` baseline.
-
-4. Data contract enforcement
-- Contract spec: `configs/table_contracts.json`
-- Script: `src/data_contracts.py`
-- Output: `/outputs/tables/data_contract_check_results.csv`, `/outputs/tables/data_contract_table_profile.csv`, `/outputs/reports/data_contracts_summary.md`
-- Purpose: enforce required columns, grain uniqueness, critical-null, and non-negative rules before downstream scoring/reporting.
-
-5. Governance scoring layer
+3. Governance scoring layer
 - Script: `src/scoring.py`
-- Produces final scored outputs:
+- Computes the canonical SKU-location, supplier, and segment risk tables from
+  the daily fact and supplier execution profile.
+- Produces:
   - `/data/processed/sku_risk_table.csv`
   - `/data/processed/supplier_risk_table.csv`
   - `/data/processed/segment_risk_table.csv`
   - `/data/processed/governance_priority_master.csv`
 
-6. KPI, impact, and diagnostic analysis
-- Scripts: `src/kpi_diagnostic_analysis.py`, `src/impact_analysis.py`, `src/visualization.py`
-- Core outputs are curated in `/outputs/` (executive summaries, KPI tables, and charts).
+4. Data contract enforcement
+- Contract spec: `configs/table_contracts.json`
+- Script: `src/data_contracts.py`
+- Output: `/outputs/tables/data_contract_check_results.csv`, `/outputs/tables/data_contract_table_profile.csv`
+- Purpose: enforce required columns, grain uniqueness, critical nulls,
+  non-negative rules, categorical domains, value ranges, and key references
+  before reporting.
+
+5. Impact analysis
+- Script: `src/impact_analysis.py`
+- Core outputs are curated as CSV tables in `/outputs/tables/` and consumed by the dashboard.
+
+6. Publication artefacts
+- Scripts: `src/build_charts.py`, `src/build_report.py`
+- Outputs: `/outputs/graphs/*.png` and
+  `/outputs/reports/service_inventory_intelligence_report.pdf`
 
 7. Executive dashboard
 - Script: `src/executive_dashboard.py`
-- Output: `/index.html` (self-contained publishable entry point), plus a redirect entry at `/docs/index.html` and dashboard fact/dim extracts in `/outputs/tables/`.
+- Output: `/index.html` (publishable GitHub Pages entry point) and dashboard fact/dim extracts in `/outputs/tables/`.
 
 8. Pre-delivery QA
 - Script: `src/pre_delivery_validation.py`
-- Output: validation tables + `/docs/validation_report.md` + release-state matrix (`/outputs/tables/validation_release_state_matrix.csv`)
-  + release readiness summary (`/outputs/reports/release_readiness.md`).
+- Output: validation checks (`/outputs/tables/validation_pre_delivery_checks.csv`) and release-state matrix (`/outputs/tables/validation_release_state_matrix.csv`).
 
 9. SQL and CI quality gates
 - Scripts: `src/sql_quality_gate.py`, `src/ci_quality_gate.py`
 - CI workflow: `.github/workflows/analytics-ci.yml`
-- Output: SQL gate checks (`/outputs/tables/ci_sql_validation_checks.csv`) and release gating status with explicit states:
+- Output: SQL gate checks (`/outputs/tables/ci_sql_validation_checks.csv`),
+  smoke tests for the KPI query library (`sql/03_kpi_queries.sql`), and release
+  gating status with explicit states:
   - technically valid
   - analytically acceptable
-  - decision-support only
-  - screening-grade only
-  - not committee-grade
+  - decision-support ready
   - publish-blocked
 - Governance reference: `/docs/release_governance.md`
 
@@ -120,6 +124,9 @@ Impact assumptions (`src/impact_analysis.py`):
 - 12M opportunity proxy uses:
   - recoverable lost margin rate = 35%
   - releasable trapped WC rate = 25%
+- Lost-sales margin is annualized as a flow. Inventory and trapped working
+  capital are average daily balances and are not summed or annualized through
+  time.
 - Supplier delay impact is an associative severity proxy, not causal attribution.
 
 ## Caveats
@@ -140,9 +147,8 @@ Validation dimensions:
 - Supplier delay factor recomputation checks.
 - Aggregation reconciliation across SKU, warehouse, supplier, category, and overall totals.
 - Governance score formula and tier consistency checks.
-- Chart file existence and dashboard metric reconciliation checks.
-- Narrative overclaiming control (explicit observed vs proxy distinction).
+- Dashboard metric reconciliation checks.
 - Output presence checks for core KPI, scoring, impact, and dashboard artifacts.
 
 Latest status:
-- Generated on each pipeline run; see `/docs/validation_report.md` and `/outputs/reports/release_readiness.md` for current counts and release class.
+- Generated on each pipeline run; see `/outputs/tables/validation_pre_delivery_checks.csv` and `/outputs/tables/validation_release_state_matrix.csv` for current counts and release class.

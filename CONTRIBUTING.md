@@ -1,0 +1,26 @@
+# Contributing
+
+## Local Validation
+
+Use Python 3.12 or newer and run the complete publication pipeline before
+opening a pull request:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python src/run_pipeline.py
+.venv/bin/python -m pytest -q
+git diff --check
+```
+
+The pipeline regenerates ignored CSV layers and refreshes the tracked
+publication artefacts: `index.html`, `outputs/graphs/`, and
+`outputs/reports/service_inventory_intelligence_report.pdf`.
+
+## Change Expectations
+
+- Keep metric definitions aligned with `docs/metric_dictionary.md`.
+- Add focused tests for changes to scoring, impact, contracts, or release gates.
+- Preserve the explicit distinction between observed values, proxy estimates,
+  and causal claims.
+- Use conventional commits in the form `type(scope): imperative description`.

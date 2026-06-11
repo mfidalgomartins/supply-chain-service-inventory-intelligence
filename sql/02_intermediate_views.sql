@@ -100,33 +100,17 @@ po_agg AS (
         END AS received_vs_ordered_fill_rate
     FROM po_base
     GROUP BY supplier_id
-),
-risk_scored AS (
-    SELECT
-        supplier_id,
-        on_time_delivery_rate,
-        average_delay_days,
-        lead_time_variability,
-        received_vs_ordered_fill_rate,
-        100.0 * (
-            0.40 * (1.0 - on_time_delivery_rate) +
-            0.20 * LEAST(average_delay_days / 10.0, 1.0) +
-            0.20 * LEAST(lead_time_variability / 8.0, 1.0) +
-            0.20 * (1.0 - received_vs_ordered_fill_rate)
-        ) AS supplier_service_risk_proxy
-    FROM po_agg
 )
 SELECT
     s.supplier_id,
     s.supplier_name,
-    COALESCE(r.on_time_delivery_rate, 1.0) AS on_time_delivery_rate,
-    COALESCE(r.average_delay_days, 0.0) AS average_delay_days,
-    COALESCE(r.lead_time_variability, 0.0) AS lead_time_variability,
-    COALESCE(r.received_vs_ordered_fill_rate, 1.0) AS received_vs_ordered_fill_rate,
-    COALESCE(r.supplier_service_risk_proxy, 0.0) AS supplier_service_risk_proxy
+    COALESCE(p.on_time_delivery_rate, 1.0) AS on_time_delivery_rate,
+    COALESCE(p.average_delay_days, 0.0) AS average_delay_days,
+    COALESCE(p.lead_time_variability, 0.0) AS lead_time_variability,
+    COALESCE(p.received_vs_ordered_fill_rate, 1.0) AS received_vs_ordered_fill_rate
 FROM suppliers s
-LEFT JOIN risk_scored r
-    ON s.supplier_id = r.supplier_id;
+LEFT JOIN po_agg p
+    ON s.supplier_id = p.supplier_id;
 
 -- ============================================================
 -- View 3: product_inventory_profile
@@ -135,6 +119,7 @@ LEFT JOIN risk_scored r
 CREATE OR REPLACE VIEW product_inventory_profile AS
 WITH sku_daily AS (
     SELECT
+        d.date,
         d.product_id,
         p.product_name,
         d.category,
@@ -143,7 +128,7 @@ WITH sku_daily AS (
         d.inventory_value,
         d.days_of_supply,
         d.stockout_flag,
-        d.fill_rate,
+        d.units_demanded,
         d.lost_sales_revenue,
         d.available_units,
         d.units_fulfilled,
@@ -162,11 +147,14 @@ sku_agg AS (
         MAX(product_name) AS product_name,
         MAX(category) AS category,
         MAX(abc_class) AS abc_class,
-        AVG(on_hand_units) AS average_inventory_units,
-        AVG(inventory_value) AS average_inventory_value,
+        SUM(on_hand_units) / COUNT(DISTINCT date) AS average_inventory_units,
+        SUM(inventory_value) / COUNT(DISTINCT date) AS average_inventory_value,
         AVG(days_of_supply) AS average_days_of_supply,
         AVG(CASE WHEN stockout_flag = 1 THEN 1.0 ELSE 0.0 END) AS stockout_frequency,
-        AVG(fill_rate) AS fill_rate_average,
+        CASE
+            WHEN SUM(units_demanded) = 0 THEN 1.0
+            ELSE CAST(SUM(units_fulfilled) AS DOUBLE) / CAST(SUM(units_demanded) AS DOUBLE)
+        END AS fill_rate_average,
         SUM(lost_sales_revenue) AS lost_sales_exposure,
         AVG(CASE WHEN available_units > 0 AND units_fulfilled = 0 THEN 1.0 ELSE 0.0 END) AS slow_moving_inventory_proxy,
         AVG(CASE WHEN days_of_supply > dos_policy_cap THEN 1.0 ELSE 0.0 END) AS excess_inventory_proxy
@@ -244,122 +232,3 @@ risk_calc AS (
 )
 SELECT *
 FROM risk_calc;
-
--- ============================================================
--- View 5: inventory_risk_base
--- Grain: product_id + warehouse_id
--- Purpose: normalized base signals for overstock / working-capital diagnostics.
--- ============================================================
-CREATE OR REPLACE VIEW inventory_risk_base AS
-WITH sku_wh AS (
-    SELECT
-        product_id,
-        warehouse_id,
-        category,
-        abc_class,
-        AVG(days_of_supply) AS avg_days_of_supply,
-        AVG(inventory_value) AS avg_inventory_value,
-        AVG(CASE WHEN available_units > 0 AND units_fulfilled = 0 THEN 1.0 ELSE 0.0 END) AS slow_moving_day_rate,
-        AVG(
-            CASE
-                WHEN abc_class = 'A' AND days_of_supply > 20 THEN 1.0
-                WHEN abc_class = 'B' AND days_of_supply > 30 THEN 1.0
-                WHEN abc_class NOT IN ('A', 'B') AND days_of_supply > 45 THEN 1.0
-                ELSE 0.0
-            END
-        ) AS excess_inventory_day_rate
-    FROM daily_product_warehouse_metrics
-    GROUP BY product_id, warehouse_id, category, abc_class
-),
-scored AS (
-    SELECT
-        *,
-        CASE
-            WHEN abc_class = 'A' THEN avg_days_of_supply / 20.0
-            WHEN abc_class = 'B' THEN avg_days_of_supply / 30.0
-            ELSE avg_days_of_supply / 45.0
-        END AS dos_stretch_ratio
-    FROM sku_wh
-)
-SELECT
-    product_id,
-    warehouse_id,
-    category,
-    abc_class,
-    avg_days_of_supply,
-    avg_inventory_value,
-    excess_inventory_day_rate,
-    slow_moving_day_rate,
-    dos_stretch_ratio,
-    100.0 * (
-        0.45 * LEAST(dos_stretch_ratio / 2.25, 1.0) +
-        0.35 * LEAST(excess_inventory_day_rate / 0.40, 1.0) +
-        0.20 * LEAST(slow_moving_day_rate / 0.12, 1.0)
-    ) AS inventory_risk_score_base
-FROM scored;
-
--- ============================================================
--- View 6: service_risk_base
--- Grain: product_id + warehouse_id
--- Purpose: normalized base signals for service failure diagnostics.
--- ============================================================
-CREATE OR REPLACE VIEW service_risk_base AS
-WITH sku_wh AS (
-    SELECT
-        product_id,
-        warehouse_id,
-        category,
-        supplier_id,
-        criticality_level,
-        SUM(units_demanded) AS units_demanded,
-        SUM(units_fulfilled) AS units_fulfilled,
-        SUM(units_lost_sales) AS units_lost_sales,
-        SUM(service_gap_units) AS service_gap_units,
-        SUM(lost_sales_revenue) AS lost_sales_revenue,
-        AVG(stockout_flag) AS stockout_day_rate
-    FROM daily_product_warehouse_metrics
-    GROUP BY product_id, warehouse_id, category, supplier_id, criticality_level
-),
-scored AS (
-    SELECT
-        *,
-        CASE
-            WHEN units_demanded = 0 THEN 1.0
-            ELSE CAST(units_fulfilled AS DOUBLE) / CAST(units_demanded AS DOUBLE)
-        END AS fill_rate,
-        CASE
-            WHEN units_demanded = 0 THEN 0.0
-            ELSE CAST(units_lost_sales AS DOUBLE) / CAST(units_demanded AS DOUBLE)
-        END AS stockout_rate,
-        CASE
-            WHEN units_demanded = 0 THEN 0.0
-            ELSE CAST(service_gap_units AS DOUBLE) / CAST(units_demanded AS DOUBLE)
-        END AS service_gap_rate,
-        CASE
-            WHEN criticality_level = 'High' THEN 1.0
-            WHEN criticality_level = 'Medium' THEN 0.6
-            ELSE 0.3
-        END AS criticality_weight
-    FROM sku_wh
-)
-SELECT
-    product_id,
-    warehouse_id,
-    category,
-    supplier_id,
-    criticality_level,
-    units_demanded,
-    units_fulfilled,
-    units_lost_sales,
-    fill_rate,
-    stockout_rate,
-    stockout_day_rate,
-    service_gap_rate,
-    lost_sales_revenue,
-    100.0 * (
-        0.35 * LEAST((1.0 - fill_rate) / 0.15, 1.0) +
-        0.30 * LEAST(service_gap_rate / 0.20, 1.0) +
-        0.20 * LEAST(criticality_weight / 0.85, 1.0) +
-        0.15 * LEAST(stockout_rate / 0.18, 1.0)
-    ) AS service_risk_score_base
-FROM scored;

@@ -12,17 +12,17 @@ except ModuleNotFoundError:
 
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
 OUTPUT_DASHBOARD = PROJECT_ROOT / "index.html"
+OUTPUT_REPORT = PROJECT_ROOT / "outputs" / "reports" / "service_inventory_intelligence_report.pdf"
+OUTPUT_GRAPHS_DIR = PROJECT_ROOT / "outputs" / "graphs"
+REQUIRED_GRAPH_COUNT = 14
 REQUIRED_FILES = [
-    PROJECT_ROOT / "docs" / "validation_report.md",
+    PROJECT_ROOT / "LICENSE",
+    PROJECT_ROOT / "README.md",
     PROJECT_ROOT / "docs" / "methodology.md",
     PROJECT_ROOT / "docs" / "metric_dictionary.md",
     PROJECT_ROOT / "docs" / "scoring_framework.md",
     PROJECT_ROOT / "docs" / "data_model.md",
     PROJECT_ROOT / "docs" / "release_governance.md",
-    PROJECT_ROOT / "outputs" / "reports" / "executive_kpi_diagnostic_analysis.md",
-    PROJECT_ROOT / "outputs" / "reports" / "executive_summary.md",
-    PROJECT_ROOT / "outputs" / "reports" / "data_contracts_summary.md",
-    PROJECT_ROOT / "outputs" / "reports" / "release_readiness.md",
 ]
 
 
@@ -46,14 +46,21 @@ def run_ci_quality_gate() -> None:
     release_classification = str(release_matrix["release_classification"].iloc[0]) if not release_matrix.empty else "publish-blocked"
     publish_blocked = release_classification == "publish-blocked"
 
-    _require_exists(REQUIRED_FILES + [OUTPUT_DASHBOARD])
+    publication_graphs = sorted(OUTPUT_GRAPHS_DIR.glob("*.png"))
+    _require_exists(REQUIRED_FILES + [OUTPUT_DASHBOARD, OUTPUT_REPORT])
 
     print("CI quality gate summary:")
     print(f"- Pre-delivery checks: {len(pre_delivery)} total, {pre_fail} FAIL, {pre_warn} WARN")
     print(f"- SQL checks: {len(sql_checks)} total, {sql_fail} non-pass")
     print(f"- Release classification: {release_classification}")
+    print(f"- Publication graphs: {len(publication_graphs)}")
 
-    if pre_fail > 0 or sql_fail > 0 or publish_blocked:
+    if (
+        pre_fail > 0
+        or sql_fail > 0
+        or publish_blocked
+        or len(publication_graphs) != REQUIRED_GRAPH_COUNT
+    ):
         raise SystemExit(1)
 
 

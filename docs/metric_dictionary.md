@@ -7,7 +7,6 @@ This dictionary documents the production metrics used by the analytical layer, s
 
 Primary implementation references:
 - `sql/02_intermediate_views.sql`
-- `src/feature_engineering.py`
 - `src/scoring.py`
 - `src/impact_analysis.py`
 
@@ -40,16 +39,15 @@ Primary implementation references:
 | `average_delay_days` | Mean positive delay days vs expected arrival. | `avg(max(actual_arrival_date - expected_arrival_date, 0))` | Supplier | Zero when early/on-time. |
 | `lead_time_variability` | Variability of realized PO lead time. | `stddev(actual_arrival_date - order_date)` | Supplier | Higher value implies instability. |
 | `received_vs_ordered_fill_rate` | PO receipt completeness. | `sum(received_units) / sum(ordered_units)`; if denominator 0, `1.0` | Supplier | Underfill signal in supplier risk. |
-| `supplier_service_risk_proxy` | Interpretable supplier risk proxy from delivery behavior. | `100 * (0.40*(1-OTD) + 0.20*min(avg_delay/10,1) + 0.20*min(lt_var/8,1) + 0.20*(1-po_fill))` | Supplier | Used in intermediate and feature layers. |
-
 ## Working Capital and Financial Exposure Metrics
 | Metric | Definition | Formula | Grain | Notes |
 |---|---|---|---|---|
-| `trapped_working_capital_proxy` | Proxy of inefficient capital tied in inventory. | `excess_inventory_value_proxy + 0.50 * max(slow_moving_value_proxy - excess_inventory_value_proxy, 0)` | Daily SKU-warehouse and aggregated | Avoids full double counting of slow-moving over excess. |
-| `working_capital_at_risk` | Working-capital exposure shown in executive views. | Aggregated `trapped_working_capital_proxy` over selected scope | Dashboard/filter scope, impact outputs | Proxy estimate, not accounting balance sheet line item. |
+| `trapped_working_capital_proxy` | Proxy of inefficient capital tied in inventory. | `excess_inventory_value_proxy + 0.50 * max(slow_moving_value_proxy - excess_inventory_value_proxy, 0)` | Daily SKU-warehouse | Avoids full double counting of slow-moving over excess. |
+| `trapped_working_capital_proxy_average` | Average daily inefficient inventory balance. | Mean by day of summed `trapped_working_capital_proxy` across the selected scope. | Dashboard/filter scope, impact outputs | Balance metric; do not sum or annualize across dates. |
+| `working_capital_at_risk` | Working-capital exposure shown in executive views. | `trapped_working_capital_proxy_average` | Dashboard/filter scope, impact outputs | Proxy estimate, not accounting balance sheet line item. |
 | `gross_margin_rate` | Product-level gross margin ratio. | `(unit_price - unit_cost) / unit_price`, floor at 0 | Product | Used to convert lost sales to margin proxy. |
 | `lost_sales_margin_proxy` | Margin value associated with lost sales. | `lost_sales_revenue * gross_margin_rate` | Daily SKU-warehouse and aggregated | Proxy for recoverable margin opportunity. |
-| `opportunity_total_12m_proxy` | Total 12M value proxy under current assumptions. | `(annual_lost_sales_margin_proxy * recoverable_margin_rate) + (annual_trapped_wc_proxy_scenario * releasable_wc_rate)` | Executive scope | Used for directional prioritization, not booking. |
+| `opportunity_total_12m_proxy` | Total 12M value proxy under current assumptions. | `(annual_lost_sales_margin_proxy * recoverable_margin_rate) + (average_trapped_wc_proxy * releasable_wc_rate)` | Executive scope | Uses annualized margin flow plus releasable average WC balance; directional, not booking. |
 
 ## Governance and Scoring Metrics
 | Metric | Definition | Formula | Grain | Notes |
@@ -69,3 +67,4 @@ Primary implementation references:
 - Prefer demand-weighted service metrics for executive comparisons.
 - Treat value concentration metrics (`lost_sales_share`, `inventory_value_share`) as relative diagnostics, not absolute performance.
 - Label all financial proxy metrics explicitly as proxy estimates.
+- Aggregate inventory and working-capital balances across entities, then average across dates. Do not sum balances through time.

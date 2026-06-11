@@ -50,7 +50,6 @@ INTERMEDIATE_VIEWS = {
         "average_delay_days",
         "lead_time_variability",
         "received_vs_ordered_fill_rate",
-        "supplier_service_risk_proxy",
     ],
     "product_inventory_profile": [
         "product_id",
@@ -81,8 +80,6 @@ INTERMEDIATE_VIEWS = {
     ],
 }
 
-
-
 def _load_raw_tables(con: duckdb.DuckDBPyConnection) -> None:
     for table_name, file_name in RAW_TABLE_FILES.items():
         csv_path = DATA_RAW / file_name
@@ -93,20 +90,14 @@ def _load_raw_tables(con: duckdb.DuckDBPyConnection) -> None:
             """
         )
 
-
-
 def _execute_intermediate_sql(con: duckdb.DuckDBPyConnection) -> None:
     sql_text = (SQL_DIR / "02_intermediate_views.sql").read_text(encoding="utf-8")
     con.execute(sql_text)
-
-
 
 def _validate_columns(df: pd.DataFrame, expected_columns: list[str], object_name: str) -> None:
     missing = [col for col in expected_columns if col not in df.columns]
     if missing:
         raise ValueError(f"{object_name} is missing expected columns: {missing}")
-
-
 
 def _materialize_views(con: duckdb.DuckDBPyConnection) -> None:
     DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
@@ -118,8 +109,6 @@ def _materialize_views(con: duckdb.DuckDBPyConnection) -> None:
         output_path = DATA_PROCESSED / f"{view_name}.csv"
         df.to_csv(output_path, index=False)
         print(f"Saved {view_name}: {len(df):,} rows")
-
-
 
 def run_data_preparation() -> None:
     con = duckdb.connect(database=":memory:")

@@ -61,22 +61,23 @@ ORDER BY lost_revenue DESC;
 -- ============================================================
 -- KPI 04: Inventory Value by Category
 -- ============================================================
-WITH category_inventory AS (
+WITH category_daily_inventory AS (
     SELECT
         p.category,
-        AVG(i.inventory_value) AS avg_inventory_value,
-        MAX(i.inventory_value) AS peak_inventory_value
+        i.snapshot_date,
+        SUM(i.inventory_value) AS inventory_value
     FROM inventory_snapshots i
     INNER JOIN products p
         ON i.product_id = p.product_id
-    GROUP BY p.category
+    GROUP BY p.category, i.snapshot_date
 )
 SELECT
     category,
-    avg_inventory_value,
-    peak_inventory_value
-FROM category_inventory
-ORDER BY avg_inventory_value DESC;
+    AVG(inventory_value) AS avg_daily_inventory_value,
+    MAX(inventory_value) AS peak_daily_inventory_value
+FROM category_daily_inventory
+GROUP BY category
+ORDER BY avg_daily_inventory_value DESC;
 
 -- ============================================================
 -- KPI 05: Days of Supply Distribution
@@ -104,9 +105,9 @@ WITH supplier_on_time AS (
         s.supplier_name,
         COUNT(*) AS po_count,
         AVG(CASE WHEN po.late_delivery_flag = 0 THEN 1.0 ELSE 0.0 END) AS on_time_delivery_rate,
-        AVG(CASE WHEN po.ordered_units = 0 THEN 1.0
-                 ELSE CAST(po.received_units AS DOUBLE) / CAST(po.ordered_units AS DOUBLE)
-            END) AS in_full_rate
+        CASE WHEN SUM(po.ordered_units) = 0 THEN 1.0
+             ELSE CAST(SUM(po.received_units) AS DOUBLE) / CAST(SUM(po.ordered_units) AS DOUBLE)
+        END AS in_full_rate
     FROM purchase_orders po
     INNER JOIN suppliers s
         ON po.supplier_id = s.supplier_id
@@ -123,110 +124,91 @@ WITH warehouse_service AS (
     SELECT
         warehouse_id,
         region,
-        total_units_demanded,
-        total_units_fulfilled,
-        total_units_lost_sales,
-        warehouse_fill_rate,
-        warehouse_lost_sales_rate,
-        avg_inventory_value,
-        avg_days_of_supply
+        fill_rate,
+        stockout_rate,
+        lost_sales_value,
+        average_days_of_supply,
+        inventory_value,
+        capacity_pressure_proxy
     FROM warehouse_service_profile
 )
 SELECT *
 FROM warehouse_service
-ORDER BY warehouse_fill_rate ASC;
+ORDER BY fill_rate ASC;
 
 -- ============================================================
 -- KPI 08: Service Level vs Inventory Trade-off (Quadrant Summary)
 -- ============================================================
 WITH sku_wh_tradeoff AS (
     SELECT
-        s.product_id,
-        s.warehouse_id,
-        s.avg_fill_rate,
-        s.stockout_day_rate,
-        i.avg_days_of_supply,
-        i.excess_day_rate,
-        i.avg_inventory_value,
-        s.total_lost_revenue,
+        product_id,
+        warehouse_id,
+        fill_rate,
+        stockout_rate,
+        dos_stretch,
+        excess_day_rate,
+        lost_sales_revenue,
         CASE
-            WHEN s.avg_fill_rate < 0.95 AND i.excess_day_rate >= 0.20 THEN 'Dual Failure: Low Service + Excess Inventory'
-            WHEN s.avg_fill_rate < 0.95 THEN 'Service Risk'
-            WHEN i.excess_day_rate >= 0.20 THEN 'Working Capital Risk'
+            WHEN fill_rate < 0.95 AND excess_day_rate >= 0.20 THEN 'Dual Failure: Low Service + Excess Inventory'
+            WHEN fill_rate < 0.95 THEN 'Service Risk'
+            WHEN excess_day_rate >= 0.20 THEN 'Working Capital Risk'
             ELSE 'Balanced'
         END AS tradeoff_zone
-    FROM service_risk_base s
-    INNER JOIN inventory_risk_base i
-        ON s.product_id = i.product_id
-       AND s.warehouse_id = i.warehouse_id
+    FROM sku_risk_table
 )
 SELECT
     tradeoff_zone,
     COUNT(*) AS sku_warehouse_count,
-    AVG(avg_fill_rate) AS avg_fill_rate,
-    AVG(stockout_day_rate) AS avg_stockout_day_rate,
+    AVG(fill_rate) AS avg_fill_rate,
+    AVG(stockout_rate) AS avg_stockout_rate,
     AVG(excess_day_rate) AS avg_excess_day_rate,
-    SUM(total_lost_revenue) AS total_lost_revenue,
-    SUM(avg_inventory_value) AS total_avg_inventory_value
+    AVG(dos_stretch) AS avg_dos_stretch,
+    SUM(lost_sales_revenue) AS total_lost_revenue
 FROM sku_wh_tradeoff
 GROUP BY tradeoff_zone
 ORDER BY total_lost_revenue DESC;
 
 -- ============================================================
--- KPI 09: Top Risk SKUs (Composite Service + Inventory Pressure)
+-- KPI 09: Top Governance Priority SKU-Locations
 -- ============================================================
-WITH risk_components AS (
+WITH ranked AS (
     SELECT
-        s.product_id,
-        s.warehouse_id,
-        s.category,
-        s.abc_class,
-        s.avg_fill_rate,
-        s.stockout_day_rate,
-        i.excess_day_rate,
-        i.slow_moving_day_rate,
-        i.avg_days_of_supply,
-        s.total_lost_revenue,
-        i.avg_inventory_value,
-        -- Interpretable weighted composite score
-        (
-            0.40 * s.stockout_day_rate +
-            0.30 * i.excess_day_rate +
-            0.15 * i.slow_moving_day_rate +
-            0.10 * (1.0 - s.avg_fill_rate) +
-            0.05 * LEAST(i.avg_days_of_supply / 60.0, 1.0)
-        ) * 100.0 AS risk_score
-    FROM service_risk_base s
-    INNER JOIN inventory_risk_base i
-        ON s.product_id = i.product_id
-       AND s.warehouse_id = i.warehouse_id
-),
-ranked AS (
-    SELECT
-        rc.*,
-        ROW_NUMBER() OVER (ORDER BY rc.risk_score DESC, rc.total_lost_revenue DESC) AS risk_rank
-    FROM risk_components rc
+        *,
+        ROW_NUMBER() OVER (
+            ORDER BY governance_priority_score DESC, lost_sales_revenue DESC
+        ) AS priority_rank
+    FROM sku_risk_table
 )
 SELECT *
 FROM ranked
-WHERE risk_rank <= 25
-ORDER BY risk_rank;
+WHERE priority_rank <= 25
+ORDER BY priority_rank;
 
 -- ============================================================
 -- KPI 10: Working Capital Concentration
 -- ============================================================
-WITH sku_inventory_value AS (
+WITH sku_daily_inventory AS (
     SELECT
         i.product_id,
         p.category,
         pc.abc_class,
-        AVG(i.inventory_value) AS avg_inventory_value
+        i.snapshot_date,
+        SUM(i.inventory_value) AS inventory_value
     FROM inventory_snapshots i
     INNER JOIN products p
         ON i.product_id = p.product_id
     LEFT JOIN product_classification pc
         ON i.product_id = pc.product_id
-    GROUP BY i.product_id, p.category, pc.abc_class
+    GROUP BY i.product_id, p.category, pc.abc_class, i.snapshot_date
+),
+sku_inventory_value AS (
+    SELECT
+        product_id,
+        category,
+        abc_class,
+        AVG(inventory_value) AS avg_inventory_value
+    FROM sku_daily_inventory
+    GROUP BY product_id, category, abc_class
 ),
 portfolio AS (
     SELECT

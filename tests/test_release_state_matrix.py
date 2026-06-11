@@ -18,7 +18,7 @@ def _row(check: str, layer: str, status: str, severity: str) -> dict[str, str]:
     }
 
 
-def test_release_state_decision_support_when_all_pass() -> None:
+def test_release_state_decision_support_ready_when_all_pass() -> None:
     checks = pd.DataFrame(
         [
             _row("raw_ok", "raw", "PASS", "HIGH"),
@@ -30,9 +30,9 @@ def test_release_state_decision_support_when_all_pass() -> None:
     )
 
     matrix = _compute_release_state_matrix(checks)
-    assert matrix["release_classification"].iloc[0] == "decision-support only"
-    publish_blocked = matrix.loc[matrix["state_name"] == "publish_blocked", "status"].iloc[0]
-    assert publish_blocked == "FAIL"
+    assert matrix["release_classification"].iloc[0] == "decision-support ready"
+    publish_allowed = matrix.loc[matrix["state_name"] == "publish_allowed", "status"].iloc[0]
+    assert publish_allowed == "PASS"
 
 
 def test_release_state_publish_blocked_on_high_fail() -> None:
@@ -45,6 +45,8 @@ def test_release_state_publish_blocked_on_high_fail() -> None:
 
     matrix = _compute_release_state_matrix(checks)
     assert matrix["release_classification"].iloc[0] == "publish-blocked"
+    publish_allowed = matrix.loc[matrix["state_name"] == "publish_allowed", "status"].iloc[0]
+    assert publish_allowed == "FAIL"
 
 
 def test_release_state_publish_blocked_on_high_warn() -> None:

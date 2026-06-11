@@ -6,7 +6,10 @@
       "required_columns": ["product_id", "product_name", "category", "unit_cost", "unit_price", "shelf_life_days", "supplier_id", "lead_time_days", "target_service_level"],
       "unique_key": ["product_id"],
       "critical_columns": ["product_id", "category", "unit_cost", "unit_price", "supplier_id"],
-      "non_negative": ["unit_cost", "unit_price", "shelf_life_days", "lead_time_days"]
+      "non_negative": ["unit_cost", "unit_price", "shelf_life_days", "lead_time_days"],
+      "value_ranges": {
+        "target_service_level": {"min": 0, "max": 1}
+      }
     },
     {
       "name": "suppliers",
@@ -14,7 +17,10 @@
       "required_columns": ["supplier_id", "supplier_name", "supplier_region", "reliability_score", "average_lead_time_days", "lead_time_variability", "minimum_order_qty"],
       "unique_key": ["supplier_id"],
       "critical_columns": ["supplier_id", "reliability_score", "average_lead_time_days"],
-      "non_negative": ["reliability_score", "average_lead_time_days", "lead_time_variability", "minimum_order_qty"]
+      "non_negative": ["reliability_score", "average_lead_time_days", "lead_time_variability", "minimum_order_qty"],
+      "value_ranges": {
+        "reliability_score": {"min": 0, "max": 1}
+      }
     },
     {
       "name": "warehouses",
@@ -38,7 +44,11 @@
       "required_columns": ["date", "warehouse_id", "product_id", "region", "units_demanded", "units_fulfilled", "units_lost_sales", "stockout_flag", "promo_flag", "seasonality_index"],
       "unique_key": ["date", "warehouse_id", "product_id"],
       "critical_columns": ["date", "warehouse_id", "product_id", "units_demanded", "units_fulfilled"],
-      "non_negative": ["units_demanded", "units_fulfilled", "units_lost_sales"]
+      "non_negative": ["units_demanded", "units_fulfilled", "units_lost_sales"],
+      "allowed_values": {
+        "stockout_flag": [0, 1],
+        "promo_flag": [0, 1]
+      }
     },
     {
       "name": "purchase_orders",
@@ -46,7 +56,10 @@
       "required_columns": ["po_id", "supplier_id", "product_id", "warehouse_id", "order_date", "expected_arrival_date", "actual_arrival_date", "ordered_units", "received_units", "late_delivery_flag"],
       "unique_key": ["po_id"],
       "critical_columns": ["po_id", "supplier_id", "product_id", "warehouse_id", "ordered_units"],
-      "non_negative": ["ordered_units", "received_units"]
+      "non_negative": ["ordered_units", "received_units"],
+      "allowed_values": {
+        "late_delivery_flag": [0, 1]
+      }
     },
     {
       "name": "product_classification",
@@ -54,7 +67,11 @@
       "required_columns": ["product_id", "abc_class", "criticality_level"],
       "unique_key": ["product_id"],
       "critical_columns": ["product_id", "abc_class", "criticality_level"],
-      "non_negative": []
+      "non_negative": [],
+      "allowed_values": {
+        "abc_class": ["A", "B", "C"],
+        "criticality_level": ["High", "Medium", "Low"]
+      }
     },
     {
       "name": "daily_product_warehouse_metrics",
@@ -62,15 +79,28 @@
       "required_columns": ["date", "warehouse_id", "region", "product_id", "category", "supplier_id", "abc_class", "criticality_level", "units_demanded", "units_fulfilled", "units_lost_sales", "stockout_flag", "fill_rate", "promo_flag", "on_hand_units", "on_order_units", "available_units", "days_of_supply", "inventory_value", "lost_sales_revenue", "service_gap_units"],
       "unique_key": ["date", "warehouse_id", "product_id"],
       "critical_columns": ["date", "warehouse_id", "product_id", "fill_rate", "inventory_value"],
-      "non_negative": ["units_demanded", "units_fulfilled", "units_lost_sales", "on_hand_units", "on_order_units", "available_units", "days_of_supply", "inventory_value"]
+      "non_negative": ["units_demanded", "units_fulfilled", "units_lost_sales", "on_hand_units", "on_order_units", "available_units", "days_of_supply", "inventory_value"],
+      "value_ranges": {
+        "fill_rate": {"min": 0, "max": 1}
+      },
+      "allowed_values": {
+        "stockout_flag": [0, 1],
+        "promo_flag": [0, 1],
+        "abc_class": ["A", "B", "C"],
+        "criticality_level": ["High", "Medium", "Low"]
+      }
     },
     {
       "name": "supplier_performance_summary",
       "path": "data/processed/supplier_performance_summary.csv",
-      "required_columns": ["supplier_id", "supplier_name", "on_time_delivery_rate", "average_delay_days", "lead_time_variability", "received_vs_ordered_fill_rate", "supplier_service_risk_proxy"],
+      "required_columns": ["supplier_id", "supplier_name", "on_time_delivery_rate", "average_delay_days", "lead_time_variability", "received_vs_ordered_fill_rate"],
       "unique_key": ["supplier_id"],
-      "critical_columns": ["supplier_id", "on_time_delivery_rate", "supplier_service_risk_proxy"],
-      "non_negative": ["on_time_delivery_rate", "average_delay_days", "lead_time_variability", "received_vs_ordered_fill_rate", "supplier_service_risk_proxy"]
+      "critical_columns": ["supplier_id", "on_time_delivery_rate"],
+      "non_negative": ["on_time_delivery_rate", "average_delay_days", "lead_time_variability", "received_vs_ordered_fill_rate"],
+      "value_ranges": {
+        "on_time_delivery_rate": {"min": 0, "max": 1},
+        "received_vs_ordered_fill_rate": {"min": 0, "max": 1}
+      }
     },
     {
       "name": "sku_risk_table",
@@ -78,7 +108,36 @@
       "required_columns": ["product_id", "warehouse_id", "supplier_id", "service_risk_score", "stockout_risk_score", "excess_inventory_score", "supplier_risk_score", "working_capital_risk_score", "governance_priority_score", "risk_tier", "main_risk_driver", "recommended_action"],
       "unique_key": ["product_id", "warehouse_id", "supplier_id"],
       "critical_columns": ["product_id", "warehouse_id", "supplier_id", "governance_priority_score", "risk_tier"],
-      "non_negative": ["service_risk_score", "stockout_risk_score", "excess_inventory_score", "supplier_risk_score", "working_capital_risk_score", "governance_priority_score"]
+      "non_negative": ["service_risk_score", "stockout_risk_score", "excess_inventory_score", "supplier_risk_score", "working_capital_risk_score", "governance_priority_score"],
+      "value_ranges": {
+        "service_risk_score": {"min": 0, "max": 100},
+        "stockout_risk_score": {"min": 0, "max": 100},
+        "excess_inventory_score": {"min": 0, "max": 100},
+        "supplier_risk_score": {"min": 0, "max": 100},
+        "working_capital_risk_score": {"min": 0, "max": 100},
+        "governance_priority_score": {"min": 0, "max": 100}
+      },
+      "allowed_values": {
+        "risk_tier": ["Low", "Medium", "High", "Critical"],
+        "main_risk_driver": ["Service Risk", "Stockout Risk", "Excess Inventory", "Supplier Risk", "Working Capital"]
+      }
     }
+  ],
+  "relationships": [
+    {"source_table": "products", "source_column": "supplier_id", "target_table": "suppliers", "target_column": "supplier_id"},
+    {"source_table": "inventory_snapshots", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
+    {"source_table": "inventory_snapshots", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "demand_history", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
+    {"source_table": "demand_history", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "purchase_orders", "source_column": "supplier_id", "target_table": "suppliers", "target_column": "supplier_id"},
+    {"source_table": "purchase_orders", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
+    {"source_table": "purchase_orders", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "product_classification", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "daily_product_warehouse_metrics", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
+    {"source_table": "daily_product_warehouse_metrics", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "daily_product_warehouse_metrics", "source_column": "supplier_id", "target_table": "suppliers", "target_column": "supplier_id"},
+    {"source_table": "sku_risk_table", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
+    {"source_table": "sku_risk_table", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "sku_risk_table", "source_column": "supplier_id", "target_table": "suppliers", "target_column": "supplier_id"}
   ]
 }

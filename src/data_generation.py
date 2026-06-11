@@ -255,6 +255,48 @@ def seasonality_index(date: pd.Timestamp) -> float:
     return round(month_factor * weekday_factor, 3)
 
 
+def simulate_actual_arrival(
+    current_date: pd.Timestamp,
+    planned_lead_time_days: int,
+    reliability_score: float,
+    lead_time_variability: float,
+    rng: np.random.Generator,
+) -> tuple[pd.Timestamp, int]:
+    """Simulate an arrival where supplier reliability controls on-time performance."""
+    if planned_lead_time_days < 1:
+        raise ValueError("planned_lead_time_days must be at least 1")
+    if not 0.0 <= reliability_score <= 1.0:
+        raise ValueError("reliability_score must be between 0 and 1")
+    if lead_time_variability < 0.0:
+        raise ValueError("lead_time_variability must be non-negative")
+
+    expected_arrival = current_date + timedelta(days=planned_lead_time_days)
+    variability_days = max(1.0, planned_lead_time_days * lead_time_variability)
+    is_late = int(rng.random() > reliability_score)
+
+    if is_late:
+        delay_days = max(
+            1,
+            int(
+                round(
+                    abs(
+                        rng.normal(
+                            variability_days * 0.60,
+                            max(1.0, variability_days * 0.35),
+                        )
+                    )
+                )
+            ),
+        )
+        return expected_arrival + timedelta(days=delay_days), is_late
+
+    early_days = min(
+        planned_lead_time_days - 1,
+        int(round(abs(rng.normal(0.0, max(0.5, variability_days * 0.15))))),
+    )
+    return expected_arrival - timedelta(days=max(0, early_days)), is_late
+
+
 def simulate_operations(
     cfg: SimulationConfig,
     products: pd.DataFrame,
@@ -335,14 +377,14 @@ def simulate_operations(
                     ordered_units = int(max(order_up_to - inventory_position, effective_moq))
 
                     planned_lt = int(p["lead_time_days"])
-                    lead_time_noise = max(1.0, s["average_lead_time_days"] * s["lead_time_variability"])
-                    realized_lt = int(max(1, round(rng.normal(planned_lt, lead_time_noise))))
-
-                    delay_days = 0
-                    if rng.random() > s["reliability_score"]:
-                        delay_days = int(rng.integers(2, 10))
                     expected_arrival = current_date + timedelta(days=planned_lt)
-                    actual_arrival = current_date + timedelta(days=realized_lt + delay_days)
+                    actual_arrival, late_flag = simulate_actual_arrival(
+                        current_date=current_date,
+                        planned_lead_time_days=planned_lt,
+                        reliability_score=float(s["reliability_score"]),
+                        lead_time_variability=float(s["lead_time_variability"]),
+                        rng=rng,
+                    )
 
                     receipt_fill_rate = _bounded(rng.normal(0.985, 0.015), 0.9, 1.0)
                     if s["reliability_score"] < 0.80:
@@ -351,7 +393,6 @@ def simulate_operations(
 
                     po_counter += 1
                     po_id = f"PO-{po_counter:08d}"
-                    late_flag = int(actual_arrival > expected_arrival)
 
                     po_entry = {
                         "po_id": po_id,
@@ -407,6 +448,9 @@ def simulate_operations(
     demand_history = pd.DataFrame(demand_rows)
     inventory_snapshots = pd.DataFrame(inventory_rows)
     purchase_orders = pd.DataFrame(po_rows)
+    purchase_orders = purchase_orders.loc[
+        purchase_orders["actual_arrival_date"] <= pd.Timestamp(cfg.end_date)
+    ].reset_index(drop=True)
 
     return demand_history, inventory_snapshots, purchase_orders
 
