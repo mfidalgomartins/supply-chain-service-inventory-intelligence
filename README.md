@@ -5,7 +5,7 @@ supplier instability, and excess inventory create the largest service and
 working-capital exposure across a multi-warehouse network.
 
 **[Open the live dashboard](https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/)**
-· **[Read the analytical report](outputs/reports/service_inventory_intelligence_report.pdf)**
+· **[Read the analytical report](https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/blob/main/outputs/reports/service_inventory_intelligence_report.pdf)**
 
 ![Opportunity by category](outputs/graphs/01_opportunity_by_category.png)
 

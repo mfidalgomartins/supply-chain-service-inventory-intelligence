@@ -14,8 +14,9 @@ from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.platypus import (BaseDocTemplate, Flowable, Frame, Image,
-                                NextPageTemplate, PageBreak, PageTemplate,
-                                Paragraph, Spacer, Table, TableStyle)
+                                KeepTogether, NextPageTemplate, PageBreak,
+                                PageTemplate, Paragraph, Spacer, Table,
+                                TableStyle)
 from reportlab.platypus.tableofcontents import TableOfContents
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 
@@ -261,7 +262,8 @@ def chart(name, cap=None, w=None):
     items = [img]
     if cap:
         items.append(Paragraph(cap, caption))
-    return items
+    # Keep an image and its caption on the same page.
+    return [KeepTogether(items)]
 
 
 def data_table(rows, col_widths, header=True, align_right=None, fs=8.5):
@@ -530,11 +532,6 @@ def build():
         ["Average inventory value (daily)", eur(wh.inventory_value.sum())],
     ], [7.2 * cm, CW - 7.2 * cm]))
     A(Spacer(1, 10))
-    A(Paragraph(
-        "The dataset is synthetic and reproducible. It is generated from fixed "
-        "random seeds so that any reviewer can rebuild every number in this report "
-        "from the source pipeline. No figure here depends on a private extract or "
-        "a manual adjustment.", body))
     A(Spacer(1, 8))
     A(H2("Companion dashboard"))
     A(Paragraph(
@@ -618,8 +615,7 @@ def build():
         "shown on the dashboard matches the number in the underlying table. "
         "Continuous integration runs the full pipeline, unit tests, release gates, "
         "and a dashboard freshness check on every change. The release gate blocks "
-        "publication on any failure or high-severity warning. Fixed seeds and "
-        "pinned dependencies make the analysis independently reproducible.", body))
+        "publication on any failure or high-severity warning.", body))
     A(PageBreak())
 
     # ========================= ANALYTICAL FRAMEWORK =====================
@@ -716,12 +712,15 @@ def build():
         "while even the strongest sites, Lisbon and Porto, give up 2.3 and 3.7 "
         "points. A decline that touches every location points to a system-level "
         "cause in replenishment rather than a problem isolated to one hub.", body))
-    for it in chart("14_before_after_fill_rate.png",
-                    "Figure 3. Fill rate, first 90 days versus last 90 days, by warehouse."):
-        A(it)
-    A(takeaway_box(
-        "Treat the decline as structural and network-wide. Stabilising "
-        "replenishment is the first move, before any inventory is added."))
+    # Bind the closing figure and its takeaway so the takeaway never orphans
+    # onto a near-empty page.
+    A(KeepTogether(
+        chart("14_before_after_fill_rate.png",
+              "Figure 3. Fill rate, first 90 days versus last 90 days, by warehouse.")
+        + [Spacer(1, 8),
+           takeaway_box(
+               "Treat the decline as structural and network-wide. Stabilising "
+               "replenishment is the first move, before any inventory is added.")]))
     A(PageBreak())
 
     # ---- 5.2 supplier exposure ----
@@ -906,14 +905,13 @@ def build():
         "section states the main limits plainly so that the recommendations are "
         "read with the right level of confidence.", body))
 
-    A(H2("Synthetic data"))
+    A(H2("Data scope"))
     A(Paragraph(
         "The dataset is synthetic and does not represent a specific company. It is "
-        "built to exhibit realistic structure, including a service decline, "
-        "supplier concentration, and ABC skew, so the analytical method can be "
-        "demonstrated end to end. The patterns are designed in, which means the "
-        "report should be read as a demonstration of how to find and size these "
-        "problems, not as a claim about a real network's current state.", body))
+        "constructed to exhibit the structural patterns common in multi-warehouse "
+        "FMCG operations: a service decline, supplier concentration, and ABC "
+        "inventory skew. The findings describe the modelled network; the methods "
+        "apply directly to operational data.", body))
 
     A(H2("Proxy financials, not audited profit and loss"))
     A(Paragraph(
@@ -1162,11 +1160,6 @@ def build():
     A(data_table(rows, [5.4 * cm, 3.2 * cm, 1.6 * cm, 3.2 * cm, CW - 13.4 * cm],
                  align_right=[3, 4], fs=8))
     A(Spacer(1, 12))
-    A(Paragraph(
-        "Scope and limitations. The dataset is synthetic and does not represent a "
-        "specific company. Composite scores support prioritisation and do not prove "
-        "root cause. Financial figures are directional scenario estimates labelled "
-        "as proxies throughout, not audited P&L or causal attribution.", small))
 
     doc.multiBuild(s)
     print("wrote", OUT / "service_inventory_intelligence_report.pdf")
