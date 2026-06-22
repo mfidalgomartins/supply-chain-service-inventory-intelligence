@@ -27,6 +27,7 @@ data/raw/*.csv
 data/processed/*.csv
 outputs/tables/*.csv
 outputs/dashboard/
+outputs/pipeline_timings.json
 
 # Environment files
 .env

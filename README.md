@@ -1,5 +1,11 @@
 # Supply Chain Service Level and Inventory Intelligence
 
+[![Analytics CI](https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/actions/workflows/analytics-ci.yml/badge.svg)](https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/actions/workflows/analytics-ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A595%25-brightgreen)](https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/actions/workflows/analytics-ci.yml)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
+[![Ruff](https://img.shields.io/badge/lint-ruff-261230)](https://docs.astral.sh/ruff/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 A reproducible decision-support pipeline that identifies where stockouts,
 supplier instability, and excess inventory create the largest service and
 working-capital exposure across a multi-warehouse network.
@@ -48,10 +54,27 @@ The repository intentionally does not version pipeline-generated CSV files.
 Running the pipeline rebuilds `data/raw/`, `data/processed/`, and
 `outputs/tables/`, then refreshes the tracked dashboard, charts, and PDF report.
 
+### Developer Tooling
+Install the quality toolchain and run the same gates CI enforces:
+
+```bash
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/ruff check src tests          # lint (incl. flake8-bandit security rules)
+.venv/bin/ruff format --check src tests  # formatting
+.venv/bin/mypy                           # static type check
+.venv/bin/pip-audit -r requirements.txt  # dependency vulnerability audit
+.venv/bin/python -m pytest               # tests + 95% coverage floor
+```
+
 ## Quality Controls
 - Data contracts cover required columns, grain, nulls, ranges, domains, and key references.
 - SQL and Python checks reconcile service, inventory, impact, scoring, and dashboard metrics.
-- CI runs the full pipeline, unit tests, release gates, and a dashboard freshness check.
+- Linting (ruff, with security rules), formatting, and static typing (mypy) are enforced in CI.
+- Tests run end-to-end and unit logic with an enforced 95% coverage floor.
+- Dependencies are audited for known vulnerabilities (`pip-audit`) on every run.
+- The published dashboard pins the Plotly bundle with a Subresource Integrity hash.
+- Float serialisation is rounded so dashboard output is byte-identical across Python versions.
+- CI runs the full pipeline, all of the above gates, and a dashboard freshness check.
 - The release gate blocks publication on any failure or high-severity warning.
 
 ## Documentation
@@ -60,6 +83,7 @@ Running the pipeline rebuilds `data/raw/`, `data/processed/`, and
 - [Metric dictionary](docs/metric_dictionary.md)
 - [Scoring framework](docs/scoring_framework.md)
 - [Release governance](docs/release_governance.md)
+- [Changelog](CHANGELOG.md)
 
 ## Repository Layout
 ```text
@@ -76,7 +100,9 @@ index.html GitHub Pages dashboard
 - The dataset is synthetic and does not represent a specific company.
 - Composite scores support prioritization; they do not prove root cause.
 - Financial opportunity metrics are directional scenario estimates.
-- The static dashboard loads the pinned Plotly JavaScript bundle from a CDN.
+- The static dashboard loads the pinned Plotly bundle from a CDN, verified at
+  load time with a Subresource Integrity (SHA-384) hash so a tampered or
+  substituted payload is rejected by the browser.
 
 ## Stack
 Python, pandas, NumPy, DuckDB, SQL, JavaScript, HTML, CSS.

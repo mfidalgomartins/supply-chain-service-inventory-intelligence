@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pandas as pd
-
 from src.pre_delivery_validation import _compute_release_state_matrix
 
 

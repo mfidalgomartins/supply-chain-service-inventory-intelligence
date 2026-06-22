@@ -22,13 +22,33 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check src tests
+
+      - name: Format Check (ruff)
+        run: ruff format --check src tests
+
+      - name: Type Check (mypy)
+        run: mypy
+
+      - name: Dependency Audit (pip-audit)
+        run: pip-audit -r requirements.txt
 
       - name: Run End-to-End Analytics Pipeline
         run: python src/run_pipeline.py
 
-      - name: Run Unit Tests
-        run: python -m pytest -q
+      - name: Run Unit Tests With Coverage Floor
+        run: python -m pytest
 
       - name: Verify Published Dashboard Is Current
         run: git diff --exit-code -- index.html
+
+      - name: Upload Pipeline Timings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-timings
+          path: outputs/pipeline_timings.json
+          if-no-files-found: ignore

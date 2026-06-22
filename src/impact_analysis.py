@@ -8,7 +8,7 @@ import pandas as pd
 try:
     from src.config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
 except ModuleNotFoundError:
-    from config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
+    from config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT  # type: ignore[no-redef]
 
 
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
@@ -33,7 +33,9 @@ ASSUMPTIONS = ImpactAssumptions()
 
 
 def load_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    daily = pd.read_csv(DATA_PROCESSED / "daily_product_warehouse_metrics.csv", parse_dates=["date"])
+    daily = pd.read_csv(
+        DATA_PROCESSED / "daily_product_warehouse_metrics.csv", parse_dates=["date"]
+    )
     products = pd.read_csv(DATA_RAW / "products.csv")
     suppliers = pd.read_csv(DATA_PROCESSED / "supplier_performance_summary.csv")
     return daily, products, suppliers
@@ -52,10 +54,21 @@ def build_supplier_delay_factor(suppliers: pd.DataFrame) -> pd.DataFrame:
         + ASSUMPTIONS.supplier_delay_weight_lt_variability * lt_var_norm
     ).clip(0, 1)
 
-    return out[["supplier_id", "supplier_name", "supplier_delay_factor", "on_time_delivery_rate", "average_delay_days", "lead_time_variability"]]
+    return out[
+        [
+            "supplier_id",
+            "supplier_name",
+            "supplier_delay_factor",
+            "on_time_delivery_rate",
+            "average_delay_days",
+            "lead_time_variability",
+        ]
+    ]
 
 
-def enrich_daily(daily: pd.DataFrame, products: pd.DataFrame, suppliers: pd.DataFrame) -> tuple[pd.DataFrame, float]:
+def enrich_daily(
+    daily: pd.DataFrame, products: pd.DataFrame, suppliers: pd.DataFrame
+) -> tuple[pd.DataFrame, float]:
     margin = products[["product_id", "product_name", "unit_cost", "unit_price"]].copy()
     margin["unit_gross_margin"] = (margin["unit_price"] - margin["unit_cost"]).clip(lower=0)
     margin["gross_margin_rate"] = np.where(
@@ -66,8 +79,12 @@ def enrich_daily(daily: pd.DataFrame, products: pd.DataFrame, suppliers: pd.Data
 
     supplier_delay = build_supplier_delay_factor(suppliers)
 
-    out = daily.merge(margin[["product_id", "product_name", "gross_margin_rate"]], on="product_id", how="left")
-    out = out.merge(supplier_delay[["supplier_id", "supplier_delay_factor"]], on="supplier_id", how="left")
+    out = daily.merge(
+        margin[["product_id", "product_name", "gross_margin_rate"]], on="product_id", how="left"
+    )
+    out = out.merge(
+        supplier_delay[["supplier_id", "supplier_delay_factor"]], on="supplier_id", how="left"
+    )
 
     out["gross_margin_rate"] = out["gross_margin_rate"].fillna(0.30).clip(0, 0.90)
     out["supplier_delay_factor"] = out["supplier_delay_factor"].fillna(0.25)
@@ -87,11 +104,15 @@ def enrich_daily(daily: pd.DataFrame, products: pd.DataFrame, suppliers: pd.Data
 
     out["excess_inventory_value_proxy"] = out["inventory_value"] * out["excess_inventory_ratio"]
 
-    out["slow_moving_flag"] = ((out["available_units"] > 0) & (out["units_fulfilled"] == 0)).astype(int)
+    out["slow_moving_flag"] = ((out["available_units"] > 0) & (out["units_fulfilled"] == 0)).astype(
+        int
+    )
     out["slow_moving_value_proxy"] = out["inventory_value"] * out["slow_moving_flag"]
 
     # Avoid full double counting between excess and slow-moving exposures.
-    out["slow_moving_non_excess_proxy"] = (out["slow_moving_value_proxy"] - out["excess_inventory_value_proxy"]).clip(lower=0)
+    out["slow_moving_non_excess_proxy"] = (
+        out["slow_moving_value_proxy"] - out["excess_inventory_value_proxy"]
+    ).clip(lower=0)
     out["trapped_working_capital_proxy"] = (
         out["excess_inventory_value_proxy"]
         + ASSUMPTIONS.slow_moving_incremental_weight * out["slow_moving_non_excess_proxy"]
@@ -104,8 +125,12 @@ def enrich_daily(daily: pd.DataFrame, products: pd.DataFrame, suppliers: pd.Data
     annualization_factor = 365.0 / max(analysis_days, 1)
 
     out["lost_sales_revenue_annualized"] = out["lost_sales_revenue"] * annualization_factor
-    out["lost_sales_margin_proxy_annualized"] = out["lost_sales_margin_proxy"] * annualization_factor
-    out["supplier_delay_impact_proxy_annualized"] = out["supplier_delay_impact_proxy"] * annualization_factor
+    out["lost_sales_margin_proxy_annualized"] = (
+        out["lost_sales_margin_proxy"] * annualization_factor
+    )
+    out["supplier_delay_impact_proxy_annualized"] = (
+        out["supplier_delay_impact_proxy"] * annualization_factor
+    )
 
     return out, annualization_factor
 
@@ -114,15 +139,12 @@ def aggregate_impact(df: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame:
     analysis_days = int(df["date"].nunique())
     annualization_factor = 365.0 / max(analysis_days, 1)
 
-    flows = (
-        df.groupby(group_cols, as_index=False)
-        .agg(
-            units_demanded=("units_demanded", "sum"),
-            units_lost_sales=("units_lost_sales", "sum"),
-            lost_sales_revenue_observed=("lost_sales_revenue", "sum"),
-            lost_sales_margin_proxy_observed=("lost_sales_margin_proxy", "sum"),
-            supplier_delay_impact_proxy_observed=("supplier_delay_impact_proxy", "sum"),
-        )
+    flows = df.groupby(group_cols, as_index=False).agg(
+        units_demanded=("units_demanded", "sum"),
+        units_lost_sales=("units_lost_sales", "sum"),
+        lost_sales_revenue_observed=("lost_sales_revenue", "sum"),
+        lost_sales_margin_proxy_observed=("lost_sales_margin_proxy", "sum"),
+        supplier_delay_impact_proxy_observed=("supplier_delay_impact_proxy", "sum"),
     )
 
     daily_balances = (
@@ -142,7 +164,9 @@ def aggregate_impact(df: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame:
 
     out = flows.merge(daily_balances, on=group_cols, how="left", validate="one_to_one")
     out["lost_sales_revenue_annualized"] = out["lost_sales_revenue_observed"] * annualization_factor
-    out["lost_sales_margin_proxy_annualized"] = out["lost_sales_margin_proxy_observed"] * annualization_factor
+    out["lost_sales_margin_proxy_annualized"] = (
+        out["lost_sales_margin_proxy_observed"] * annualization_factor
+    )
     out["supplier_delay_impact_proxy_annualized"] = (
         out["supplier_delay_impact_proxy_observed"] * annualization_factor
     )
@@ -163,8 +187,12 @@ def aggregate_impact(df: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame:
     )
 
     total_opp = float(out["opportunity_total_12m_proxy"].sum())
-    out["opportunity_share"] = np.where(total_opp > 0, out["opportunity_total_12m_proxy"] / total_opp, 0.0)
-    out["opportunity_rank"] = out["opportunity_total_12m_proxy"].rank(method="first", ascending=False).astype(int)
+    out["opportunity_share"] = np.where(
+        total_opp > 0, out["opportunity_total_12m_proxy"] / total_opp, 0.0
+    )
+    out["opportunity_rank"] = (
+        out["opportunity_total_12m_proxy"].rank(method="first", ascending=False).astype(int)
+    )
 
     return out.sort_values("opportunity_total_12m_proxy", ascending=False)
 
@@ -202,7 +230,8 @@ def build_overall_summary(df: pd.DataFrame, annualization_factor: float) -> pd.D
         * ASSUMPTIONS.releasable_trapped_wc_rate_12m,
     }
     opportunity["opportunity_total_12m_proxy"] = (
-        opportunity["opportunity_margin_recovery_12m_proxy"] + opportunity["opportunity_wc_release_12m_proxy"]
+        opportunity["opportunity_margin_recovery_12m_proxy"]
+        + opportunity["opportunity_wc_release_12m_proxy"]
     )
 
     rows = [
@@ -291,7 +320,9 @@ def build_opportunity_priority_view(
         if extra_id_col:
             top["entity_id"] = top[id_col].astype(str) + "|" + top[extra_id_col].astype(str)
             if name_col:
-                top["entity_name"] = top[name_col].astype(str) + " @ " + top[extra_id_col].astype(str)
+                top["entity_name"] = (
+                    top[name_col].astype(str) + " @ " + top[extra_id_col].astype(str)
+                )
             else:
                 top["entity_name"] = top["entity_id"]
         else:
@@ -331,13 +362,23 @@ def run_impact_analysis() -> None:
     daily, products, suppliers = load_inputs()
     enriched, annualization_factor = enrich_daily(daily, products, suppliers)
 
-    sku = aggregate_impact(enriched, ["product_id", "product_name", "warehouse_id", "category", "supplier_id"])
+    sku = aggregate_impact(
+        enriched, ["product_id", "product_name", "warehouse_id", "category", "supplier_id"]
+    )
     warehouse = aggregate_impact(enriched, ["warehouse_id", "region"])
     supplier = aggregate_impact(enriched, ["supplier_id"])
     category = aggregate_impact(enriched, ["category"])
 
     warehouse_names = pd.read_csv(DATA_RAW / "warehouses.csv")[["warehouse_id", "warehouse_name"]]
-    supplier_names = suppliers[["supplier_id", "supplier_name", "on_time_delivery_rate", "average_delay_days", "lead_time_variability"]]
+    supplier_names = suppliers[
+        [
+            "supplier_id",
+            "supplier_name",
+            "on_time_delivery_rate",
+            "average_delay_days",
+            "lead_time_variability",
+        ]
+    ]
 
     warehouse = warehouse.merge(warehouse_names, on="warehouse_id", how="left")
     supplier = supplier.merge(supplier_names, on="supplier_id", how="left")

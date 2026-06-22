@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pandas as pd
-
 from src.scoring import assign_risk_tier, linear_score, recommended_action
 
 

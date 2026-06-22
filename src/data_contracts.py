@@ -10,7 +10,7 @@ import pandas as pd
 try:
     from src.config import PROJECT_ROOT
 except ModuleNotFoundError:
-    from config import PROJECT_ROOT
+    from config import PROJECT_ROOT  # type: ignore[no-redef]
 
 
 CONTRACT_FILE = PROJECT_ROOT / "configs" / "table_contracts.json"
@@ -135,7 +135,9 @@ def evaluate_dataframe_contract(df: pd.DataFrame, contract: dict) -> list[Contra
 
     allowed_values = contract.get("allowed_values", {})
     for column, allowed in allowed_values.items():
-        invalid_values = sorted(df.loc[~df[column].isin(allowed), column].dropna().astype(str).unique())
+        invalid_values = sorted(
+            df.loc[~df[column].isin(allowed), column].dropna().astype(str).unique()
+        )
         checks.append(
             ContractCheck(
                 table_name=name,

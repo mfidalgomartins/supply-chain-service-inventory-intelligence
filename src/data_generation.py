@@ -9,7 +9,7 @@ import pandas as pd
 try:
     from src.config import DATA_RAW, END_DATE, RANDOM_SEED, START_DATE
 except ModuleNotFoundError:
-    from config import DATA_RAW, END_DATE, RANDOM_SEED, START_DATE
+    from config import DATA_RAW, END_DATE, RANDOM_SEED, START_DATE  # type: ignore[no-redef]
 
 
 @dataclass(frozen=True)
@@ -162,7 +162,9 @@ def build_products_and_classification(
         if chronic_profiles[idx] == "chronic_stockout":
             supplier = suppliers.iloc[int(rng.integers(0, min(3, len(suppliers))))]
         else:
-            supplier = suppliers.iloc[int(rng.choice(np.arange(len(suppliers)), p=supplier_weights))]
+            supplier = suppliers.iloc[
+                int(rng.choice(np.arange(len(suppliers)), p=supplier_weights))
+            ]
 
         c_min, c_max = category_cost[category]
         unit_cost = round(float(rng.uniform(c_min, c_max)), 2)
@@ -173,7 +175,15 @@ def build_products_and_classification(
         shelf_life = int(rng.integers(sl_min, sl_max + 1))
 
         lead_time_days = int(
-            max(1, round(rng.normal(supplier["average_lead_time_days"], supplier["average_lead_time_days"] * 0.08)))
+            max(
+                1,
+                round(
+                    rng.normal(
+                        supplier["average_lead_time_days"],
+                        supplier["average_lead_time_days"] * 0.08,
+                    )
+                ),
+            )
         )
 
         if abc == "A":
@@ -220,7 +230,9 @@ def build_products_and_classification(
             }
         )
 
-        class_rows.append({"product_id": product_id, "abc_class": abc, "criticality_level": criticality})
+        class_rows.append(
+            {"product_id": product_id, "abc_class": abc, "criticality_level": criticality}
+        )
 
         sim_rows.append(
             {
@@ -334,18 +346,24 @@ def simulate_operations(
             wh_id = wh_row["warehouse_id"]
             wh_prof = warehouse_profile[wh_id]
 
-            local_demand_mean = sa["base_daily_demand"] * wh_prof["demand_factor"] * float(rng.uniform(0.92, 1.12))
+            local_demand_mean = (
+                sa["base_daily_demand"] * wh_prof["demand_factor"] * float(rng.uniform(0.92, 1.12))
+            )
             local_demand_cv = _bounded(sa["demand_cv"] * wh_prof["volatility_factor"], 0.08, 0.90)
             policy_bias = sa["planning_bias"] * wh_prof["planning_factor"]
 
             reorder_point = int(local_demand_mean * (p["lead_time_days"] + 2) * policy_bias)
-            order_up_to = int(local_demand_mean * (p["lead_time_days"] + sa["target_cover_days"]) * policy_bias)
+            order_up_to = int(
+                local_demand_mean * (p["lead_time_days"] + sa["target_cover_days"]) * policy_bias
+            )
 
             on_hand = max(40, int(order_up_to * rng.uniform(0.65, 1.05)))
             open_orders: list[dict] = []
 
             for current_date in dates:
-                arrivals_today = [o for o in open_orders if o["actual_arrival_date"] == current_date]
+                arrivals_today = [
+                    o for o in open_orders if o["actual_arrival_date"] == current_date
+                ]
                 if arrivals_today:
                     on_hand += int(sum(o["received_units"] for o in arrivals_today))
                 open_orders = [o for o in open_orders if o["actual_arrival_date"] > current_date]
@@ -354,14 +372,18 @@ def simulate_operations(
                 promo_probability = 0.04 + (0.04 if current_date.month in (11, 12) else 0.0)
                 promo_probability += 0.03 if p["category"] in {"Snacks", "Beverages"} else 0.0
                 promo_flag = int(rng.random() < min(0.22, promo_probability))
-                promo_lift = _bounded(rng.normal(1.22, 0.09), 1.05, 1.45) if promo_flag == 1 else 1.0
+                promo_lift = (
+                    _bounded(rng.normal(1.22, 0.09), 1.05, 1.45) if promo_flag == 1 else 1.0
+                )
 
                 demand_mean = local_demand_mean * seasonality * promo_lift
                 demand_std = max(1.0, demand_mean * local_demand_cv)
                 units_demanded = int(max(0, round(rng.normal(demand_mean, demand_std))))
 
                 if sa["chronic_profile"] == "chronic_stockout":
-                    units_demanded = int(round(units_demanded * _bounded(rng.normal(1.08, 0.04), 1.0, 1.18)))
+                    units_demanded = int(
+                        round(units_demanded * _bounded(rng.normal(1.08, 0.04), 1.0, 1.18))
+                    )
 
                 units_fulfilled = int(min(on_hand, units_demanded))
                 units_lost_sales = int(units_demanded - units_fulfilled)
@@ -411,7 +433,9 @@ def simulate_operations(
 
                     on_order_units = int(sum(o["received_units"] for o in open_orders))
 
-                reserved_units = int(min(on_hand, round(local_demand_mean * rng.uniform(0.04, 0.22))))
+                reserved_units = int(
+                    min(on_hand, round(local_demand_mean * rng.uniform(0.04, 0.22)))
+                )
                 available_units = int(max(0, on_hand - reserved_units))
                 inventory_value = round(on_hand * p["unit_cost"], 2)
                 days_of_supply = round(available_units / max(1.0, local_demand_mean), 2)
@@ -487,7 +511,9 @@ def print_summary(
 ) -> None:
     """Print concise dataset quality and scale summary."""
     stockout_rate = demand_history["stockout_flag"].mean()
-    fill_rate = demand_history["units_fulfilled"].sum() / max(1, demand_history["units_demanded"].sum())
+    fill_rate = demand_history["units_fulfilled"].sum() / max(
+        1, demand_history["units_demanded"].sum()
+    )
 
     demand_with_inventory = demand_history.merge(
         inventory_snapshots,
@@ -537,7 +563,9 @@ def generate_all_tables() -> None:
 
     suppliers = build_suppliers(cfg, rng)
     warehouses = build_warehouses()
-    products, product_classification, sim_attrs = build_products_and_classification(cfg, suppliers, rng)
+    products, product_classification, sim_attrs = build_products_and_classification(
+        cfg, suppliers, rng
+    )
 
     demand_history, inventory_snapshots, purchase_orders = simulate_operations(
         cfg=cfg,

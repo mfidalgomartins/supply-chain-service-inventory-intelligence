@@ -4,7 +4,6 @@ from pathlib import Path
 
 import duckdb
 import pytest
-
 from src.sql_quality_gate import _split_sql_statements
 
 

@@ -10,19 +10,30 @@ import pandas as pd
 try:
     from src.config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
 except ModuleNotFoundError:
-    from config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
+    from config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT  # type: ignore[no-redef]
 
 
 OUTPUT_DASHBOARD_FILE = PROJECT_ROOT / "index.html"
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
 PLOTLY_CDN_URL = "https://cdn.plot.ly/plotly-3.5.0.min.js"
+# Subresource Integrity hash for the pinned bundle. The browser refuses to run
+# the script if the fetched bytes do not match, protecting the published
+# dashboard against a tampered or substituted CDN payload. Regenerate with:
+#   curl -sSL <PLOTLY_CDN_URL> | openssl dgst -sha384 -binary | openssl base64 -A
+PLOTLY_SRI = "sha384-DPvk2KODrsA0CfBr4HTwAwhdDROPqqK2PvSSswJMQMpnUkwSTg4gLBxXc3wv2e5L"
 
 
 def _prepare_dashboard_data() -> dict:
-    daily = pd.read_csv(DATA_PROCESSED / "daily_product_warehouse_metrics.csv", parse_dates=["date"])
-    products = pd.read_csv(DATA_RAW / "products.csv")[["product_id", "product_name", "unit_cost", "unit_price"]]
+    daily = pd.read_csv(
+        DATA_PROCESSED / "daily_product_warehouse_metrics.csv", parse_dates=["date"]
+    )
+    products = pd.read_csv(DATA_RAW / "products.csv")[
+        ["product_id", "product_name", "unit_cost", "unit_price"]
+    ]
     suppliers = pd.read_csv(DATA_PROCESSED / "supplier_performance_summary.csv")
-    warehouses = pd.read_csv(DATA_RAW / "warehouses.csv")[["warehouse_id", "warehouse_name", "region"]]
+    warehouses = pd.read_csv(DATA_RAW / "warehouses.csv")[
+        ["warehouse_id", "warehouse_name", "region"]
+    ]
     sku_risk = pd.read_csv(DATA_PROCESSED / "sku_risk_table.csv")
 
     daily = daily.copy()
@@ -42,8 +53,9 @@ def _prepare_dashboard_data() -> dict:
         [20.0, 30.0],
         default=45.0,
     )
-    daily["excess_inventory_proxy"] = (
-        daily["inventory_value"] * ((daily["days_of_supply"] - daily["dos_cap"]).clip(lower=0) / daily["days_of_supply"].clip(lower=1e-9))
+    daily["excess_inventory_proxy"] = daily["inventory_value"] * (
+        (daily["days_of_supply"] - daily["dos_cap"]).clip(lower=0)
+        / daily["days_of_supply"].clip(lower=1e-9)
     )
     daily["slow_moving_proxy"] = np.where(
         (daily["available_units"] > 0) & (daily["units_fulfilled"] == 0),
@@ -58,25 +70,22 @@ def _prepare_dashboard_data() -> dict:
     )
     daily["lost_sales_margin_proxy"] = daily["lost_sales_revenue"] * daily["gross_margin_rate"]
 
-    monthly_sku = (
-        daily.groupby(
-            ["month", "region", "warehouse_id", "product_id", "category", "supplier_id", "abc_class"],
-            as_index=False,
-        )
-        .agg(
-            units_demanded=("units_demanded", "sum"),
-            units_fulfilled=("units_fulfilled", "sum"),
-            units_lost_sales=("units_lost_sales", "sum"),
-            lost_sales_revenue=("lost_sales_revenue", "sum"),
-            inventory_value=("inventory_value", "mean"),
-            avg_days_of_supply=("days_of_supply", "mean"),
-            excess_inventory_proxy=("excess_inventory_proxy", "mean"),
-            slow_moving_proxy=("slow_moving_proxy", "mean"),
-            slow_moving_non_excess_proxy=("slow_moving_non_excess_proxy", "mean"),
-            trapped_wc_proxy=("trapped_wc_proxy", "mean"),
-            lost_sales_margin_proxy=("lost_sales_margin_proxy", "sum"),
-            observation_days=("date", "nunique"),
-        )
+    monthly_sku = daily.groupby(
+        ["month", "region", "warehouse_id", "product_id", "category", "supplier_id", "abc_class"],
+        as_index=False,
+    ).agg(
+        units_demanded=("units_demanded", "sum"),
+        units_fulfilled=("units_fulfilled", "sum"),
+        units_lost_sales=("units_lost_sales", "sum"),
+        lost_sales_revenue=("lost_sales_revenue", "sum"),
+        inventory_value=("inventory_value", "mean"),
+        avg_days_of_supply=("days_of_supply", "mean"),
+        excess_inventory_proxy=("excess_inventory_proxy", "mean"),
+        slow_moving_proxy=("slow_moving_proxy", "mean"),
+        slow_moving_non_excess_proxy=("slow_moving_non_excess_proxy", "mean"),
+        trapped_wc_proxy=("trapped_wc_proxy", "mean"),
+        lost_sales_margin_proxy=("lost_sales_margin_proxy", "sum"),
+        observation_days=("date", "nunique"),
     )
 
     monthly_sku["stockout_month_flag"] = (monthly_sku["units_lost_sales"] > 0).astype(int)
@@ -128,7 +137,7 @@ def _prepare_dashboard_data() -> dict:
 
     if impact_overall_path.exists():
         impact_overall = pd.read_csv(impact_overall_path)
-        impact_map = dict(zip(impact_overall["metric"], impact_overall["value"]))
+        impact_map = dict(zip(impact_overall["metric"], impact_overall["value"], strict=False))
     else:
         impact_map = {}
 
@@ -136,21 +145,29 @@ def _prepare_dashboard_data() -> dict:
         "overall_fill_rate": float(overall_kpi.get("overall_fill_rate", 0.0)),
         "overall_stockout_rate": float(overall_kpi.get("overall_stockout_rate", 0.0)),
         "total_lost_sales_revenue": float(overall_kpi.get("total_lost_sales_revenue", 0.0)),
-        "trapped_working_capital_proxy_average": float(impact_map.get("trapped_working_capital_proxy_average", 0.0)),
+        "trapped_working_capital_proxy_average": float(
+            impact_map.get("trapped_working_capital_proxy_average", 0.0)
+        ),
         "opportunity_total_12m_proxy": float(impact_map.get("opportunity_total_12m_proxy", 0.0)),
     }
 
     product_dim = products[["product_id", "product_name"]].copy()
     product_dim["product_name"] = product_dim["product_name"].fillna(product_dim["product_id"])
 
-    hash_seed = (
-        monthly_sku.sort_values(["month", "warehouse_id", "product_id"])[["month", "warehouse_id", "product_id", "units_demanded", "units_fulfilled", "lost_sales_revenue"]]
-        .to_csv(index=False)
-        .encode("utf-8")
-        + sku_baseline.sort_values(["product_id", "warehouse_id", "supplier_id"])[["product_id", "warehouse_id", "supplier_id", "governance_priority_score"]]
-        .to_csv(index=False)
-        .encode("utf-8")
-    )
+    hash_seed = monthly_sku.sort_values(["month", "warehouse_id", "product_id"])[
+        [
+            "month",
+            "warehouse_id",
+            "product_id",
+            "units_demanded",
+            "units_fulfilled",
+            "lost_sales_revenue",
+        ]
+    ].to_csv(index=False).encode("utf-8") + sku_baseline.sort_values(
+        ["product_id", "warehouse_id", "supplier_id"]
+    )[["product_id", "warehouse_id", "supplier_id", "governance_priority_score"]].to_csv(
+        index=False
+    ).encode("utf-8")
     dataset_hash = hashlib.sha256(hash_seed).hexdigest()
     dashboard_version = f"v{dataset_hash[:12]}"
     data_through = daily["date"].max().strftime("%Y-%m-%d")
@@ -214,7 +231,9 @@ def _prepare_dashboard_data() -> dict:
             ]
         )
 
-    product_name_map = dict(product_dim[["product_id", "product_name"]].itertuples(index=False, name=None))
+    product_name_map = dict(
+        product_dim[["product_id", "product_name"]].itertuples(index=False, name=None)
+    )
 
     data_payload = {
         "generated_at": f"Data through {data_through}",
@@ -247,13 +266,36 @@ def _prepare_dashboard_data() -> dict:
     suppliers.to_csv(OUTPUT_TABLES_DIR / "dashboard_supplier_dim.csv", index=False)
     warehouses.to_csv(OUTPUT_TABLES_DIR / "dashboard_warehouse_dim.csv", index=False)
     sku_baseline.to_csv(OUTPUT_TABLES_DIR / "dashboard_sku_risk_baseline.csv", index=False)
-    pd.DataFrame([snapshot]).to_csv(OUTPUT_TABLES_DIR / "dashboard_official_snapshot.csv", index=False)
+    pd.DataFrame([snapshot]).to_csv(
+        OUTPUT_TABLES_DIR / "dashboard_official_snapshot.csv", index=False
+    )
 
     return data_payload
 
 
+def _stabilize_floats(obj: object, ndigits: int = 6) -> object:
+    """Round every float in the payload to a fixed precision.
+
+    Floating-point summation order differs across Python and NumPy versions,
+    which would otherwise leak non-deterministic trailing digits (e.g.
+    ``20281573.240000002`` vs ``20281573.24``) into the published dashboard and
+    break the CI freshness check. Rounding before serialisation makes the output
+    byte-identical across environments without affecting the dataset hash, which
+    is computed upstream from the raw processed data.
+    """
+    if isinstance(obj, float):
+        return round(obj, ndigits)
+    if isinstance(obj, dict):
+        return {key: _stabilize_floats(value, ndigits) for key, value in obj.items()}
+    if isinstance(obj, list):
+        return [_stabilize_floats(value, ndigits) for value in obj]
+    return obj
+
+
 def _build_html(data_payload: dict) -> str:
-    data_json = json.dumps(data_payload, ensure_ascii=False, separators=(",", ":"))
+    data_json = json.dumps(
+        _stabilize_floats(data_payload), ensure_ascii=False, separators=(",", ":")
+    )
 
     template = """
 <!DOCTYPE html>
@@ -270,56 +312,59 @@ def _build_html(data_payload: dict) -> str:
   <style>
     :root {
       color-scheme: light;
-      --bg: #f4f6f8;
+      --bg: #f5f5f7;
       --surface: #ffffff;
-      --surface-soft: #f7f9fb;
-      --inset: #f1f4f7;
-      --ink: #0b1a24;
-      --ink-soft: #33424d;
-      --muted: #64727d;
-      --faint: #8e9aa4;
-      --border: #e7ebef;
-      --border-strong: #d7dde3;
-      --accent: #0c6f7e;
+      --surface-soft: #fbfbfd;
+      --inset: #f0f0f3;
+      --ink: #1d1d1f;
+      --ink-soft: #424245;
+      --muted: #6e6e73;
+      --faint: #86868b;
+      --border: #e6e6eb;
+      --border-strong: #d2d2d7;
+      --accent: #0071e3;
       --accent-ink: #ffffff;
-      --accent-soft: #e7f2f4;
-      --good: #1c7a4d;
-      --warn: #8a5d05;
-      --bad: #bb3a30;
-      --good-soft: #e8f3ed;
-      --warn-soft: #f6efdb;
-      --bad-soft: #faece9;
-      --shadow: 0 1px 2px rgba(11, 26, 36, 0.05), 0 1px 1px rgba(11, 26, 36, 0.03);
-      --shadow-pop: 0 14px 34px -16px rgba(11, 26, 36, 0.22);
-      --radius: 12px;
-      --radius-sm: 8px;
-      --font: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
-      --mono: "Geist Mono", ui-monospace, "SF Mono", "Roboto Mono", monospace;
+      --accent-soft: #e8f1fd;
+      --good: #1d8a4e;
+      --warn: #9a6500;
+      --bad: #d70015;
+      --good-soft: #e6f4ec;
+      --warn-soft: #fbf0db;
+      --bad-soft: #fdeceb;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 14px -8px rgba(0, 0, 0, 0.10);
+      --shadow-pop: 0 18px 50px -22px rgba(0, 0, 0, 0.30);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --radius-lg: 22px;
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+      --spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Geist", "Inter", "Segoe UI", system-ui, sans-serif;
+      --mono: ui-monospace, "SF Mono", "SFMono-Regular", "Geist Mono", "Roboto Mono", Menlo, monospace;
     }
 
     [data-theme="dark"] {
       color-scheme: dark;
-      --bg: #090d11;
-      --surface: #111820;
-      --surface-soft: #151d26;
-      --inset: #19222c;
-      --ink: #e8eef3;
-      --ink-soft: #c2ccd4;
-      --muted: #8b96a1;
-      --faint: #6a7682;
-      --border: #212a33;
-      --border-strong: #2c3741;
-      --accent: #45bccd;
-      --accent-ink: #04161a;
-      --accent-soft: #102f37;
-      --good: #57c089;
-      --warn: #d6ad63;
-      --bad: #ef8077;
-      --good-soft: #11271f;
-      --warn-soft: #2c2614;
-      --bad-soft: #311c1a;
-      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-      --shadow-pop: 0 18px 44px -18px rgba(0, 0, 0, 0.7);
+      --bg: #000000;
+      --surface: #1c1c1e;
+      --surface-soft: #232325;
+      --inset: #2c2c2e;
+      --ink: #f5f5f7;
+      --ink-soft: #d6d6da;
+      --muted: #98989d;
+      --faint: #6e6e73;
+      --border: #303032;
+      --border-strong: #404043;
+      --accent: #0a84ff;
+      --accent-ink: #ffffff;
+      --accent-soft: #11243d;
+      --good: #30d158;
+      --warn: #ff9f0a;
+      --bad: #ff453a;
+      --good-soft: #122b1c;
+      --warn-soft: #2e2410;
+      --bad-soft: #331613;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 28px -14px rgba(0, 0, 0, 0.7);
+      --shadow-pop: 0 22px 56px -22px rgba(0, 0, 0, 0.85);
     }
 
     * { box-sizing: border-box; }
@@ -375,15 +420,15 @@ def _build_html(data_payload: dict) -> str:
       position: sticky;
       top: 0;
       z-index: 50;
-      background: color-mix(in srgb, var(--surface) 80%, transparent);
-      -webkit-backdrop-filter: saturate(150%) blur(12px);
-      backdrop-filter: saturate(150%) blur(12px);
-      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, var(--surface) 72%, transparent);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
     }
     .masthead-inner {
       width: min(1320px, calc(100% - 44px));
       margin: 0 auto;
-      height: 56px;
+      height: 58px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -391,17 +436,18 @@ def _build_html(data_payload: dict) -> str:
     }
     .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
     .brand-mark {
-      width: 27px;
-      height: 27px;
+      width: 28px;
+      height: 28px;
       flex: none;
-      border-radius: 7px;
-      background: var(--accent);
+      border-radius: 9px;
+      background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent));
       color: var(--accent-ink);
       display: grid;
       place-items: center;
       font-weight: 600;
       font-size: 12px;
       letter-spacing: -0.03em;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     }
     .brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
     .brand-name { font-size: 0.84rem; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -466,10 +512,10 @@ def _build_html(data_payload: dict) -> str:
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      height: 27px;
-      padding: 0 10px;
+      height: 28px;
+      padding: 0 12px;
       border: 1px solid var(--border);
-      border-radius: 7px;
+      border-radius: 980px;
       background: var(--surface-soft);
       color: var(--muted);
       font-size: 0.74rem;
@@ -490,17 +536,20 @@ def _build_html(data_payload: dict) -> str:
       gap: 7px;
       height: 34px;
       border: 1px solid var(--border-strong);
-      border-radius: 8px;
+      border-radius: 980px;
       background: var(--surface);
       color: var(--ink-soft);
-      padding: 0 12px;
+      padding: 0 15px;
       cursor: pointer;
       font-size: 0.82rem;
       font-weight: 500;
-      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+      letter-spacing: -0.006em;
+      transition: background 0.18s var(--ease), border-color 0.18s var(--ease),
+        color 0.18s var(--ease), transform 0.18s var(--spring);
     }
     .btn:hover { background: var(--inset); border-color: var(--border-strong); color: var(--ink); }
-    .btn[aria-expanded="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+    .btn:active { transform: scale(0.97); }
+    .btn[aria-expanded="true"] { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
     .btn-ghost { border-color: transparent; background: transparent; }
     .btn-ghost:hover { background: var(--inset); }
 
@@ -568,20 +617,30 @@ def _build_html(data_payload: dict) -> str:
     }
     .field select, .field input {
       width: 100%;
-      height: 36px;
-      padding: 0 10px;
-      border: 1px solid var(--border-strong);
-      border-radius: 8px;
-      background: var(--surface);
+      height: 38px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--inset);
       color: var(--ink);
       font-size: 0.84rem;
-      transition: border-color 0.12s ease, box-shadow 0.12s ease;
+      letter-spacing: -0.006em;
+      transition: border-color 0.16s var(--ease), box-shadow 0.16s var(--ease), background 0.16s var(--ease);
     }
-    .field select:hover, .field input:hover { border-color: var(--faint); }
+    .field select {
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 32px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.5 4.5L6 8l3.5-3.5' stroke='%2386868b' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 11px center;
+    }
+    .field select:hover, .field input:hover { border-color: var(--border-strong); background: var(--surface-soft); }
     .field select:focus, .field input:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
+      background: var(--surface);
+      box-shadow: 0 0 0 4px var(--accent-soft);
     }
 
     /* ---------- Sections ---------- */
@@ -616,7 +675,9 @@ def _build_html(data_payload: dict) -> str:
       display: flex;
       flex-direction: column;
       min-height: 158px;
+      transition: background 0.16s var(--ease);
     }
+    .kpi:hover { background: var(--surface-soft); }
     .kpi-top { display: flex; align-items: center; gap: 7px; }
     .kpi-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); flex: none; }
     .kpi.good .kpi-dot { background: var(--good); }
@@ -668,11 +729,14 @@ def _build_html(data_payload: dict) -> str:
       border: 1px solid var(--border);
       border-radius: var(--radius);
       background: var(--surface);
-      padding: 16px;
+      padding: 18px;
       display: flex;
       flex-direction: column;
       min-height: 138px;
+      box-shadow: var(--shadow);
+      transition: transform 0.24s var(--ease), box-shadow 0.24s var(--ease), border-color 0.24s var(--ease);
     }
+    .triage:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); border-color: var(--border-strong); }
     .triage-head { display: flex; align-items: center; gap: 7px; }
     .triage-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; }
     .triage.bad .triage-dot { background: var(--bad); }
@@ -712,8 +776,11 @@ def _build_html(data_payload: dict) -> str:
       border: 1px solid var(--border);
       border-radius: var(--radius);
       background: var(--surface);
-      padding: 16px 14px 8px;
+      padding: 18px 16px 10px;
+      box-shadow: var(--shadow);
+      transition: box-shadow 0.24s var(--ease), border-color 0.24s var(--ease);
     }
+    .chart-card:hover { box-shadow: var(--shadow-pop); border-color: var(--border-strong); }
     .chart-head { padding: 0 6px 2px; }
     .chart-title {
       margin: 0;
@@ -883,8 +950,11 @@ def _build_html(data_payload: dict) -> str:
       border: 1px solid var(--border);
       border-radius: var(--radius);
       background: var(--surface);
-      padding: 16px 18px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+      transition: transform 0.24s var(--ease), box-shadow 0.24s var(--ease), border-color 0.24s var(--ease);
     }
+    .brief:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); border-color: var(--border-strong); }
     .brief-title {
       color: var(--faint);
       font-size: 0.66rem;
@@ -1166,7 +1236,7 @@ def _build_html(data_payload: dict) -> str:
     </main>
   </div>
 
-  <script src="__PLOTLY_CDN_URL__"></script>
+  <script src="__PLOTLY_CDN_URL__" integrity="__PLOTLY_SRI__" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
     const dashboardData = __DATA_JSON__;
 
@@ -1254,16 +1324,16 @@ def _build_html(data_payload: dict) -> str:
       if (currentTheme === 'dark') {
         return {
           paper: 'rgba(0,0,0,0)', plot: 'rgba(0,0,0,0)',
-          text: '#e8eef3', muted: '#8b96a1', faint: '#6a7682', grid: '#1d2630',
-          accent: '#45bccd', accentDim: 'rgba(69,188,205,0.32)',
-          good: '#57c089', warn: '#d6ad63', bad: '#ef8077', slate: '#73818f',
+          text: '#f5f5f7', muted: '#98989d', faint: '#6e6e73', grid: '#2c2c2e',
+          accent: '#0a84ff', accentDim: 'rgba(10,132,255,0.30)',
+          good: '#30d158', warn: '#ff9f0a', bad: '#ff453a', slate: '#8e8e93',
         };
       }
       return {
         paper: 'rgba(0,0,0,0)', plot: 'rgba(0,0,0,0)',
-        text: '#0b1a24', muted: '#64727d', faint: '#8e9aa4', grid: '#edf1f4',
-        accent: '#0c6f7e', accentDim: 'rgba(12,111,126,0.16)',
-        good: '#1c7a4d', warn: '#8a5d05', bad: '#bb3a30', slate: '#94a2ae',
+        text: '#1d1d1f', muted: '#6e6e73', faint: '#86868b', grid: '#e6e6eb',
+        accent: '#0071e3', accentDim: 'rgba(0,113,227,0.14)',
+        good: '#1d8a4e', warn: '#9a6500', bad: '#d70015', slate: '#aeaeb2',
       };
     }
 
@@ -1272,7 +1342,7 @@ def _build_html(data_payload: dict) -> str:
       return {
         paper_bgcolor: c.paper,
         plot_bgcolor: c.plot,
-        font: { family: 'Geist, system-ui, sans-serif', size: 11.5, color: c.muted },
+        font: { family: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Geist, system-ui, sans-serif', size: 11.5, color: c.muted },
         margin: { l: 64, r: 18, t: 14, b: 42 },
         xaxis: { gridcolor: c.grid, zeroline: false, automargin: true, tickfont: { family: 'Geist Mono, monospace', size: 10.5, color: c.faint }, linecolor: c.grid },
         yaxis: { gridcolor: c.grid, zeroline: false, automargin: true, tickfont: { family: 'Geist Mono, monospace', size: 10.5, color: c.faint } },
@@ -1904,7 +1974,11 @@ def _build_html(data_payload: dict) -> str:
 </html>
 """
 
-    rendered = template.replace("__PLOTLY_CDN_URL__", PLOTLY_CDN_URL).replace("__DATA_JSON__", data_json)
+    rendered = (
+        template.replace("__PLOTLY_CDN_URL__", PLOTLY_CDN_URL)
+        .replace("__PLOTLY_SRI__", PLOTLY_SRI)
+        .replace("__DATA_JSON__", data_json)
+    )
     return "\n".join(line.rstrip() for line in rendered.splitlines()) + "\n"
 
 

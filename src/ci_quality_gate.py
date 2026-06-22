@@ -7,7 +7,7 @@ import pandas as pd
 try:
     from src.config import PROJECT_ROOT
 except ModuleNotFoundError:
-    from config import PROJECT_ROOT
+    from config import PROJECT_ROOT  # type: ignore[no-redef]
 
 
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
@@ -43,7 +43,11 @@ def run_ci_quality_gate() -> None:
     pre_fail = int((pre_delivery["status"] == "FAIL").sum())
     pre_warn = int((pre_delivery["status"] == "WARN").sum())
     sql_fail = int((sql_checks["status"] != "PASS").sum())
-    release_classification = str(release_matrix["release_classification"].iloc[0]) if not release_matrix.empty else "publish-blocked"
+    release_classification = (
+        str(release_matrix["release_classification"].iloc[0])
+        if not release_matrix.empty
+        else "publish-blocked"
+    )
     publish_blocked = release_classification == "publish-blocked"
 
     publication_graphs = sorted(OUTPUT_GRAPHS_DIR.glob("*.png"))

@@ -6,7 +6,7 @@ import pandas as pd
 try:
     from src.config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT, SQL_DIR
 except ModuleNotFoundError:
-    from config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT, SQL_DIR
+    from config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT, SQL_DIR  # type: ignore[no-redef]
 
 
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"

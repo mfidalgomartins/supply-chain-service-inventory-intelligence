@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pandas as pd
 import pytest
-
 from src.impact_analysis import aggregate_impact, build_overall_summary
 
 
@@ -33,7 +32,7 @@ def test_aggregate_impact_averages_balance_metrics_across_dates() -> None:
 
 def test_overall_summary_does_not_annualize_working_capital_balance() -> None:
     summary = build_overall_summary(_impact_daily(), annualization_factor=365 / 2)
-    values = dict(zip(summary["metric"], summary["value"]))
+    values = dict(zip(summary["metric"], summary["value"], strict=False))
 
     assert values["trapped_working_capital_proxy_average"] == pytest.approx(60.0)
     assert values["opportunity_wc_release_12m_proxy"] == pytest.approx(15.0)

@@ -1,0 +1,54 @@
+[project]
+name = "supply-chain-service-inventory-intelligence"
+version = "1.0.0"
+description = "Reproducible decision-support pipeline for supply-chain service level and inventory intelligence."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "C4"]
+# E501: line length is owned by `ruff format`; remaining long lines are
+#   embedded HTML/CSS templates and SQL strings that must not be wrapped.
+# S603/S607: the pipeline intentionally shells out to trusted, hard-coded
+#   interpreter/script paths (no user input).
+ignore = ["E501", "S603", "S607"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use assert and construct fixtures with predictable pseudo-randomness.
+"tests/*" = ["S101", "S311"]
+# Synthetic data generation deliberately uses non-cryptographic randomness.
+"src/data_generation.py" = ["S311"]
+# E402: matplotlib backend/config env vars must be set before importing pyplot.
+"src/build_charts.py" = ["E402"]
+# S608: DuckDB DDL interpolates only hard-coded internal table names and
+# repo-relative paths (never user input); identifiers cannot be parameterised.
+"src/sql_quality_gate.py" = ["S608"]
+"src/data_preparation.py" = ["S608"]
+"src/pre_delivery_validation.py" = ["S608"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src", "tests"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+addopts = "-q --cov=src --cov-report=term-missing --cov-fail-under=95"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["src/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = ["pragma: no cover", "if __name__ == .__main__.:", "raise SystemExit"]

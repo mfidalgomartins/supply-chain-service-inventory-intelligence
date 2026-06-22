@@ -3,7 +3,6 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
-
 from src.data_generation import simulate_actual_arrival
 
 
@@ -13,8 +12,7 @@ def test_supplier_reliability_controls_on_time_rate() -> None:
     reliability = 0.82
 
     arrivals = [
-        simulate_actual_arrival(current_date, 14, reliability, 0.25, rng)
-        for _ in range(10_000)
+        simulate_actual_arrival(current_date, 14, reliability, 0.25, rng) for _ in range(10_000)
     ]
     on_time_rate = 1.0 - np.mean([late_flag for _, late_flag in arrivals])
 
@@ -26,10 +24,7 @@ def test_arrival_date_and_late_flag_are_consistent() -> None:
     current_date = pd.Timestamp("2026-01-01")
     expected_arrival = current_date + pd.Timedelta(days=10)
 
-    arrivals = [
-        simulate_actual_arrival(current_date, 10, 0.70, 0.30, rng)
-        for _ in range(1_000)
-    ]
+    arrivals = [simulate_actual_arrival(current_date, 10, 0.70, 0.30, rng) for _ in range(1_000)]
 
     assert all((actual > expected_arrival) == bool(late_flag) for actual, late_flag in arrivals)
 

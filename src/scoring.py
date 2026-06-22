@@ -8,7 +8,7 @@ import pandas as pd
 try:
     from src.config import DATA_PROCESSED, PROJECT_ROOT
 except ModuleNotFoundError:
-    from config import DATA_PROCESSED, PROJECT_ROOT
+    from config import DATA_PROCESSED, PROJECT_ROOT  # type: ignore[no-redef]
 
 
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
@@ -89,9 +89,13 @@ def score_supplier_base(supplier_performance: pd.DataFrame) -> pd.DataFrame:
     lt_var = scored["lead_time_variability"].clip(lower=0)
     underfill = (1.0 - scored["received_vs_ordered_fill_rate"]).clip(0, 1)
 
-    otd_score = linear_score(otd_gap, THRESHOLDS.supplier_otd_gap_good, THRESHOLDS.supplier_otd_gap_bad)
+    otd_score = linear_score(
+        otd_gap, THRESHOLDS.supplier_otd_gap_good, THRESHOLDS.supplier_otd_gap_bad
+    )
     delay_score = linear_score(delay, THRESHOLDS.supplier_delay_good, THRESHOLDS.supplier_delay_bad)
-    lt_var_score = linear_score(lt_var, THRESHOLDS.supplier_lt_var_good, THRESHOLDS.supplier_lt_var_bad)
+    lt_var_score = linear_score(
+        lt_var, THRESHOLDS.supplier_lt_var_good, THRESHOLDS.supplier_lt_var_bad
+    )
     underfill_score = linear_score(
         underfill, THRESHOLDS.supplier_underfill_good, THRESHOLDS.supplier_underfill_bad
     )
@@ -125,7 +129,9 @@ def prepare_daily_input(daily: pd.DataFrame, supplier_scores: pd.DataFrame) -> p
         default=45.0,
     )
     out["excess_day"] = (out["days_of_supply"] > out["abc_dos_cap"]).astype(int)
-    out["slow_moving_day"] = ((out["available_units"] > 0) & (out["units_fulfilled"] == 0)).astype(int)
+    out["slow_moving_day"] = ((out["available_units"] > 0) & (out["units_fulfilled"] == 0)).astype(
+        int
+    )
 
     criticality_map = {"High": 1.0, "Medium": 0.6, "Low": 0.3}
     out["criticality_weight"] = out["criticality_level"].map(criticality_map).fillna(0.6)
@@ -188,9 +194,17 @@ def aggregate_entity(daily: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame
     agg["stockout_rate"] = safe_divide(agg["units_lost_sales"], agg["units_demanded"])
     agg["service_gap_rate"] = safe_divide(agg["service_gap_units"], agg["units_demanded"])
 
-    agg["criticality_index"] = safe_divide(agg["weighted_criticality_sum"], agg["demand_weight_sum"])
-    agg["avg_dos_cap"] = safe_divide(agg["weighted_dos_cap_sum"], agg["demand_weight_sum"]).replace(0, np.nan)
-    agg["dos_stretch"] = (agg["average_days_of_supply"] / agg["avg_dos_cap"]).replace([np.inf, -np.inf], np.nan).fillna(0.0)
+    agg["criticality_index"] = safe_divide(
+        agg["weighted_criticality_sum"], agg["demand_weight_sum"]
+    )
+    agg["avg_dos_cap"] = safe_divide(agg["weighted_dos_cap_sum"], agg["demand_weight_sum"]).replace(
+        0, np.nan
+    )
+    agg["dos_stretch"] = (
+        (agg["average_days_of_supply"] / agg["avg_dos_cap"])
+        .replace([np.inf, -np.inf], np.nan)
+        .fillna(0.0)
+    )
 
     agg["supplier_risk_score"] = safe_divide(
         agg["weighted_supplier_risk_sum"], agg["demand_weight_sum"]
@@ -236,17 +250,24 @@ def compute_component_scores(entity_df: pd.DataFrame, base_daily: pd.DataFrame) 
         out["dos_stretch"].clip(lower=0), THRESHOLDS.dos_stretch_good, THRESHOLDS.dos_stretch_bad
     )
     excess_day_score = linear_score(
-        out["excess_day_rate"].clip(0, 1), THRESHOLDS.excess_day_rate_good, THRESHOLDS.excess_day_rate_bad
+        out["excess_day_rate"].clip(0, 1),
+        THRESHOLDS.excess_day_rate_good,
+        THRESHOLDS.excess_day_rate_bad,
     )
     slow_moving_score = linear_score(
         out["slow_moving_rate"].clip(0, 1), THRESHOLDS.slow_moving_good, THRESHOLDS.slow_moving_bad
     )
     inventory_share_score = log_share_score(
-        out["inventory_value_share"], THRESHOLDS.inventory_share_low, THRESHOLDS.inventory_share_high
+        out["inventory_value_share"],
+        THRESHOLDS.inventory_share_low,
+        THRESHOLDS.inventory_share_high,
     )
 
     out["service_risk_score"] = (
-        0.35 * fill_gap_score + 0.30 * service_gap_score + 0.20 * criticality_score + 0.15 * lost_share_score
+        0.35 * fill_gap_score
+        + 0.30 * service_gap_score
+        + 0.20 * criticality_score
+        + 0.15 * lost_share_score
     ).clip(0, 100)
 
     out["stockout_risk_score"] = (
@@ -337,7 +358,7 @@ def build_sku_scoring(daily: pd.DataFrame) -> pd.DataFrame:
 
     sku["recommended_action"] = [
         recommended_action(driver, tier, "sku_warehouse")
-        for driver, tier in zip(sku["main_risk_driver"], sku["risk_tier"])
+        for driver, tier in zip(sku["main_risk_driver"], sku["risk_tier"], strict=False)
     ]
 
     return sku[
@@ -390,12 +411,14 @@ def build_supplier_scoring(daily: pd.DataFrame, supplier_base_scores: pd.DataFra
         how="left",
     )
 
-    supplier["supplier_risk_score"] = supplier["supplier_risk_score_base"].fillna(supplier["supplier_risk_score"])
+    supplier["supplier_risk_score"] = supplier["supplier_risk_score_base"].fillna(
+        supplier["supplier_risk_score"]
+    )
     supplier = compute_component_scores(supplier, daily)
 
     supplier["recommended_action"] = [
         recommended_action(driver, tier, "supplier")
-        for driver, tier in zip(supplier["main_risk_driver"], supplier["risk_tier"])
+        for driver, tier in zip(supplier["main_risk_driver"], supplier["risk_tier"], strict=False)
     ]
 
     return supplier[
@@ -433,7 +456,7 @@ def build_segment_scoring(daily: pd.DataFrame) -> pd.DataFrame:
     segment["segment_id"] = segment["category"] + " | " + segment["region"]
     segment["recommended_action"] = [
         recommended_action(driver, tier, "segment")
-        for driver, tier in zip(segment["main_risk_driver"], segment["risk_tier"])
+        for driver, tier in zip(segment["main_risk_driver"], segment["risk_tier"], strict=False)
     ]
 
     return segment[
@@ -534,7 +557,9 @@ def save_scoring_outputs(
 
 
 def run_scoring() -> None:
-    daily = pd.read_csv(DATA_PROCESSED / "daily_product_warehouse_metrics.csv", parse_dates=["date"])
+    daily = pd.read_csv(
+        DATA_PROCESSED / "daily_product_warehouse_metrics.csv", parse_dates=["date"]
+    )
     supplier_performance = pd.read_csv(DATA_PROCESSED / "supplier_performance_summary.csv")
 
     supplier_base_scores = score_supplier_base(supplier_performance)

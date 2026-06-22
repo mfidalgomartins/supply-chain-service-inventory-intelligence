@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from src.executive_dashboard import PLOTLY_CDN_URL, _build_html
+from src.executive_dashboard import (
+    PLOTLY_CDN_URL,
+    PLOTLY_SRI,
+    _build_html,
+    _stabilize_floats,
+)
 
 
 def _minimal_payload() -> dict:
@@ -87,6 +92,24 @@ def test_dashboard_loads_pinned_plotly_bundle_from_cdn() -> None:
     html = _build_html(_minimal_payload())
     assert f'src="{PLOTLY_CDN_URL}"' in html
     assert "__PLOTLY_CDN_URL__" not in html
+
+
+def test_dashboard_pins_plotly_with_subresource_integrity() -> None:
+    html = _build_html(_minimal_payload())
+    assert PLOTLY_SRI.startswith("sha384-")
+    assert f'integrity="{PLOTLY_SRI}"' in html
+    assert 'crossorigin="anonymous"' in html
+    assert "__PLOTLY_SRI__" not in html
+
+
+def test_payload_floats_are_stabilised_for_reproducible_output() -> None:
+    payload = {"a": 20281573.240000002, "b": [1.123456789, {"c": 2.0}], "d": "x", "e": 3}
+    assert _stabilize_floats(payload) == {
+        "a": 20281573.24,
+        "b": [1.123457, {"c": 2.0}],
+        "d": "x",
+        "e": 3,
+    }
 
 
 def test_dashboard_sortable_table_announces_sort_state() -> None:

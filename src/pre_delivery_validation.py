@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 import re
+from dataclasses import dataclass
 
 import duckdb
 import numpy as np
@@ -11,7 +10,7 @@ import pandas as pd
 try:
     from src.config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
 except ModuleNotFoundError:
-    from config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
+    from config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT  # type: ignore[no-redef]
 
 
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
@@ -152,16 +151,25 @@ def _python_validation_checks() -> list[CheckResult]:
     warehouses = pd.read_csv(DATA_RAW / "warehouses.csv")
     inventory = pd.read_csv(DATA_RAW / "inventory_snapshots.csv", parse_dates=["snapshot_date"])
     demand = pd.read_csv(DATA_RAW / "demand_history.csv", parse_dates=["date"])
-    po = pd.read_csv(DATA_RAW / "purchase_orders.csv", parse_dates=["order_date", "expected_arrival_date", "actual_arrival_date"])
+    po = pd.read_csv(
+        DATA_RAW / "purchase_orders.csv",
+        parse_dates=["order_date", "expected_arrival_date", "actual_arrival_date"],
+    )
 
-    daily = pd.read_csv(DATA_PROCESSED / "daily_product_warehouse_metrics.csv", parse_dates=["date"])
+    daily = pd.read_csv(
+        DATA_PROCESSED / "daily_product_warehouse_metrics.csv", parse_dates=["date"]
+    )
     sku_risk = pd.read_csv(DATA_PROCESSED / "sku_risk_table.csv")
     supplier_perf = pd.read_csv(DATA_PROCESSED / "supplier_performance_summary.csv")
 
     impact_overall = pd.read_csv(OUTPUT_TABLES_DIR / "impact_overall_summary.csv")
     kpi_overall = {
-        "overall_fill_rate": float(daily["units_fulfilled"].sum() / max(1.0, daily["units_demanded"].sum())),
-        "overall_stockout_rate": float(daily["units_lost_sales"].sum() / max(1.0, daily["units_demanded"].sum())),
+        "overall_fill_rate": float(
+            daily["units_fulfilled"].sum() / max(1.0, daily["units_demanded"].sum())
+        ),
+        "overall_stockout_rate": float(
+            daily["units_lost_sales"].sum() / max(1.0, daily["units_demanded"].sum())
+        ),
         "total_lost_sales_revenue": float(daily["lost_sales_revenue"].sum()),
     }
 
@@ -254,9 +262,25 @@ def _python_validation_checks() -> list[CheckResult]:
 
     # 3) Null critical columns
     critical_null_checks = {
-        "products_critical_nulls": (products, ["product_id", "category", "unit_cost", "unit_price", "supplier_id"]),
-        "suppliers_critical_nulls": (suppliers_raw, ["supplier_id", "reliability_score", "average_lead_time_days"]),
-        "daily_critical_nulls": (daily, ["date", "warehouse_id", "product_id", "units_demanded", "units_fulfilled", "fill_rate"]),
+        "products_critical_nulls": (
+            products,
+            ["product_id", "category", "unit_cost", "unit_price", "supplier_id"],
+        ),
+        "suppliers_critical_nulls": (
+            suppliers_raw,
+            ["supplier_id", "reliability_score", "average_lead_time_days"],
+        ),
+        "daily_critical_nulls": (
+            daily,
+            [
+                "date",
+                "warehouse_id",
+                "product_id",
+                "units_demanded",
+                "units_fulfilled",
+                "fill_rate",
+            ],
+        ),
         "sku_risk_critical_nulls": (
             sku_risk,
             [
@@ -287,7 +311,18 @@ def _python_validation_checks() -> list[CheckResult]:
 
     # 4) Impossible negative values
     negative_count = int(
-        (inventory[["on_hand_units", "on_order_units", "reserved_units", "available_units", "inventory_value"]] < 0)
+        (
+            inventory[
+                [
+                    "on_hand_units",
+                    "on_order_units",
+                    "reserved_units",
+                    "available_units",
+                    "inventory_value",
+                ]
+            ]
+            < 0
+        )
         .sum()
         .sum()
         + (demand[["units_demanded", "units_fulfilled", "units_lost_sales"]] < 0).sum().sum()
@@ -306,12 +341,18 @@ def _python_validation_checks() -> list[CheckResult]:
     )
 
     # 5) Fill rate logic, stockout logic, lost sales logic
-    demand_fill_rate = np.where(demand["units_demanded"] > 0, demand["units_fulfilled"] / demand["units_demanded"], 1.0)
+    demand_fill_rate = np.where(
+        demand["units_demanded"] > 0, demand["units_fulfilled"] / demand["units_demanded"], 1.0
+    )
     fill_out_of_bounds = int(((demand_fill_rate < 0) | (demand_fill_rate > 1)).sum())
-    demand_balance_issues = int((demand["units_fulfilled"] + demand["units_lost_sales"] != demand["units_demanded"]).sum())
+    demand_balance_issues = int(
+        (demand["units_fulfilled"] + demand["units_lost_sales"] != demand["units_demanded"]).sum()
+    )
     stockout_logic_issues = int(
-        (((demand["stockout_flag"] == 1) & (demand["units_lost_sales"] == 0))
-         | ((demand["stockout_flag"] == 0) & (demand["units_lost_sales"] > 0))).sum()
+        (
+            ((demand["stockout_flag"] == 1) & (demand["units_lost_sales"] == 0))
+            | ((demand["stockout_flag"] == 0) & (demand["units_lost_sales"] > 0))
+        ).sum()
     )
 
     _add_check(
@@ -349,10 +390,16 @@ def _python_validation_checks() -> list[CheckResult]:
     )
 
     # Lost sales revenue consistency
-    daily_with_price = daily.merge(products[["product_id", "unit_price"]], on="product_id", how="left")
-    expected_daily_lost_revenue = daily_with_price["units_lost_sales"] * daily_with_price["unit_price"]
+    daily_with_price = daily.merge(
+        products[["product_id", "unit_price"]], on="product_id", how="left"
+    )
+    expected_daily_lost_revenue = (
+        daily_with_price["units_lost_sales"] * daily_with_price["unit_price"]
+    )
 
-    lost_rev_mismatch_daily = int((np.abs(expected_daily_lost_revenue - daily_with_price["lost_sales_revenue"]) > 0.11).sum())
+    lost_rev_mismatch_daily = int(
+        (np.abs(expected_daily_lost_revenue - daily_with_price["lost_sales_revenue"]) > 0.11).sum()
+    )
 
     _add_check(
         results,
@@ -370,7 +417,11 @@ def _python_validation_checks() -> list[CheckResult]:
     inv_join = inventory.merge(products[["product_id", "unit_cost"]], on="product_id", how="left")
     inv_expected = inv_join["on_hand_units"] * inv_join["unit_cost"]
     inv_mismatch = int((np.abs(inv_join["inventory_value"] - inv_expected) > 0.11).sum())
-    available_logic_issues = int((inv_join["available_units"] != (inv_join["on_hand_units"] - inv_join["reserved_units"])).sum())
+    available_logic_issues = int(
+        (
+            inv_join["available_units"] != (inv_join["on_hand_units"] - inv_join["reserved_units"])
+        ).sum()
+    )
 
     _add_check(
         results,
@@ -403,16 +454,19 @@ def _python_validation_checks() -> list[CheckResult]:
         default=45.0,
     )
     daily_wc["excess_proxy"] = daily_wc["inventory_value"] * (
-        (daily_wc["days_of_supply"] - daily_wc["dos_cap"]).clip(lower=0) / daily_wc["days_of_supply"].clip(lower=1e-9)
+        (daily_wc["days_of_supply"] - daily_wc["dos_cap"]).clip(lower=0)
+        / daily_wc["days_of_supply"].clip(lower=1e-9)
     )
     daily_wc["slow_proxy"] = np.where(
         (daily_wc["available_units"] > 0) & (daily_wc["units_fulfilled"] == 0),
         daily_wc["inventory_value"],
         0.0,
     )
-    daily_wc["trapped_proxy"] = daily_wc["excess_proxy"] + 0.5 * (daily_wc["slow_proxy"] - daily_wc["excess_proxy"]).clip(lower=0)
+    daily_wc["trapped_proxy"] = daily_wc["excess_proxy"] + 0.5 * (
+        daily_wc["slow_proxy"] - daily_wc["excess_proxy"]
+    ).clip(lower=0)
 
-    overall_map = dict(zip(impact_overall["metric"], impact_overall["value"]))
+    overall_map = dict(zip(impact_overall["metric"], impact_overall["value"], strict=False))
     average_daily_wc = daily_wc.groupby("date")[["trapped_proxy", "excess_proxy"]].sum().mean()
     trapped_diff = abs(
         average_daily_wc["trapped_proxy"] - overall_map["trapped_working_capital_proxy_average"]
@@ -453,11 +507,15 @@ def _python_validation_checks() -> list[CheckResult]:
     )
 
     supplier_delay_by_supplier = (
-        daily.groupby("supplier_id", as_index=False)["lost_sales_revenue"].sum()
-        .merge(supplier_calc[["supplier_id", "supplier_delay_factor"]], on="supplier_id", how="left")
+        daily.groupby("supplier_id", as_index=False)["lost_sales_revenue"]
+        .sum()
+        .merge(
+            supplier_calc[["supplier_id", "supplier_delay_factor"]], on="supplier_id", how="left"
+        )
     )
     supplier_delay_by_supplier["supplier_delay_impact_proxy_observed"] = (
-        supplier_delay_by_supplier["lost_sales_revenue"] * supplier_delay_by_supplier["supplier_delay_factor"]
+        supplier_delay_by_supplier["lost_sales_revenue"]
+        * supplier_delay_by_supplier["supplier_delay_factor"]
     )
     supplier_delay_diff = abs(
         float(supplier_delay_by_supplier["supplier_delay_impact_proxy_observed"].sum())
@@ -505,8 +563,18 @@ def _python_validation_checks() -> list[CheckResult]:
     )
 
     # 10) Denominator correctness
-    denom_issues_raw = int(((demand["units_demanded"] == 0) & ((demand["units_fulfilled"] > 0) | (demand["units_lost_sales"] > 0))).sum())
-    denom_issues_daily = int(((daily["units_demanded"] == 0) & ((daily["units_fulfilled"] > 0) | (daily["units_lost_sales"] > 0))).sum())
+    denom_issues_raw = int(
+        (
+            (demand["units_demanded"] == 0)
+            & ((demand["units_fulfilled"] > 0) | (demand["units_lost_sales"] > 0))
+        ).sum()
+    )
+    denom_issues_daily = int(
+        (
+            (daily["units_demanded"] == 0)
+            & ((daily["units_fulfilled"] > 0) | (daily["units_lost_sales"] > 0))
+        ).sum()
+    )
 
     _add_check(
         results,
@@ -551,7 +619,11 @@ def _python_validation_checks() -> list[CheckResult]:
             return "Medium"
         return "Low"
 
-    tier_mismatches = int((sku_risk["governance_priority_score"].apply(tier_from_score) != sku_risk["risk_tier"]).sum())
+    tier_mismatches = int(
+        (
+            sku_risk["governance_priority_score"].apply(tier_from_score) != sku_risk["risk_tier"]
+        ).sum()
+    )
 
     driver_cols = {
         "Service Risk": "service_risk_score",
@@ -560,7 +632,11 @@ def _python_validation_checks() -> list[CheckResult]:
         "Supplier Risk": "supplier_risk_score",
         "Working Capital": "working_capital_risk_score",
     }
-    max_driver = sku_risk[list(driver_cols.values())].idxmax(axis=1).map({v: k for k, v in driver_cols.items()})
+    max_driver = (
+        sku_risk[list(driver_cols.values())]
+        .idxmax(axis=1)
+        .map({v: k for k, v in driver_cols.items()})
+    )
     driver_mismatches = int((max_driver != sku_risk["main_risk_driver"]).sum())
 
     _add_check(
@@ -654,7 +730,9 @@ def _python_validation_checks() -> list[CheckResult]:
     overlap_service = len(base_top & service_top) / 25.0
     overlap_wc = len(base_top & wc_top) / 25.0
     min_overlap = min(overlap_service, overlap_wc)
-    stability_status = "PASS" if min_overlap >= 0.65 else ("WARN" if min_overlap >= 0.50 else "FAIL")
+    stability_status = (
+        "PASS" if min_overlap >= 0.65 else ("WARN" if min_overlap >= 0.50 else "FAIL")
+    )
     _add_check(
         results,
         check_name="scoring_top25_stability_under_weight_perturbation",
@@ -678,7 +756,9 @@ def _python_validation_checks() -> list[CheckResult]:
         "dashboard_official_snapshot.csv",
         "ci_sql_validation_checks.csv",
     ]
-    missing_upgrade_tables = [t for t in required_upgrade_tables if not (OUTPUT_TABLES_DIR / t).exists()]
+    missing_upgrade_tables = [
+        t for t in required_upgrade_tables if not (OUTPUT_TABLES_DIR / t).exists()
+    ]
 
     _add_check(
         results,
@@ -825,7 +905,9 @@ def _python_validation_checks() -> list[CheckResult]:
 
     style_match = re.search(r"<style>(.*?)</style>", html_text, flags=re.DOTALL | re.IGNORECASE)
     style_text = style_match.group(1) if style_match else ""
-    absolute_position_count = style_text.count("position:absolute") + style_text.count("position: absolute")
+    absolute_position_count = style_text.count("position:absolute") + style_text.count(
+        "position: absolute"
+    )
     _add_check(
         results,
         check_name="dashboard_layout_no_absolute_positioning",
@@ -856,7 +938,11 @@ def _python_validation_checks() -> list[CheckResult]:
     )
 
     dashboard_bytes = html_path.stat().st_size if html_path.exists() else 0
-    payload_status = "PASS" if dashboard_bytes <= 2_000_000 else ("WARN" if dashboard_bytes <= 3_000_000 else "FAIL")
+    payload_status = (
+        "PASS"
+        if dashboard_bytes <= 2_000_000
+        else ("WARN" if dashboard_bytes <= 3_000_000 else "FAIL")
+    )
     _add_check(
         results,
         check_name="dashboard_payload_size_sanity",
@@ -891,9 +977,12 @@ def _python_validation_checks() -> list[CheckResult]:
     dashboard_snapshot_path = OUTPUT_TABLES_DIR / "dashboard_official_snapshot.csv"
     if dashboard_snapshot_path.exists():
         dashboard_snapshot = pd.read_csv(dashboard_snapshot_path).iloc[0]
-        fill_diff_snapshot = abs(float(dashboard_snapshot["overall_fill_rate"]) - float(kpi_overall["overall_fill_rate"]))
+        fill_diff_snapshot = abs(
+            float(dashboard_snapshot["overall_fill_rate"]) - float(kpi_overall["overall_fill_rate"])
+        )
         stockout_diff_snapshot = abs(
-            float(dashboard_snapshot["overall_stockout_rate"]) - float(kpi_overall["overall_stockout_rate"])
+            float(dashboard_snapshot["overall_stockout_rate"])
+            - float(kpi_overall["overall_stockout_rate"])
         )
         trapped_wc_diff_snapshot = abs(
             float(dashboard_snapshot["trapped_working_capital_proxy_average"])
@@ -919,7 +1008,9 @@ def _python_validation_checks() -> list[CheckResult]:
         severity="HIGH",
         observed=(
             "nan"
-            if np.isnan(fill_diff_snapshot) or np.isnan(stockout_diff_snapshot) or np.isnan(trapped_wc_diff_snapshot)
+            if np.isnan(fill_diff_snapshot)
+            or np.isnan(stockout_diff_snapshot)
+            or np.isnan(trapped_wc_diff_snapshot)
             else (
                 f"fill_diff={_fmt_float(fill_diff_snapshot)}, "
                 f"stockout_diff={_fmt_float(stockout_diff_snapshot)}, "
@@ -937,17 +1028,18 @@ def _compute_release_state_matrix(checks_df: pd.DataFrame) -> pd.DataFrame:
     blocker_fail = checks_df[
         (checks_df["status"] == "FAIL") & (checks_df["severity"].isin(["BLOCKER", "CRITICAL"]))
     ]
-    high_fail = checks_df[
-        (checks_df["status"] == "FAIL") & (checks_df["severity"] == "HIGH")
-    ]
+    high_fail = checks_df[(checks_df["status"] == "FAIL") & (checks_df["severity"] == "HIGH")]
     high_warn = checks_df[
-        (checks_df["status"] == "WARN") & (checks_df["severity"].isin(["BLOCKER", "CRITICAL", "HIGH"]))
+        (checks_df["status"] == "WARN")
+        & (checks_df["severity"].isin(["BLOCKER", "CRITICAL", "HIGH"]))
     ]
     analytical_fail = checks_df[
-        (checks_df["status"] == "FAIL") & (checks_df["layer"].isin(["impact", "scoring", "reporting", "dashboard"]))
+        (checks_df["status"] == "FAIL")
+        & (checks_df["layer"].isin(["impact", "scoring", "reporting", "dashboard"]))
     ]
     technical_fail = checks_df[
-        (checks_df["status"] == "FAIL") & (checks_df["layer"].isin(["raw", "processed", "dashboard", "scoring"]))
+        (checks_df["status"] == "FAIL")
+        & (checks_df["layer"].isin(["raw", "processed", "dashboard", "scoring"]))
     ]
 
     technically_valid = technical_fail.empty

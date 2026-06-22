@@ -7,11 +7,17 @@ opening a pull request:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/ruff check src tests
+.venv/bin/ruff format --check src tests
+.venv/bin/mypy
+.venv/bin/pip-audit -r requirements.txt
 .venv/bin/python src/run_pipeline.py
-.venv/bin/python -m pytest -q
+.venv/bin/python -m pytest
 git diff --check
 ```
+
+These are the same gates CI enforces. `pytest` fails below 95% line coverage.
 
 The pipeline regenerates ignored CSV layers and refreshes the tracked
 publication artefacts: `index.html`, `outputs/graphs/`, and
@@ -24,3 +30,4 @@ publication artefacts: `index.html`, `outputs/graphs/`, and
 - Preserve the explicit distinction between observed values, proxy estimates,
   and causal claims.
 - Use conventional commits in the form `type(scope): imperative description`.
+- Record user-facing changes in `CHANGELOG.md`.
