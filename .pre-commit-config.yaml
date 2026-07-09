@@ -1,0 +1,25 @@
+# Runs the exact tools and versions pinned in requirements-dev.txt, so
+# pre-commit never drifts from what CI enforces. Install with:
+#   .venv/bin/pip install -r requirements-dev.txt
+#   .venv/bin/pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: .venv/bin/ruff check --fix
+        language: system
+        types: [python]
+
+      - id: ruff-format
+        name: ruff format
+        entry: .venv/bin/ruff format
+        language: system
+        types: [python]
+
+      - id: mypy
+        name: mypy
+        entry: .venv/bin/mypy
+        language: system
+        types: [python]
+        pass_filenames: false

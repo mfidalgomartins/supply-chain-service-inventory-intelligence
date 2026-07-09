@@ -127,11 +127,11 @@ Impact assumptions (`src/impact_analysis.py`):
 - Lost-sales margin is annualized as a flow. Inventory and trapped working
   capital are average daily balances and are not summed or annualized through
   time.
-- Supplier delay impact is an associative severity proxy, not causal attribution.
+- Supplier delay impact is an associative severity proxy; it does not attribute causation.
 
 ## Caveats
 - Synthetic data is policy-realistic but does not represent any specific company ledger.
-- Composite scores support prioritization and governance sequencing, not root-cause proof.
+- Composite scores support prioritization and governance sequencing; they do not prove root cause.
 - Opportunity estimates are directional proxies; they should be converted into business cases with planner and procurement constraints.
 - Inventory proxies depend on DOS behavior and may differ from liquidation/markdown outcomes.
 

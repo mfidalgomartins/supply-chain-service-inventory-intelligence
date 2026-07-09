@@ -176,7 +176,7 @@ Examples by driver:
 - Use `governance_priority_score` as a weekly intervention queue.
 - Route ownership using `main_risk_driver`.
 - Track score migration over time; close actions only after sustained tier reduction and KPI improvement.
-- Treat scores as prioritization logic, not causal proof.
+- Treat scores as prioritization logic; they do not constitute causal proof.
 
 ## Operationalization Layer
 Governance actions should be logged outside this repo (S&OP or ticketing tools) using the score table as the weekly intake list.

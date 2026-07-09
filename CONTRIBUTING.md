@@ -17,7 +17,16 @@ python3 -m venv .venv
 git diff --check
 ```
 
+Or run the same steps via `make setup && make check`.
+
 These are the same gates CI enforces. `pytest` fails below 95% line coverage.
+
+Optionally, install the local pre-commit hooks (ruff check, ruff format, mypy)
+so formatting and lint issues are caught before you commit:
+
+```bash
+make pre-commit-install
+```
 
 The pipeline regenerates ignored CSV layers and refreshes the tracked
 publication artefacts: `index.html`, `outputs/graphs/`, and

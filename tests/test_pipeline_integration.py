@@ -16,6 +16,7 @@ regenerating those artifacts is deterministic.
 from __future__ import annotations
 
 import pandas as pd
+from pypdf import PdfReader
 from src import (
     build_charts,
     build_report,
@@ -30,6 +31,19 @@ from src import (
     sql_quality_gate,
 )
 from src.config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
+
+# The report is currently 29 pages. A wide-but-bounded range catches the two
+# failure modes that actually happened during development: pagination
+# regressing to leave near-empty pages (pushes the count up), and content
+# silently getting dropped (pushes it down or hollows out expected sections).
+_REPORT_PAGE_COUNT_RANGE = range(24, 34)
+_REPORT_ANCHOR_PHRASES = [
+    "Executive summary",
+    "Analytical framework",
+    "Findings",
+    "Recommendations and action priorities",
+    "Appendix",
+]
 
 
 def test_full_pipeline_runs_and_publishes_artifacts() -> None:
@@ -50,9 +64,17 @@ def test_full_pipeline_runs_and_publishes_artifacts() -> None:
     assert len(graphs) == ci_quality_gate.REQUIRED_GRAPH_COUNT
 
     build_report.build()
-    assert (
-        PROJECT_ROOT / "outputs" / "reports" / "service_inventory_intelligence_report.pdf"
-    ).exists()
+    report_path = PROJECT_ROOT / "outputs" / "reports" / "service_inventory_intelligence_report.pdf"
+    assert report_path.exists()
+
+    # Smoke-test the report layout itself: a prior regression silently left
+    # several near-empty pages in the PDF without touching any of the checks
+    # above, since every one of them only cares that the file exists.
+    reader = PdfReader(str(report_path))
+    assert len(reader.pages) in _REPORT_PAGE_COUNT_RANGE
+    report_text = "\n".join(page.extract_text() for page in reader.pages)
+    for phrase in _REPORT_ANCHOR_PHRASES:
+        assert phrase in report_text, f"expected section heading {phrase!r} in report text"
 
     dashboard_path = executive_dashboard.build_executive_dashboard()
     assert dashboard_path.exists()
