@@ -45,8 +45,8 @@ reproducible synthetic data
 flowchart LR
     A[Synthetic data\ngeneration] --> B[SQL analytical\nviews]
     B --> C[Policy-based\nrisk scoring]
-    C --> D[Impact &\nopportunity estimates]
-    D --> E[Dashboard, charts\n& PDF report]
+    C --> D[Impact and\nopportunity estimates]
+    D --> E[Dashboard, charts\nand PDF report]
     E --> F{Release gates}
     F -->|pass| G[Published]
     F -->|fail| H[Blocked]
