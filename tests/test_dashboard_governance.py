@@ -102,6 +102,21 @@ def test_dashboard_pins_plotly_with_subresource_integrity() -> None:
     assert "__PLOTLY_SRI__" not in html
 
 
+def test_dashboard_head_has_branded_favicon_and_share_metadata() -> None:
+    html = _build_html(_minimal_payload())
+    # Branded SVG favicon (not the empty data: placeholder).
+    assert 'rel="icon" href="data:image/svg+xml,' in html
+    assert 'href="data:," ' not in html
+    # Mobile browser chrome tint for both schemes.
+    assert '<meta name="theme-color" media="(prefers-color-scheme: light)"' in html
+    assert '<meta name="theme-color" media="(prefers-color-scheme: dark)"' in html
+    # Document + social share metadata for rich link previews.
+    assert '<meta name="description"' in html
+    assert '<meta property="og:title"' in html
+    assert '<meta property="og:image"' in html
+    assert '<meta name="twitter:card" content="summary_large_image"' in html
+
+
 def test_payload_floats_are_stabilised_for_reproducible_output() -> None:
     payload = {"a": 20281573.240000002, "b": [1.123456789, {"c": 2.0}], "d": "x", "e": 3}
     assert _stabilize_floats(payload) == {

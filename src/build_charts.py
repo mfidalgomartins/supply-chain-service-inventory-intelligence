@@ -664,8 +664,9 @@ def chart_segment_heatmap():
     import numpy as np
 
     data = piv.values
-    cmap = plt.colormaps["Oranges"]
-    im = ax.imshow(data, cmap=cmap, aspect="auto", vmin=np.nanmin(data), vmax=np.nanmax(data))
+    cmap = plt.colormaps["Blues"]
+    vmin, vmax = np.nanmin(data), np.nanmax(data)
+    im = ax.imshow(data, cmap=cmap, aspect="auto", vmin=vmin, vmax=vmax)
     ax.set_xticks(range(len(piv.columns)))
     ax.set_xticklabels(piv.columns, rotation=18, ha="right", fontsize=9.5)
     ax.set_yticks(range(len(piv.index)))
@@ -674,11 +675,16 @@ def chart_segment_heatmap():
     for s in ("top", "right", "left", "bottom"):
         ax.spines[s].set_visible(False)
     mx = np.nanmax(data)
+    span = (vmax - vmin) or 1.0
     for i in range(data.shape[0]):
         for j in range(data.shape[1]):
             val = data[i, j]
             if np.isnan(val):
                 continue
+            # Choose label colour from the actual cell luminance so contrast
+            # holds on every cell regardless of the colormap.
+            r, g, b, _ = cmap((val - vmin) / span)
+            cell_lum = 0.299 * r + 0.587 * g + 0.114 * b
             ax.text(
                 j,
                 i,
@@ -686,7 +692,7 @@ def chart_segment_heatmap():
                 ha="center",
                 va="center",
                 fontsize=9,
-                color="white" if val > mx * 0.6 else INK,
+                color="white" if cell_lum < 0.55 else INK,
                 fontweight="bold" if val > mx * 0.85 else "normal",
             )
     cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.03)
