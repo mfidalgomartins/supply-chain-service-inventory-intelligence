@@ -31,6 +31,11 @@ from reportlab.platypus import (
 )
 from reportlab.platypus.tableofcontents import TableOfContents
 
+try:
+    from src.impact_analysis import ASSUMPTIONS as ASSUMP
+except ModuleNotFoundError:
+    from impact_analysis import ASSUMPTIONS as ASSUMP  # type: ignore[no-redef]
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PROC = ROOT / "data" / "processed"
 TBL = ROOT / "outputs" / "tables"
@@ -108,6 +113,21 @@ lisbon_porto_inventory_share = (
     wh[wh.warehouse_name.str.contains("Lisbon|Porto", regex=True)].inventory_value.sum()
     / wh.inventory_value.sum()
 )
+wh_indexed = wh.set_index("warehouse_name")
+
+
+def _wh_lookup(col: str, pattern: str) -> float:
+    return wh_indexed.loc[wh_indexed.index.str.contains(pattern), col].iloc[0]
+
+
+madrid_inv = _wh_lookup("inventory_value", "Madrid")
+lyon_inv = _wh_lookup("inventory_value", "Lyon")
+lisbon_inv = _wh_lookup("inventory_value", "Lisbon")
+porto_inv = _wh_lookup("inventory_value", "Porto")
+madrid_fill = _wh_lookup("fill_rate", "Madrid") * 100
+lyon_fill = _wh_lookup("fill_rate", "Lyon") * 100
+lisbon_fill = _wh_lookup("fill_rate", "Lisbon") * 100
+porto_fill = _wh_lookup("fill_rate", "Porto") * 100
 
 # category service
 _d = pd.read_csv(
@@ -123,6 +143,7 @@ catfill["fill"] = catfill.ful / catfill.dem * 100
 catfill["lost_share"] = catfill.lost / catfill.lost.sum() * 100
 catfill = catfill.sort_values("fill")
 health_fill = catfill.loc["Health", "fill"]
+health_lost = catfill.loc["Health", "lost"]
 health_lost_share = catfill.loc["Health", "lost_share"]
 petcare_lost_share = catfill.loc["Pet Care", "lost_share"]
 
@@ -189,6 +210,7 @@ body = ParagraphStyle(
     spaceAfter=8,
 )
 lead = ParagraphStyle("lead", parent=body, fontSize=11, leading=17, textColor=INK, spaceAfter=10)
+bullet_item = ParagraphStyle("bullet_item", parent=body, spaceAfter=4)
 h1 = ParagraphStyle(
     "h1",
     parent=ss["Heading1"],
@@ -328,6 +350,32 @@ def takeaway_box(text, width=CW):
     return t
 
 
+def note_box(label, text, width=CW):
+    """Compact bordered aside for supplementary, non-analytical context.
+
+    Visually distinct from ``takeaway_box`` on purpose: a neutral outline and
+    slate accent (versus the takeaway's blue fill) signal "reference" rather
+    than "conclusion". As a single Table flowable it moves to the next page as
+    one unit if it doesn't fit, so the label can never be orphaned from its text.
+    """
+    p = Paragraph(f'<font color="#1d1d1f"><b>{label}&nbsp;&nbsp;</b></font>{text}', takeaway)
+    t = Table([[p]], colWidths=[width])
+    t.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), WHITE),
+                ("BOX", (0, 0), (-1, -1), 0.75, LINE),
+                ("LINEBEFORE", (0, 0), (0, -1), 3, MUTED),
+                ("LEFTPADDING", (0, 0), (-1, -1), 12),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                ("TOPPADDING", (0, 0), (-1, -1), 9),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+            ]
+        )
+    )
+    return t
+
+
 _IMG_CACHE: dict = {}
 
 
@@ -360,8 +408,8 @@ def data_table(rows, col_widths, header=True, align_right=None, fs=8.5):
         ("FONT", (0, 0), (-1, -1), "Helvetica", fs),
         ("TEXTCOLOR", (0, 0), (-1, -1), INK),
         ("LINEBELOW", (0, 0), (-1, -2), 0.4, LINE),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ("LEFTPADDING", (0, 0), (-1, -1), 4),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [WHITE, BG]),
@@ -492,7 +540,7 @@ def build():
 
     # ============================= COVER ================================
     A(NextPageTemplate("Body"))
-    A(Spacer(1, 7.2 * cm))
+    A(Spacer(1, 10.6 * cm))
     A(
         Paragraph(
             "What the data says",
@@ -528,35 +576,39 @@ def build():
     A(Paragraph("CONTENTS", kicker))
     A(Paragraph("Table of contents", h1))
     A(HRule(CW))
-    A(Spacer(1, 10))
+    A(Spacer(1, 6))
     toc = TableOfContents()
     toc.levelStyles = [
-        ParagraphStyle("toc0", fontName="Helvetica-Bold", fontSize=11, leading=20, textColor=INK),
+        ParagraphStyle("toc0", fontName="Helvetica-Bold", fontSize=11, leading=16.5, textColor=INK),
         ParagraphStyle(
-            "toc1", fontName="Helvetica", fontSize=9.5, leading=16, textColor=SLATE, leftIndent=14
+            "toc1", fontName="Helvetica", fontSize=9.5, leading=13, textColor=SLATE, leftIndent=14
         ),
     ]
     A(toc)
-    A(PageBreak())
 
     # ========================= EXECUTIVE SUMMARY ========================
-    A(Paragraph("SECTION 1", kicker))
-    A(H1("Executive summary"))
-    A(HRule(CW))
-    A(Spacer(1, 6))
     A(
-        Paragraph(
-            f"<b>The operating issue is now decision-grade, not exploratory.</b> "
-            f"Across 120 products, four warehouses, and 12 suppliers over 24 months, "
-            f"the network lost {eur(total_lost)} of demand to stockouts, worth "
-            f"{eur(margin_obs)} in gross margin at category-level margin assumptions. "
-            f"The monthly fill rate fell from 99.6% in January 2024 to 92.0% in "
-            f"December 2025, a decline of 7.6 percentage points. Over the same window "
-            f"the stockout rate rose from 0.4% to 7.9%. The pattern is a structural "
-            f"drift in replenishment performance, not a set of isolated shocks: the "
-            f"final quarter lost sales ran {last3_lost_multiple:.1f}x the first-quarter "
-            f"baseline and the final month is the worst in the series.",
-            lead,
+        KeepTogether(
+            [
+                Paragraph("SECTION 1", kicker),
+                H1("Executive summary"),
+                HRule(CW),
+                Spacer(1, 6),
+                Paragraph(
+                    f"<b>The evidence is strong enough to act on now.</b> "
+                    f"Across 120 products, four warehouses, and 12 suppliers over 24 "
+                    f"months, the network lost {eur(total_lost)} of demand to "
+                    f"stockouts, worth {eur(margin_obs)} in gross margin at "
+                    f"category-level margin assumptions. The monthly fill rate fell "
+                    f"from 99.6% in January 2024 to 92.0% in December 2025, a "
+                    f"decline of 7.6 percentage points, while the stockout rate "
+                    f"climbed from 0.4% to 7.9%. This is structural drift in "
+                    f"replenishment performance: final-quarter lost sales ran "
+                    f"{last3_lost_multiple:.1f}x the first-quarter baseline, and "
+                    f"December closed the series at its weakest point yet.",
+                    lead,
+                ),
+            ]
         )
     )
     A(
@@ -580,28 +632,29 @@ def build():
             f"and all {n_high_pairs} are Health Product 16, one in each warehouse. "
             f"Combined they represent {eur(h16_opp)} of recoverable annual value, "
             f"{h16_pool_share * 100:.0f}% of the ranked SKU-location pool. The same "
-            f"product fails wherever it is stocked, which makes the working hypothesis "
-            f"a product-level supply, allocation, or planning fault rather than a local "
-            f"warehouse execution issue.",
+            f"product fails wherever it is stocked, which points to a product-level "
+            f"supply, allocation, or planning fault as the working hypothesis, ahead "
+            f"of anything specific to one warehouse's execution.",
             body,
         )
     )
     A(
         Paragraph(
-            f"<b>The inventory problem is allocation quality, not aggregate stock.</b> "
+            f"<b>The inventory problem is allocation quality.</b> "
             f"Madrid and Lyon generate {madrid_lyon_lost_share * 100:.0f}% of warehouse "
             f"lost-sales value while Lisbon and Porto hold "
             f"{lisbon_porto_inventory_share * 100:.0f}% of inventory value. The "
-            f"fill-rate spread across warehouses is {fill_spread:.1f} points and tracks "
-            f"placement, not total volume. At the same time {dos_over30:.0f}% of SKUs "
-            f"hold 30 or more days of supply against a {dos_median:.0f}-day median, so "
-            f"capital is trapped in slow lines while fast lines run thin.",
+            f"fill-rate spread across warehouses, {fill_spread:.1f} points, reflects "
+            f"where stock sits far more than how much of it exists network-wide. At "
+            f"the same time {dos_over30:.0f}% of SKUs hold 30 or more days of supply "
+            f"against a {dos_median:.0f}-day median, so capital is trapped in slow "
+            f"lines while fast lines run thin.",
             body,
         )
     )
     A(
         Paragraph(
-            f"<b>The value case supports a sequenced intervention, not a broad "
+            f"<b>The value case rewards a sequenced intervention over a broad "
             f"inventory build.</b> Disciplined action on the ranked priorities supports "
             f"an estimated "
             f"{eur(opp_total)} twelve-month value pool: {eur(opp_margin)} from "
@@ -662,42 +715,48 @@ def build():
             "How concentrated are the losses across products, locations, and segments?",
             "What is the recoverable value, and how should the work be sequenced?",
             "Which assumptions must be validated before the value case is treated as budget-ready?",
-        ]
+        ],
+        style=bullet_item,
     ):
         A(p)
-    A(Spacer(1, 8))
-    A(H2("Network at a glance"))
+    A(Spacer(1, 6))
     A(
-        data_table(
-            [
-                ["Dimension", "Coverage"],
-                ["Warehouses", "4 (Madrid, Lyon, Porto, Lisbon)"],
-                ["Regions", "Spain Central, France South-East, Portugal North and South"],
-                ["Products", "120 across 8 categories"],
-                ["Suppliers", "12"],
-                ["Product-warehouse pairs scored", "480"],
-                ["Observation window", "731 days (Jan 2024 - Dec 2025)"],
-                ["Daily fact rows", "~351,000"],
-                ["Observed lost-sales value", eur(total_lost)],
-                ["Observed lost-sales margin (proxy)", eur(margin_obs)],
-                ["Average inventory value (daily)", eur(wh.inventory_value.sum())],
-            ],
-            [7.2 * cm, CW - 7.2 * cm],
+        note_box(
+            "Companion dashboard",
+            "This report has an interactive companion. The published dashboard "
+            "exposes the same service, supplier, warehouse, and SKU-risk views with "
+            "filtering down to the product-warehouse pair, so a reader can move from "
+            "a finding here to the underlying records without rerunning the "
+            "pipeline. Where a figure caption names a processed table, the "
+            "dashboard reads the same table, and a reconciliation gate enforces "
+            "that the two never disagree.",
         )
     )
-    A(Spacer(1, 10))
     A(Spacer(1, 8))
-    A(H2("Companion dashboard"))
     A(
-        Paragraph(
-            "This report has an interactive companion. The published dashboard exposes "
-            "the same service, supplier, warehouse, and SKU-risk views with filtering "
-            "down to the product-warehouse pair, so a reader can move from a finding "
-            "here to the underlying records without rerunning the pipeline. The static "
-            "charts in this report are the fixed, citable version of those views. Where "
-            "a figure caption names a processed table, the dashboard reads the same "
-            "table, and a reconciliation gate enforces that the two never disagree.",
-            body,
+        KeepTogether(
+            [
+                H2("Network at a glance"),
+                data_table(
+                    [
+                        ["Dimension", "Coverage"],
+                        ["Warehouses", "4 (Madrid, Lyon, Porto, Lisbon)"],
+                        [
+                            "Regions",
+                            "Spain Central, France South-East, Portugal North and South",
+                        ],
+                        ["Products", "120 across 8 categories"],
+                        ["Suppliers", "12"],
+                        ["Product-warehouse pairs scored", "480"],
+                        ["Observation window", "731 days (Jan 2024 - Dec 2025)"],
+                        ["Daily fact rows", "~351,000"],
+                        ["Observed lost-sales value", eur(total_lost)],
+                        ["Observed lost-sales margin (proxy)", eur(margin_obs)],
+                        ["Average inventory value (daily)", eur(wh.inventory_value.sum())],
+                    ],
+                    [7.2 * cm, CW - 7.2 * cm],
+                ),
+            ]
         )
     )
     A(PageBreak())
@@ -774,34 +833,36 @@ def build():
     A(H2("Impact and opportunity estimates"))
     A(
         Paragraph(
-            "Financial figures are directional proxy estimates, not audited profit and "
-            "loss. Observed values are annualised using a 365-over-731-day factor. The "
-            "twelve-month value pool combines recoverable lost-sales margin under a "
-            "scenario recovery rate with releasable trapped working capital. The margin "
-            "component applies category gross-margin assumptions to the units a "
-            "scenario recovery rate would convert; the working-capital component "
-            "applies the same recovery logic to the average trapped capital proxy of "
-            f"{eur(trapped_wc)} per day. Because recovery is partial by design, the "
-            f"pool of {eur(opp_total)} is a fraction of the {eur(total_lost)} gross "
-            f"loss, not a claim that all of it is reachable.",
+            "Financial figures are directional proxy estimates rather than audited "
+            "profit and loss. Observed values are annualised using a 365-over-731-day "
+            "factor. The twelve-month value pool applies two explicit recovery rates: "
+            f"{ASSUMP.recoverable_lost_margin_rate_12m * 100:.0f}% of annualised "
+            "lost-sales margin is treated as recoverable once service is restored, "
+            f"and {ASSUMP.releasable_trapped_wc_rate_12m * 100:.0f}% of the average "
+            f"trapped working-capital proxy of {eur(trapped_wc)} per day is treated "
+            "as releasable without re-exposing service. Both are policy inputs, not "
+            "fitted parameters, and each component of the pool scales directly with "
+            "its rate: halving either one roughly halves that component's "
+            f"contribution to the {eur(opp_total)} pool. The value case is a stated "
+            "assumption to be tested, not a black-box output.",
             body,
         )
     )
 
-    A(H2("Quality controls"))
+    A(Spacer(1, 4))
     A(
-        Paragraph(
-            "Data contracts cover required columns, grain, nulls, ranges, domains, and "
-            "key references. SQL and Python checks reconcile service, inventory, "
-            "impact, scoring, and dashboard metrics against each other so that a number "
-            "shown on the dashboard matches the number in the underlying table. "
-            "Continuous integration runs the full pipeline, unit tests, release gates, "
-            "and a dashboard freshness check on every change. The release gate blocks "
-            "publication on any failure or high-severity warning.",
-            body,
+        note_box(
+            "Quality controls",
+            "Data contracts cover required columns, grain, nulls, ranges, domains, "
+            "and key references. SQL and Python checks reconcile service, "
+            "inventory, impact, scoring, and dashboard metrics against each other "
+            "so that a number shown on the dashboard matches the number in the "
+            "underlying table. Continuous integration runs the full pipeline, unit "
+            "tests, release gates, and a dashboard freshness check on every "
+            "change; the release gate blocks publication on any failure or "
+            "high-severity warning.",
         )
     )
-    A(PageBreak())
 
     # ========================= ANALYTICAL FRAMEWORK =====================
     A(Paragraph("SECTION 4", kicker))
@@ -817,54 +878,74 @@ def build():
         )
     )
 
-    A(H2("1. Trend: is the problem getting worse?"))
     A(
-        Paragraph(
-            "A point-in-time fill rate cannot tell remediation from drift. The trend "
-            "lens tracks fill rate, stockout rate, and lost-sales value month by month "
-            "and compares the first and last 90-day windows by location. A declining "
-            "baseline changes the economics of any fix, because inventory added to a "
-            "sliding system is absorbed rather than converted to service.",
-            body,
+        KeepTogether(
+            [
+                H2("1. Trend: is the problem getting worse?"),
+                Paragraph(
+                    "A point-in-time fill rate cannot tell remediation from drift. "
+                    "The trend lens tracks fill rate, stockout rate, and lost-sales "
+                    "value month by month and compares the first and last 90-day "
+                    "windows by location. A declining baseline changes the "
+                    "economics of any fix, because inventory added to a sliding "
+                    "system is absorbed rather than converted to service.",
+                    body,
+                ),
+            ]
         )
     )
 
-    A(H2("2. Concentration: where is the loss, exactly?"))
     A(
-        Paragraph(
-            "Averages hide the structure that matters for action. The concentration "
-            "lens ranks SKU-location pairs, categories, ABC classes, and "
-            "category-region segments by their share of loss, then measures how much "
-            "of the total sits in the worst few. Sharp concentration means a short "
-            "list of targeted fixes will outperform a uniform service target applied "
-            "across the catalogue.",
-            body,
+        KeepTogether(
+            [
+                H2("2. Concentration: where is the loss, exactly?"),
+                Paragraph(
+                    "Averages hide the structure that matters for action. The "
+                    "concentration lens ranks SKU-location pairs, categories, ABC "
+                    "classes, and category-region segments by their share of loss, "
+                    "then measures how much of the total sits in the worst few. "
+                    "Sharp concentration means a short list of targeted fixes will "
+                    "outperform a uniform service target applied across the "
+                    "catalogue.",
+                    body,
+                ),
+            ]
         )
     )
 
-    A(H2("3. Cause: supply reliability versus inventory placement"))
     A(
-        Paragraph(
-            "Lost sales come from two distinct failures: stock that never arrives "
-            "reliably, and stock that sits in the wrong place. The cause lens "
-            "separates them by reading supplier on-time performance and lead-time "
-            "variability against warehouse fill rate and days of supply. The two "
-            "failures need different fixes, so labelling each loss correctly is what "
-            "keeps the plan from over-investing in inventory.",
-            body,
+        KeepTogether(
+            [
+                H2("3. Cause: supply reliability versus inventory placement"),
+                Paragraph(
+                    "Lost sales come from two distinct failures: stock that never "
+                    "arrives reliably, and stock that sits in the wrong place. The "
+                    "cause lens separates them by reading supplier on-time "
+                    "performance and lead-time variability against warehouse fill "
+                    "rate and days of supply. The two failures need different "
+                    "fixes, so labelling each loss correctly is what keeps the "
+                    "plan from over-investing in inventory.",
+                    body,
+                ),
+            ]
         )
     )
 
-    A(H2("4. Size: what is recoverable, and in what order?"))
     A(
-        Paragraph(
-            "The final lens converts the diagnosis into a ranked value pool. It "
-            "estimates recoverable margin and releasable working capital under a "
-            "scenario recovery rate, attributes the pool to categories, suppliers, "
-            "warehouses, and SKUs, and orders the work by return and dependency. The "
-            "output is a sequence, not a wish list, because the first fixes are "
-            "preconditions for the later ones to pay back.",
-            body,
+        KeepTogether(
+            [
+                H2("4. Size: what is recoverable, and in what order?"),
+                Paragraph(
+                    "The final lens converts the diagnosis into a ranked value "
+                    "pool. It estimates recoverable margin and releasable working "
+                    "capital under a scenario recovery rate, attributes the pool "
+                    "to categories, suppliers, warehouses, and SKUs, and orders "
+                    "the work by return and dependency. The output is an ordered "
+                    "sequence: the first fixes are preconditions for the later "
+                    "ones to pay back.",
+                    body,
+                ),
+            ]
         )
     )
     A(Spacer(1, 8))
@@ -884,12 +965,14 @@ def build():
     A(
         Paragraph(
             "The evidence supports three management decisions. First, the near-term "
-            "service plan should be funded as a supplier and SKU recovery effort, not "
-            "as a network-wide safety-stock increase. Second, the first inventory move "
-            "should be a reallocation from slow lines and stronger sites toward the "
-            "underserved Madrid and Lyon lanes. Third, the value case should be "
-            "managed against recoverable margin first and working-capital release "
-            "second, because the financial loss is caused primarily by missed demand.",
+            "service plan should be funded as a supplier and SKU recovery effort. A "
+            "network-wide safety-stock increase is the wrong instrument for a problem "
+            "concentrated in two suppliers and one product family. Second, the first "
+            "inventory move should be a reallocation from slow lines and stronger "
+            "sites toward the underserved Madrid and Lyon lanes. Third, the value "
+            "case should be managed against recoverable margin first and "
+            "working-capital release second, because the financial loss is caused "
+            "primarily by missed demand.",
             body,
         )
     )
@@ -898,9 +981,9 @@ def build():
             "The decision logic below translates the analytical readout into action. It "
             "separates the operating hypothesis, the evidence already strong enough to "
             "act on, and the validation required before committing material capital. "
-            "This is the difference between a diagnostic report and an execution case: "
-            "the next step is not more broad analysis, but controlled remediation with "
-            "specific proof points.",
+            "The distinction that matters is between a diagnostic report and an "
+            "execution case: what follows is controlled remediation with specific "
+            "proof points, sequenced by dependency and return.",
             body,
         )
     )
@@ -990,17 +1073,22 @@ def build():
     A(Spacer(1, 6))
 
     # ---- 5.1 service decline ----
-    A(H2("6.1  Service quality is on a two-year decline"))
     A(
-        Paragraph(
-            "The monthly network fill rate fell from 99.6% in January 2024 to 92.0% in "
-            "December 2025. The path is not a one-off shock. The rate drifts down "
-            "through 2024, recovers partially in early 2025, then slides again to its "
-            "lowest point in the final month of the window. December 2025 is the worst "
-            "month in the series on both fill rate and lost-sales value, which means "
-            "the network entered 2026 at its weakest observed state rather than "
-            "recovering toward the mean.",
-            body,
+        KeepTogether(
+            [
+                H2("6.1  Service quality is on a two-year decline"),
+                Paragraph(
+                    "The monthly network fill rate fell from 99.6% in January 2024 to "
+                    "92.0% in December 2025. The path shows a multi-episode decline: "
+                    "the rate drifts down through 2024, recovers partially in early "
+                    "2025, then slides again to its lowest point in the final month "
+                    "of the window. December 2025 is the worst month in the series on "
+                    "both fill rate and lost-sales value, which means the network "
+                    "entered 2026 at its weakest observed state rather than "
+                    "recovering toward the mean.",
+                    body,
+                ),
+            ]
         )
     )
     for it in chart(
@@ -1012,13 +1100,13 @@ def build():
             "Reading the stockout rate alongside lost-sales value confirms the same "
             "story from the cost side. The stockout rate climbed from 0.4% to 7.9% over "
             "the window, and monthly lost-sales value rose with it, peaking in the "
-            f"final months. The last three months averaged {last3_lost_multiple:.1f}x "
-            "the lost-sales value of the first three months, so the end-state is not "
-            "just lower service; it is a materially more expensive operating baseline. "
-            "A declining baseline matters for planning: inventory added without fixing "
-            "replenishment discipline will be absorbed by the drift rather than "
-            "converted into service, so stabilising the trend is a precondition for "
-            "any inventory investment to pay back.",
+            f"final months: the last three months averaged {last3_lost_multiple:.1f}x "
+            "the lost-sales value of the first three months. Service did not just "
+            "get worse; it got materially more expensive to run. That has a direct "
+            "planning consequence: inventory added on top of a sliding baseline gets "
+            "absorbed into the drift instead of converting to service, so "
+            "stabilising the trend has to happen before any inventory investment can "
+            "pay back.",
             body,
         )
     )
@@ -1029,12 +1117,13 @@ def build():
         A(it)
     A(
         Paragraph(
-            "The decline is general, not local. Comparing the first and last 90 days "
-            "of the window, every warehouse serves worse at the end than at the start. "
-            "Madrid falls 5.4 points and Lyon 4.2, the two that were already weakest, "
-            "while even the strongest sites, Lisbon and Porto, give up 2.3 and 3.7 "
-            "points. A decline that touches every location points to a system-level "
-            "cause in replenishment rather than a problem isolated to one hub.",
+            "The decline shows up at every warehouse, not just the weakest one. "
+            "Comparing the first and last 90 days of the window, every site serves "
+            "worse at the end than at the start. Madrid falls 5.4 points and Lyon "
+            "4.2, the two that were already weakest, while even the strongest sites, "
+            "Lisbon and Porto, give up 2.3 and 3.7 points. A decline that reaches "
+            "every location, strong and weak alike, points to a system-level cause "
+            "in replenishment.",
             body,
         )
     )
@@ -1055,25 +1144,30 @@ def build():
             ]
         )
     )
-    A(PageBreak())
 
     # ---- 5.2 supplier exposure ----
-    A(H2("6.2  Two suppliers carry four fifths of the exposure"))
     A(
-        Paragraph(
-            f"Supplier 2 and Supplier 3 are the only two suppliers in the High risk "
-            f"tier. Supplier 2 delivers on time on just 66% of orders with lead-time "
-            f"variability of 4.0 days; Supplier 3 sits at 78% on-time and 3.8 days. "
-            f"Together they are associated with {eur(two_high_lost)} of lost-sales "
-            f"value, {two_high_share * 100:.0f}% of the network total. The remaining ten "
-            f"suppliers cluster above 83% on-time with variability below 1.7 days. The "
-            f"portfolio-level contrast is material: high-risk suppliers average "
-            f"{high_stockout:.1f}% stockout exposure versus {non_high_stockout:.1f}% for "
-            f"the rest. The relationship is clear enough for action: unreliable lead "
-            f"times, not low received quantity, drive the lost sales, since both "
-            f"high-risk suppliers still ship more than 92% of ordered units once they "
-            f"arrive.",
-            body,
+        KeepTogether(
+            [
+                H2("6.2  Two suppliers carry four fifths of the exposure"),
+                Paragraph(
+                    f"Supplier 2 and Supplier 3 are the only two suppliers in the High "
+                    f"risk tier. Supplier 2 delivers on time on just 66% of orders "
+                    f"with lead-time variability of 4.0 days; Supplier 3 sits at 78% "
+                    f"on-time and 3.8 days. Together they are associated with "
+                    f"{eur(two_high_lost)} of lost-sales value, "
+                    f"{two_high_share * 100:.0f}% of the network total. The remaining "
+                    f"ten suppliers cluster above 83% on-time with variability below "
+                    f"1.7 days. The portfolio-level contrast is material: high-risk "
+                    f"suppliers average {high_stockout:.1f}% stockout exposure versus "
+                    f"{non_high_stockout:.1f}% for the rest. The relationship is "
+                    f"clear enough for action: both high-risk suppliers still ship "
+                    f"more than 92% of ordered units once they arrive, so it is "
+                    f"lead-time unreliability, not shipped quantity, driving the lost "
+                    f"sales.",
+                    body,
+                ),
+            ]
         )
     )
     for it in chart(
@@ -1087,9 +1181,9 @@ def build():
             "service line: Supplier 2 at 66%, Supplier 1 and Supplier 3 in the high "
             "70s. Supplier 1 sits in the Medium tier because the volume behind it is "
             "smaller, so it carries less lost-sales value despite similar reliability. "
-            "This is why the priority order follows exposure, not the reliability "
-            "percentage on its own: the same delay rate matters more behind a "
-            "high-volume lane than a thin one.",
+            "Exposure, not the reliability percentage alone, drives the priority "
+            "order: the same delay rate matters more behind a high-volume lane than "
+            "a thin one.",
             body,
         )
     )
@@ -1117,20 +1211,26 @@ def build():
             "any broad safety-stock increase."
         )
     )
-    A(PageBreak())
 
     # ---- 5.3 warehouse misalignment ----
-    A(H2("6.3  Inventory is misaligned, not uniformly excessive"))
     A(
-        Paragraph(
-            f"Madrid and Lyon post the network's worst fill rates, 94.6% and 94.1%, "
-            f"while holding the least inventory value, around {eur(927400)} and "
-            f"{eur(764000)}. Lisbon and Porto carry the most inventory, {eur(1370000)} "
-            f"and {eur(1020000)}, and deliver the best service at 97.8% and 96.9%. The "
-            f"fill-rate spread of {fill_spread:.1f} points across warehouses tracks "
-            f"inventory placement, not total volume. Stock is sitting where service is "
-            f"already strong and is thin where it is failing.",
-            body,
+        KeepTogether(
+            [
+                H2("6.3  Inventory is misaligned, not uniformly excessive"),
+                Paragraph(
+                    f"Madrid and Lyon post the network's worst fill rates, "
+                    f"{madrid_fill:.1f}% and {lyon_fill:.1f}%, while holding the "
+                    f"least inventory value, around {eur(madrid_inv)} and "
+                    f"{eur(lyon_inv)}. Lisbon and Porto carry the most inventory, "
+                    f"{eur(lisbon_inv)} and {eur(porto_inv)}, and deliver the best "
+                    f"service at {lisbon_fill:.1f}% and {porto_fill:.1f}%. The "
+                    f"fill-rate spread of "
+                    f"{fill_spread:.1f} points across warehouses tracks inventory "
+                    f"placement, not total volume. Stock is sitting where service is "
+                    f"already strong and is thin where it is failing.",
+                    body,
+                ),
+            ]
         )
     )
     for it in chart(
@@ -1162,20 +1262,24 @@ def build():
             "than adding network-wide stock. The service gap is a placement gap."
         )
     )
-    A(PageBreak())
 
     # ---- 5.4 category concentration ----
-    A(H2("6.4  Half the value pool sits in one category"))
     A(
-        Paragraph(
-            f"The estimated twelve-month opportunity totals {eur(opp_total)}. The "
-            f"Health category alone holds {eur(health_opp)} of it, "
-            f"{health_opp / cat_pool * 100:.0f}% of the pool, with Pet Care second at "
-            f"{eur(petcare_opp)} ({petcare_opp / cat_pool * 100:.0f}%). The remaining six "
-            f"categories split the final third. Concentration this sharp means a "
-            f"category-led operating rhythm will outperform a uniform service target "
-            f"applied across the catalogue.",
-            body,
+        KeepTogether(
+            [
+                H2("6.4  Half the value pool sits in one category"),
+                Paragraph(
+                    f"The estimated twelve-month opportunity totals {eur(opp_total)}. "
+                    f"The Health category alone holds {eur(health_opp)} of it, "
+                    f"{health_opp / cat_pool * 100:.0f}% of the pool, with Pet Care "
+                    f"second at {eur(petcare_opp)} "
+                    f"({petcare_opp / cat_pool * 100:.0f}%). The remaining six "
+                    f"categories split the final third. Concentration this sharp "
+                    f"means a category-led operating rhythm will outperform a "
+                    f"uniform service target applied across the catalogue.",
+                    body,
+                ),
+            ]
         )
     )
     for it in chart(
@@ -1184,15 +1288,15 @@ def build():
         A(it)
     A(
         Paragraph(
-            "Health does not lead the pool because it is large; it leads because it "
-            f"serves worst. Health posts the lowest fill rate of any category at "
-            f"{health_fill:.1f}% and the highest lost-sales value at €9.60M, despite "
-            f"holding among the most inventory value. It represents "
-            f"{health_lost_share:.0f}% of lost sales, while Pet Care adds another "
-            f"{petcare_lost_share:.0f}%. Pet Care is second worst on both. The categories that "
-            "serve well, Beverages at 98.1% and Snacks at 97.6%, contribute almost "
-            "nothing to the pool. Service quality, not category size, sets the "
-            "priority order.",
+            f"Health leads the pool because it serves worst, not because it is the "
+            f"largest category. It posts the lowest fill rate of any category at "
+            f"{health_fill:.1f}% and the highest lost-sales value at {eur(health_lost)}, "
+            f"despite holding among the most inventory value. It accounts for "
+            f"{health_lost_share:.0f}% of lost sales, with Pet Care adding another "
+            f"{petcare_lost_share:.0f}% and ranking second worst on both measures. "
+            "Beverages at 98.1% and Snacks at 97.6% serve well and contribute almost "
+            "nothing to the pool, which is the same pattern from a different angle: "
+            "priority follows service failure, category size is incidental.",
             body,
         )
     )
@@ -1224,20 +1328,25 @@ def build():
             f"together hold {top2_cat_share * 100:.0f}% of the recoverable value."
         )
     )
-    A(PageBreak())
 
     # ---- 5.5 SKU and ABC concentration ----
-    A(H2("6.5  The loss is concentrated in a few SKU-location pairs"))
     A(
-        Paragraph(
-            f"Of the 480 product-warehouse pairs scored, only {n_high_pairs} reach the "
-            f"High tier and {n_med_pairs} reach Medium; the other {480 - n_high_pairs - n_med_pairs} "
-            f"are Low. The lost-sales value behind them is far more skewed than the "
-            f"tier counts suggest. The worst 10% of pairs carry {top10_share:.0f}% of "
-            f"all lost sales and the worst 5% carry {top5_share:.0f}%. A short, "
-            f"well-chosen list of interventions therefore reaches most of the loss "
-            f"without touching the long tail of pairs that lose almost nothing.",
-            body,
+        KeepTogether(
+            [
+                H2("6.5  The loss is concentrated in a few SKU-location pairs"),
+                Paragraph(
+                    f"Of the 480 product-warehouse pairs scored, only {n_high_pairs} "
+                    f"reach the High tier and {n_med_pairs} reach Medium; the other "
+                    f"{480 - n_high_pairs - n_med_pairs} are Low. The lost-sales "
+                    f"value behind them is far more skewed than the tier counts "
+                    f"suggest. The worst 10% of pairs carry {top10_share:.0f}% of all "
+                    f"lost sales and the worst 5% carry {top5_share:.0f}%. A short, "
+                    f"well-chosen list of interventions therefore reaches most of "
+                    f"the loss without touching the long tail of pairs that lose "
+                    f"almost nothing.",
+                    body,
+                ),
+            ]
         )
     )
     for it in chart(
@@ -1251,9 +1360,10 @@ def build():
             f"each warehouse. Combined they represent {eur(h16_opp)} of twelve-month "
             f"opportunity and {h16_pool_share * 100:.0f}% of the ranked SKU-location "
             f"pool. The single largest pair is Health Product 16 in Madrid at roughly "
-            f"€158k. A product that fails in all four warehouses at once is failing for "
-            f"a product-level reason, supply or planning, not a local one, so it should "
-            f"be run as one cross-warehouse recovery rather than four separate fixes.",
+            f"€158k. Failing in all four warehouses at once is the signature of a "
+            f"product-level cause in supply or planning, not a set of four unrelated "
+            f"local problems, so it should be run as one cross-warehouse recovery "
+            f"plan rather than four separate fixes.",
             body,
         )
     )
@@ -1286,22 +1396,28 @@ def build():
             "a small, addressable set of fast lines."
         )
     )
-    A(PageBreak())
 
     # ---- 5.6 value pool ----
-    A(H2("6.6  The recoverable pool is real but partial"))
     A(
-        Paragraph(
-            f"The twelve-month value pool of {eur(opp_total)} splits into "
-            f"{eur(opp_margin)} of recoverable lost-sales margin and {eur(opp_wc)} of "
-            f"releasable working capital. Margin recovery dominates because the "
-            f"network's core problem is service, not capital efficiency: the gross loss "
-            f"to stockouts of {eur(total_lost)} is large, and even a partial recovery "
-            f"of its margin outweighs the capital that can be safely released from "
-            f"overstocked lines. The pool is deliberately a fraction of the gross loss, "
-            f"because the scenario recovery rate assumes only part of unmet demand can "
-            f"be converted once service is restored.",
-            body,
+        KeepTogether(
+            [
+                H2("6.6  The recoverable pool is real but partial"),
+                Paragraph(
+                    f"The twelve-month value pool of {eur(opp_total)} splits into "
+                    f"{eur(opp_margin)} of recoverable lost-sales margin and "
+                    f"{eur(opp_wc)} of releasable working capital. Margin recovery "
+                    f"dominates because the network's core problem is service, not "
+                    f"capital efficiency: the gross loss to stockouts of "
+                    f"{eur(total_lost)} is large, and even a partial recovery of its "
+                    f"margin outweighs the capital that can be safely released from "
+                    f"overstocked lines. The pool is deliberately a fraction of the "
+                    f"gross loss: only {ASSUMP.recoverable_lost_margin_rate_12m * 100:.0f}% "
+                    f"of annualised lost-sales margin is credited as recoverable, on "
+                    f"the assumption that restoring service converts part of the "
+                    f"lost demand, not all of it.",
+                    body,
+                ),
+            ]
         )
     )
     for it in chart(
@@ -1312,12 +1428,13 @@ def build():
     A(
         Paragraph(
             f"The working-capital component is modest by design. The trapped-capital "
-            f"proxy averages {eur(trapped_wc)} per day, but only a portion is "
-            f"releasable without re-exposing service, so the pool credits {eur(opp_wc)} "
-            f"rather than the full balance. This is the right asymmetry for a network "
-            f"whose losses come from missing the sale, not from carrying too much: the "
-            f"prize is protecting and recovering demand, with capital release as a "
-            f"secondary benefit from trimming the slow-moving tail.",
+            f"proxy averages {eur(trapped_wc)} per day; at the "
+            f"{ASSUMP.releasable_trapped_wc_rate_12m * 100:.0f}% releasable rate, "
+            f"that credits {eur(opp_wc)} to the pool rather than the full balance, "
+            f"because only a portion can be freed without re-exposing service. The "
+            f"asymmetry is deliberate: this network's losses come from missing the "
+            f"sale, so protecting and recovering demand is the prize, and capital "
+            f"release from trimming the slow-moving tail is a secondary benefit.",
             body,
         )
     )

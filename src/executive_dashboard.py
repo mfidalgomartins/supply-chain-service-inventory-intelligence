@@ -1358,7 +1358,7 @@ def _build_html(data_payload: dict) -> str:
         margin: { l: 64, r: 18, t: 14, b: 42 },
         xaxis: { gridcolor: c.grid, zeroline: false, automargin: true, tickfont: { family: 'Geist Mono, monospace', size: 10.5, color: c.faint }, linecolor: c.grid },
         yaxis: { gridcolor: c.grid, zeroline: false, automargin: true, tickfont: { family: 'Geist Mono, monospace', size: 10.5, color: c.faint } },
-        hoverlabel: { bgcolor: currentTheme === 'dark' ? '#1a232d' : '#0b1a24', bordercolor: 'rgba(0,0,0,0)', font: { color: '#ffffff', family: 'Geist, system-ui, sans-serif', size: 12 } },
+        hoverlabel: { bgcolor: currentTheme === 'dark' ? '#1a232d' : '#0b1a24', bordercolor: 'rgba(0,0,0,0)', font: { color: '#ffffff', family: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Geist, system-ui, sans-serif', size: 12 } },
         showlegend: false,
         dragmode: false,
       };
@@ -1671,7 +1671,7 @@ def _build_html(data_payload: dict) -> str:
     function renderCharts(agg) {
       const c = palette();
       const months = agg.monthSeries.map(x => x.month.slice(0, 7));
-      const legendStyle = { orientation: 'h', y: -0.18, x: 0, xanchor: 'left', font: { family: 'Geist, system-ui, sans-serif', size: 11, color: c.muted } };
+      const legendStyle = { orientation: 'h', y: -0.18, x: 0, xanchor: 'left', font: { family: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Geist, system-ui, sans-serif', size: 11, color: c.muted } };
       const monoTicks = { family: 'Geist Mono, monospace', size: 10.5, color: c.faint };
 
       const fillValues = agg.monthSeries.map(x => x.fill_rate);
@@ -1751,8 +1751,8 @@ def _build_html(data_payload: dict) -> str:
         hovertemplate: '%{customdata}<br>DOS %{x:.0f}  ·  Fill %{y:.1%}<extra></extra>',
       }], {
         ...baseLayout(),
-        xaxis: { title: { text: 'Average days of supply', font: { family: 'Geist, sans-serif', size: 11, color: c.muted } }, gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
-        yaxis: { title: { text: 'Fill rate', font: { family: 'Geist, sans-serif', size: 11, color: c.muted } }, tickformat: '.0%', gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
+        xaxis: { title: { text: 'Average days of supply', font: { family: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Geist, system-ui, sans-serif', size: 11, color: c.muted } }, gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
+        yaxis: { title: { text: 'Fill rate', font: { family: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Geist, system-ui, sans-serif', size: 11, color: c.muted } }, tickformat: '.0%', gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
         shapes: [
           { type: 'line', x0: 30, x1: 30, y0: 0, y1: 1, yref: 'paper', line: { color: c.faint, dash: 'dot', width: 1 } },
           { type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 0.97, y1: 0.97, line: { color: c.faint, dash: 'dot', width: 1 } },
@@ -1810,7 +1810,7 @@ def _build_html(data_payload: dict) -> str:
         ...baseLayout(),
         bargap: 0.4,
         margin: { l: 58, r: 50, t: 14, b: 50 },
-        xaxis: { title: { text: 'SKU-location rank by lost sales', font: { family: 'Geist, sans-serif', size: 11, color: c.muted } }, dtick: 1, gridcolor: 'rgba(0,0,0,0)', tickfont: monoTicks },
+        xaxis: { title: { text: 'SKU-location rank by lost sales', font: { family: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Geist, system-ui, sans-serif', size: 11, color: c.muted } }, dtick: 1, gridcolor: 'rgba(0,0,0,0)', tickfont: monoTicks },
         yaxis: { tickprefix: '€', tickformat: '~s', range: [0, Math.max(...topRanked.map(x => x.lostSales), 1) * 1.08], gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
         yaxis2: { tickformat: '.0%', overlaying: 'y', side: 'right', range: [0, 1.04], showgrid: false, zeroline: false, tickfont: monoTicks },
       }, plotConfig);

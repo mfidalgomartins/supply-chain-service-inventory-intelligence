@@ -32,7 +32,11 @@ ACCENT_SOFT = "#a8ccf5"  # accent tint
 
 plt.rcParams.update(
     {
-        "font.family": "DejaVu Sans",
+        # Match the report's Helvetica body text; matplotlib tries each name in
+        # order and falls back gracefully (e.g. to DejaVu Sans) on systems
+        # without Helvetica/Arial installed, so this is safe across platforms.
+        "font.family": "sans-serif",
+        "font.sans-serif": ["Helvetica Neue", "Helvetica", "Arial", "DejaVu Sans"],
         "font.size": 11,
         "axes.edgecolor": INK,
         "axes.linewidth": 0.8,
@@ -558,6 +562,7 @@ def chart_supplier_ranking():
             fontsize=9,
             color="white",
             fontweight="bold",
+            zorder=5,
         )
     ax.annotate(
         "80% service line",
@@ -755,6 +760,7 @@ def chart_category_fill():
             fontsize=9,
             color="white",
             fontweight="bold",
+            zorder=5,
         )
     _titles(
         ax,
