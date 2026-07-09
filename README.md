@@ -124,6 +124,7 @@ Install the quality toolchain and run the same gates CI enforces:
 - [Metric dictionary](docs/metric_dictionary.md)
 - [Scoring framework](docs/scoring_framework.md)
 - [Release governance](docs/release_governance.md)
+- [ADR: single-file templates](docs/adr_single_file_templates.md)
 - [Changelog](CHANGELOG.md)
 
 ## Repository Layout
