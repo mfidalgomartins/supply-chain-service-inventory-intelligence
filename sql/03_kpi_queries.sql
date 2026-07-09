@@ -1,4 +1,4 @@
--- Supply Chain Service Level, Inventory Risk & Working Capital Intelligence System
+-- Supply Chain Service Level and Inventory Intelligence
 -- File: 03_kpi_queries.sql
 -- Purpose: KPI query library for supply chain leadership, finance, and operations.
 

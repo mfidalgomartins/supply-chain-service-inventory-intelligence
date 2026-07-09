@@ -1,4 +1,4 @@
--- Supply Chain Service Level, Inventory Risk & Working Capital Intelligence System
+-- Supply Chain Service Level and Inventory Intelligence
 -- File: 04_validation_queries.sql
 -- Purpose: SQL QA checks for data quality, metric integrity, and logical consistency.
 

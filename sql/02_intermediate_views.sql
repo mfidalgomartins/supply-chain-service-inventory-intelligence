@@ -1,4 +1,4 @@
--- Supply Chain Service Level, Inventory Risk & Working Capital Intelligence System
+-- Supply Chain Service Level and Inventory Intelligence
 -- File: 02_intermediate_views.sql
 -- Purpose: intermediate analytical views at auditable business grain.
 

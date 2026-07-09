@@ -1,4 +1,4 @@
--- Supply Chain Service Level, Inventory Risk & Working Capital Intelligence System
+-- Supply Chain Service Level and Inventory Intelligence
 -- File: 01_schema.sql
 -- Purpose: Define raw-layer physical structures and key constraints.
 

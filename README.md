@@ -1,7 +1,7 @@
 # Supply Chain Service Level and Inventory Intelligence
 
 [![Analytics CI](https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/actions/workflows/analytics-ci.yml/badge.svg)](https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/actions/workflows/analytics-ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A595%25-brightgreen)](https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/actions/workflows/analytics-ci.yml)
+[![Coverage floor](https://img.shields.io/badge/coverage%20floor-95%25%20enforced-brightgreen)](https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/actions/workflows/analytics-ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
 [![Ruff](https://img.shields.io/badge/lint-ruff-261230)](https://docs.astral.sh/ruff/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -10,8 +10,13 @@ A reproducible decision-support pipeline that identifies where stockouts,
 supplier instability, and excess inventory create the largest service and
 working-capital exposure across a multi-warehouse network.
 
-**[Open the live dashboard](https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/)**
-· **[Read the analytical report](https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/blob/main/outputs/reports/service_inventory_intelligence_report.pdf)**
+[![Open the live dashboard](https://img.shields.io/badge/▶_Open_the_live_dashboard-0071e3?style=for-the-badge&logoColor=white)](https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/)
+[![Read the analytical report](https://img.shields.io/badge/Read_the_analytical_report-1d1d1f?style=for-the-badge)](https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/blob/main/outputs/reports/service_inventory_intelligence_report.pdf)
+
+The dashboard is the primary artefact — an interactive, filterable operating
+review with light/dark themes, sortable priority tables, and drill-down
+charts, all served as a single static `index.html`. The chart below is one of
+14 static exhibits also published from the same pipeline.
 
 ![Opportunity by category](outputs/graphs/01_opportunity_by_category.png)
 
@@ -36,9 +41,45 @@ reproducible synthetic data
   -> contract, SQL, analytical, and publication gates
 ```
 
+```mermaid
+flowchart LR
+    A[Synthetic data\ngeneration] --> B[SQL analytical\nviews]
+    B --> C[Policy-based\nrisk scoring]
+    C --> D[Impact &\nopportunity estimates]
+    D --> E[Dashboard, charts\n& PDF report]
+    E --> F{Release gates}
+    F -->|pass| G[Published]
+    F -->|fail| H[Blocked]
+
+    subgraph Gates[" "]
+        direction TB
+        G1[Data contracts]
+        G2[SQL reconciliation]
+        G3[Pre-delivery validation]
+        G4[Dashboard freshness]
+    end
+    F -.-> Gates
+```
+
 The priority score is policy-based and fully documented. Financial values are
 labelled as proxy estimates and are not presented as audited P&L or causal
 attribution.
+
+## Engineering Highlights
+- **97.8% test coverage** across 59 tests, with a 95% floor enforced in CI —
+  including an in-process, end-to-end pipeline test, not just isolated units.
+- **Byte-identical reproducibility**: the pipeline is deterministic across
+  Python and NumPy versions, verified by idempotent regeneration checks on
+  both the dashboard and the PDF report.
+- **Supply-chain security**: the dashboard's CDN-loaded Plotly bundle is
+  pinned with a Subresource Integrity hash; dependencies are scanned with
+  `pip-audit` on every run; the lint suite includes flake8-bandit rules.
+- **WCAG AA-verified design system**: a dedicated 26-check contrast test
+  guards the dashboard's light/dark colour tokens against regression.
+- **Zero-tolerance release gate**: CI blocks publication on any pipeline
+  failure, high-severity data-quality warning, or stale dashboard artefact.
+- **Full static typing** (mypy) and formatting (ruff) enforced across the
+  entire `src/` and `tests/` tree.
 
 ## Run Locally
 Requires Python 3.12 or newer.
