@@ -4,6 +4,50 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project aims to
 adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-07-09
+
+### Added
+- Unified Apple-inspired design system across the dashboard and publication
+  charts (San Francisco typography, system-blue accent, refined materials
+  and motion), verified against WCAG AA contrast in both light and dark
+  themes with a dedicated 26-check regression test.
+- Branded SVG favicon and Open Graph/Twitter/theme-color metadata on the
+  dashboard for correct link previews and mobile browser chrome.
+- A bordered `note_box()` style in the PDF report for supplementary asides,
+  replacing subsections that previously stranded a single paragraph on an
+  otherwise-blank page.
+
+### Changed
+- Rewrote the analytical report's prose end to end, removing a repeated
+  antithesis pattern ("X, not Y") used throughout, including verbatim
+  duplicate phrasings, in favour of varied, evidence-led sentences. The
+  recovery-rate assumptions behind the headline value pool (35% margin, 25%
+  working capital) are now stated explicitly in the text, with the correct
+  sensitivity relationship, instead of only appearing in a data table.
+- Re-typeset the report's pagination: findings no longer force onto a fresh
+  page regardless of remaining space, and two subsections that each
+  stranded a single paragraph on a near-blank page now share space with
+  adjacent content. Net effect: 32 pages to 29, entirely from removed blank
+  space, no content cut.
+- Chart typography now renders in a Helvetica/Arial-first font stack
+  (graceful fallback to the prior default) to match the report's body
+  typeface; applied the equivalent SF-Pro-first stack to the dashboard's
+  chart text for cross-surface consistency.
+- Segment-risk heatmap recoloured to the shared blue palette, replacing a
+  mismatched orange colormap left over from an earlier palette.
+
+### Fixed
+- Two charts rendered in-bar percentage labels underneath a dashed
+  reference line (a z-order bug), making values such as "83%" and "97.0%"
+  visually unreadable; corrected for both instances and as a general rule
+  for any chart combining a reference line with in-bar labels.
+- Replaced two hardcoded report figures (a euro value and four warehouse
+  fill rates/inventory values) with values read from the already-loaded
+  source data, so they can no longer silently drift from the dataset.
+- Cover page and table-of-contents composition: the cover's content block
+  is vertically centred instead of top-loaded, and the TOC no longer spills
+  onto a near-empty page with an awkward mid-section split.
+
 ## [1.1.0] - 2026-06-18
 
 ### Added
@@ -34,5 +78,6 @@ adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   views, policy-based risk scoring, impact estimates, publication charts, PDF
   report, executive dashboard, and contract/SQL/analytical/publication gates.
 
+[1.2.0]: https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/releases/tag/v1.2.0
 [1.1.0]: https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/releases/tag/v1.1.0
 [1.0.0]: https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/releases/tag/v1.0.0

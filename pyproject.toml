@@ -1,6 +1,6 @@
 [project]
 name = "supply-chain-service-inventory-intelligence"
-version = "1.0.0"
+version = "1.2.0"
 description = "Reproducible decision-support pipeline for supply-chain service level and inventory intelligence."
 readme = "README.md"
 license = { file = "LICENSE" }
