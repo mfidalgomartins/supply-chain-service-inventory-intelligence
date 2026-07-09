@@ -51,7 +51,7 @@ jobs:
 
       - name: Upload Pipeline Timings
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pipeline-timings-py${{ matrix.python-version }}
           path: outputs/pipeline_timings.json
