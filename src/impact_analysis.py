@@ -1,3 +1,11 @@
+"""Directional financial impact estimates: converts service and inventory
+behaviour into lost-margin and working-capital proxies under the explicit
+recovery-rate assumptions in `ImpactAssumptions`.
+
+Flows (lost margin) are annualised; balances (inventory, trapped working
+capital) are averaged, never summed through time. Every euro figure is a
+scenario proxy, not audited P&L."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -42,6 +50,12 @@ def load_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
 
 def build_supplier_delay_factor(suppliers: pd.DataFrame) -> pd.DataFrame:
+    """Blend OTD gap, average delay, and lead-time variability into a 0-1
+    severity factor used to attribute lost-sales exposure to suppliers.
+
+    The factor expresses association strength, not causal share: it weights
+    how strongly each supplier's delivery behaviour co-occurs with downstream
+    stockouts."""
     out = suppliers.copy()
 
     otd_gap = (1.0 - out["on_time_delivery_rate"]).clip(0, 1)

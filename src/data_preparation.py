@@ -1,3 +1,7 @@
+"""Materialises the SQL intermediate views (02_intermediate_views.sql) into
+data/processed/ CSVs via an in-memory DuckDB session, validating each view's
+expected columns before writing."""
+
 from __future__ import annotations
 
 import duckdb
@@ -63,7 +67,7 @@ INTERMEDIATE_VIEWS = {
         "fill_rate_average",
         "lost_sales_exposure",
         "slow_moving_inventory_proxy",
-        "excess_inventory_proxy",
+        "excess_day_rate",
         "working_capital_risk_proxy",
     ],
     "warehouse_service_profile": [

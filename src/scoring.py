@@ -1,3 +1,11 @@
+"""Policy-based risk scoring for SKU-location pairs, suppliers, and
+category-region segments.
+
+Each operating metric is normalised against the fixed policy thresholds in
+`Thresholds` (linear or log-scale), weighted into component scores, and
+combined into a 0-100 governance priority score with Low/Medium/High/Critical
+tiers. Scores rank where to intervene first; they do not attribute cause."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -57,6 +65,11 @@ def linear_score(values: pd.Series, good: float, bad: float) -> pd.Series:
 
 
 def log_share_score(values: pd.Series, low: float, high: float) -> pd.Series:
+    """Score value shares on a log scale between ``low`` and ``high``.
+
+    Lost-sales and inventory shares span several orders of magnitude across
+    480 SKU-location pairs; a linear ramp would saturate at the top few pairs
+    and score everything else near zero."""
     if low <= 0 or high <= low:
         raise ValueError("Share score bounds must satisfy 0 < low < high")
 

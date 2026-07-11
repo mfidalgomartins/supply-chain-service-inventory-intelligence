@@ -1,3 +1,11 @@
+"""Builds the static executive dashboard (index.html).
+
+Prepares a compact monthly payload from the processed layers, stabilises
+float serialisation so the published file is byte-identical across Python
+and NumPy versions, and renders the single-file HTML template with an
+SRI-pinned Plotly bundle. All risk scores shown in the dashboard come from
+the governed baseline tables — nothing is recomputed in the browser."""
+
 from __future__ import annotations
 
 import hashlib

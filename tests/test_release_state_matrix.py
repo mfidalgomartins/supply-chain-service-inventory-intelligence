@@ -1,3 +1,7 @@
+"""Release-state classification: all-pass runs must classify as
+decision-support ready, while any high-severity FAIL or WARN must classify
+as publish-blocked."""
+
 from __future__ import annotations
 
 import pandas as pd

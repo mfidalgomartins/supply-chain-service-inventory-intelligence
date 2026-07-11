@@ -1,3 +1,9 @@
+"""Analytical release gate: reconciles service, inventory, impact, scoring,
+and dashboard metrics against each other, emits
+validation_pre_delivery_checks.csv, and classifies the run into the release
+state matrix (technically_valid through publish_allowed). Any FAIL or
+high-severity WARN downstream blocks publication via ci_quality_gate."""
+
 from __future__ import annotations
 
 import re
@@ -1025,6 +1031,10 @@ def _python_validation_checks() -> list[CheckResult]:
 
 
 def _compute_release_state_matrix(checks_df: pd.DataFrame) -> pd.DataFrame:
+    """Fold the check results into the four release states (technically_valid
+    through publish_allowed). Blocker/critical failures invalidate everything;
+    high-severity failures or warnings block publication while leaving the
+    technical layer valid."""
     blocker_fail = checks_df[
         (checks_df["status"] == "FAIL") & (checks_df["severity"].isin(["BLOCKER", "CRITICAL"]))
     ]

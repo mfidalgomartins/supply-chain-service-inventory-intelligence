@@ -1,3 +1,6 @@
+"""Scoring primitives: tier boundaries at exactly 35/55/75, linear scores
+clipped to 0-100, and Low-tier entities mapped to monitor-only actions."""
+
 from __future__ import annotations
 
 import pandas as pd

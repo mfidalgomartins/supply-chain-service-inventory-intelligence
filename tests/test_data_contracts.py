@@ -1,3 +1,7 @@
+"""Contract-check primitives against small in-memory tables: missing columns,
+duplicate keys, out-of-range values, invalid domains, and broken foreign-key
+references must each fail cleanly and specifically."""
+
 from __future__ import annotations
 
 import pandas as pd

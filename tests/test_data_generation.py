@@ -1,3 +1,7 @@
+"""Arrival simulation invariants: supplier reliability must control the
+realised on-time rate, arrival dates must agree with late flags, and invalid
+inputs must be rejected rather than silently coerced."""
+
 from __future__ import annotations
 
 import numpy as np

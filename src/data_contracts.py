@@ -1,3 +1,8 @@
+"""Data-contract gate: enforces configs/table_contracts.json against the raw
+and processed CSV layers — required columns, key uniqueness, null limits,
+numeric ranges, categorical domains, and foreign-key references — and emits
+per-table check results plus SHA256-fingerprinted profiles for traceability."""
+
 from __future__ import annotations
 
 import hashlib

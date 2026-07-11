@@ -1,3 +1,7 @@
+"""Impact aggregation semantics: balance metrics (inventory, trapped working
+capital) must be averaged across dates, and the overall summary must never
+annualise a balance as if it were a flow."""
+
 from __future__ import annotations
 
 import pandas as pd

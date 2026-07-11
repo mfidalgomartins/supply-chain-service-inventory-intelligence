@@ -1,3 +1,7 @@
+"""Final CI gate: reads the pre-delivery and SQL check outputs and fails the
+build on any check failure, publish-blocked release state, wrong publication
+chart count, or missing release artefact (dashboard, report, docs)."""
+
 from __future__ import annotations
 
 from pathlib import Path

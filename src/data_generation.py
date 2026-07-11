@@ -1,3 +1,10 @@
+"""Seeded synthetic-data generator for the multi-warehouse FMCG network.
+
+Deliberately embeds the structural patterns the downstream analysis is built
+to detect — two unreliable suppliers, a slow network-wide service drift, and
+ABC inventory skew — so the findings exercise real analytical logic instead
+of describing random noise. Writes the raw-layer CSVs to data/raw/."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -249,6 +256,8 @@ def build_products_and_classification(
 
 
 def seasonality_index(date: pd.Timestamp) -> float:
+    """Multiplicative demand factor: FMCG-style monthly curve (summer and
+    pre-holiday peaks) with a midweek uplift and weekend trough."""
     month_factor = {
         1: 0.93,
         2: 0.95,

@@ -1,3 +1,7 @@
+"""Pipeline orchestrator: runs every stage as a subprocess in dependency
+order, injects the matplotlib backend for the chart stage, and persists
+per-step timings to outputs/pipeline_timings.json."""
+
 from __future__ import annotations
 
 import json

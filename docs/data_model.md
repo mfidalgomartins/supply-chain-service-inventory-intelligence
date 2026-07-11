@@ -87,7 +87,14 @@ Built via `src/sql_quality_gate.py`.
 | Table | File | Grain | Purpose |
 |---|---|---|---|
 | ci_sql_validation_checks | `/outputs/tables/ci_sql_validation_checks.csv` | `check_name` | SQL quality-gate results used by CI and release controls |
-| validation_release_state_matrix | `/outputs/tables/validation_release_state_matrix.csv` | `state_name` | Explicit release-state governance matrix (technical, analytical, decision-support, screening, committee, publish gate) |
+
+## Release Governance Output
+Built via `src/pre_delivery_validation.py`.
+
+| Table | File | Grain | Purpose |
+|---|---|---|---|
+| validation_pre_delivery_checks | `/outputs/tables/validation_pre_delivery_checks.csv` | `check_name` | Analytical reconciliation checks across service, inventory, impact, scoring, and dashboard layers |
+| validation_release_state_matrix | `/outputs/tables/validation_release_state_matrix.csv` | `state_name` | Release-state governance matrix: technically_valid, analytically_acceptable, decision_support_ready, publish_allowed |
 
 ## Data Contract Outputs
 Built via `src/data_contracts.py` using `configs/table_contracts.json`.

@@ -1,3 +1,7 @@
+"""Governance invariants of the generated dashboard HTML: theme toggle, no
+frontend score computation, SRI-pinned Plotly, accessible sort state, branded
+favicon and share metadata, and stabilised float serialisation."""
+
 from __future__ import annotations
 
 from src.executive_dashboard import (

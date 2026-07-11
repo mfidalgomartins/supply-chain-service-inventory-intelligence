@@ -157,7 +157,10 @@ sku_agg AS (
         END AS fill_rate_average,
         SUM(lost_sales_revenue) AS lost_sales_exposure,
         AVG(CASE WHEN available_units > 0 AND units_fulfilled = 0 THEN 1.0 ELSE 0.0 END) AS slow_moving_inventory_proxy,
-        AVG(CASE WHEN days_of_supply > dos_policy_cap THEN 1.0 ELSE 0.0 END) AS excess_inventory_proxy
+        -- Rate of days above the ABC DOS cap (0-1). Named to match the metric
+        -- dictionary; the monetary "excess_inventory_value_proxy" lives in the
+        -- impact layer and must not share this name.
+        AVG(CASE WHEN days_of_supply > dos_policy_cap THEN 1.0 ELSE 0.0 END) AS excess_day_rate
     FROM sku_daily
     GROUP BY product_id
 ),
@@ -165,7 +168,7 @@ risk_calc AS (
     SELECT
         *,
         100.0 * (
-            0.45 * excess_inventory_proxy +
+            0.45 * excess_day_rate +
             0.30 * slow_moving_inventory_proxy +
             0.15 * LEAST(average_days_of_supply / 60.0, 1.0) +
             0.10 * LEAST(average_inventory_value / 50000.0, 1.0)

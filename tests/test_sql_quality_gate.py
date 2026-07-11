@@ -1,3 +1,7 @@
+"""SQL gate mechanics: statement splitting must drop empty segments, and the
+inventory KPI queries must average daily network balances rather than
+summing them across the window."""
+
 from __future__ import annotations
 
 from pathlib import Path

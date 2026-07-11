@@ -1,3 +1,7 @@
+"""SQL reconciliation gate: reloads the raw and processed CSVs into DuckDB,
+smoke-tests every KPI query in 03_kpi_queries.sql, and runs the validation
+checks in 04_validation_queries.sql, writing pass/fail results for CI."""
+
 from __future__ import annotations
 
 import duckdb
