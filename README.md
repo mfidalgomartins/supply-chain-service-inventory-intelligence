@@ -15,17 +15,70 @@ optimizes constrained multi-echelon flows.
 [![Open the live dashboard](https://img.shields.io/badge/▶_Open_the_live_dashboard-0071e3?style=for-the-badge&logoColor=white)](https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/)
 [![Read the analytical report](https://img.shields.io/badge/Read_the_analytical_report-1d1d1f?style=for-the-badge)](https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/blob/main/outputs/reports/service_inventory_intelligence_report.pdf)
 
-The dashboard is the primary artefact — an interactive, filterable operating
-review with light/dark themes, sortable priority tables, and drill-down
-charts, all served as a single static `index.html`. The chart below is one of
-14 static exhibits also published from the same pipeline.
-
-![Opportunity by category](outputs/graphs/01_opportunity_by_category.png)
+**[Dashboard](#dashboard--the-interactive-operating-review) ·
+[Report](#report--the-executive-decision-support-deliverable) ·
+[Decisions supported](#decisions-supported) ·
+[Analytical flow](#analytical-flow) ·
+[Engineering highlights](#engineering-highlights) ·
+[Documentation](#documentation)**
 
 The reproducible synthetic dataset covers **120 products, 12 suppliers, 4
 warehouses, and 731 days from 2024-01-01 to 2025-12-31**. The current scenario
 reports a **95.94% fill rate**, **€19.3M observed lost-sales exposure**, and a
 **€1.56M directional 12-month opportunity proxy**.
+
+## Dashboard — the interactive operating review
+
+The dashboard is the primary artefact: a single static `index.html`, filterable
+by region, warehouse, category, supplier, ABC class, and date range, with
+sortable priority tables, drill-down charts, an assumptions/method drawer for
+every metric, a print layout, and light/dark themes driven by system
+preference or a persisted toggle.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/assets/dashboard_light.png" alt="Dashboard — light theme"></td>
+<td width="50%"><img src="docs/assets/dashboard_dark.png" alt="Dashboard — dark theme"></td>
+</tr>
+</table>
+
+- **Signals → Priorities → Drivers → Trade-off → Queue** — five linked sections
+  walk a reviewer from "where does the network stand" to "what should be
+  actioned first," anchored by scroll-spy navigation.
+- **Governed filtering** — region, warehouse, category, supplier, ABC class,
+  and a date range all recompute the same underlying aggregates client-side.
+- **Claim-safe by design** — every financial figure is labelled a proxy
+  estimate with an inline "Method" explanation; nothing is presented as
+  audited P&L or a forecast.
+- **Hardened static delivery** — the pinned Plotly bundle is loaded with a
+  Subresource Integrity (SHA-384) hash, so a tampered or substituted script is
+  rejected by the browser; 26 automated checks guard WCAG AA contrast in both
+  themes.
+- **Deterministic publication** — seeded generation and stabilized float
+  serialization keep the dashboard byte-identical across Python 3.12–3.14.
+
+[**Open the live dashboard →**](https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/)
+
+## Report — the executive decision-support deliverable
+
+The analytical report is the leave-behind: a consulting-grade PDF that opens
+the same scenario the dashboard shows, states the call in the first two pages,
+and backs it with page-by-page evidence.
+
+<img src="docs/assets/report_cover.png" alt="Analytical report cover" width="45%">
+
+- **Same numbers, narrative form** — the report and dashboard are built from
+  one pipeline run, so the exposure, opportunity, and priority figures always
+  agree.
+- **Decision-first structure** — the call and the recommended first action
+  lead the report; category, supplier, and warehouse evidence follow.
+- **Declared limitations** — every projection states what it does and does not
+  prove, including which figures are causal, quasi-causal, or observational.
+- **Regression-guarded layout** — a structural test checks page count and
+  section anchors on every pipeline run, so the report can't silently
+  regress to blank or malformed pages.
+
+[**Read the analytical report →**](https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/blob/main/outputs/reports/service_inventory_intelligence_report.pdf)
 
 ## Decisions Supported
 
