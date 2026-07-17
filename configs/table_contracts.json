@@ -45,6 +45,9 @@
       "unique_key": ["date", "warehouse_id", "product_id"],
       "critical_columns": ["date", "warehouse_id", "product_id", "units_demanded", "units_fulfilled"],
       "non_negative": ["units_demanded", "units_fulfilled", "units_lost_sales"],
+      "value_ranges": {
+        "seasonality_index": {"min": 0.0001}
+      },
       "allowed_values": {
         "stockout_flag": [0, 1],
         "promo_flag": [0, 1]
@@ -71,6 +74,55 @@
       "allowed_values": {
         "abc_class": ["A", "B", "C"],
         "criticality_level": ["High", "Medium", "Low"]
+      }
+    },
+    {
+      "name": "intervention_assignments",
+      "path": "data/raw/intervention_assignments.csv",
+      "required_columns": ["experiment_id", "design", "assignment_method", "unit_id", "product_id", "warehouse_id", "supplier_id", "stratum", "treatment_group", "treatment_flag", "assignment_date", "intervention_date", "outcome_metric", "status"],
+      "unique_key": ["experiment_id", "unit_id"],
+      "critical_columns": ["experiment_id", "design", "unit_id", "product_id", "warehouse_id", "supplier_id", "treatment_flag", "assignment_date", "intervention_date"],
+      "non_negative": ["treatment_flag"],
+      "allowed_values": {
+        "design": ["randomized_controlled_trial", "difference_in_differences"],
+        "assignment_method": ["stratified_randomization", "matched_supplier_comparison"],
+        "treatment_flag": [0, 1],
+        "status": ["designed", "active", "completed"]
+      }
+    },
+    {
+      "name": "network_nodes",
+      "path": "data/raw/network_nodes.csv",
+      "required_columns": ["node_id", "node_type", "region", "storage_capacity_units"],
+      "unique_key": ["node_id"],
+      "critical_columns": ["node_id", "node_type", "region", "storage_capacity_units"],
+      "non_negative": ["storage_capacity_units"],
+      "allowed_values": {
+        "node_type": ["supplier", "gateway", "regional_dc"]
+      }
+    },
+    {
+      "name": "network_lanes",
+      "path": "data/raw/network_lanes.csv",
+      "required_columns": ["lane_id", "source_node_id", "destination_node_id", "lane_type", "lead_time_days", "unit_transport_cost", "daily_capacity_units", "enabled"],
+      "unique_key": ["lane_id"],
+      "critical_columns": ["lane_id", "source_node_id", "destination_node_id", "lane_type", "daily_capacity_units", "enabled"],
+      "non_negative": ["lead_time_days", "unit_transport_cost", "daily_capacity_units", "enabled"],
+      "allowed_values": {
+        "lane_type": ["inbound", "transfer"],
+        "enabled": [0, 1]
+      }
+    },
+    {
+      "name": "product_sources",
+      "path": "data/raw/product_sources.csv",
+      "required_columns": ["product_id", "supplier_id", "is_primary", "unit_purchase_cost", "minimum_order_qty", "max_horizon_units", "source_lead_time_days", "enabled"],
+      "unique_key": ["product_id", "supplier_id"],
+      "critical_columns": ["product_id", "supplier_id", "is_primary", "unit_purchase_cost", "minimum_order_qty", "max_horizon_units", "enabled"],
+      "non_negative": ["is_primary", "unit_purchase_cost", "minimum_order_qty", "max_horizon_units", "source_lead_time_days", "enabled"],
+      "allowed_values": {
+        "is_primary": [0, 1],
+        "enabled": [0, 1]
       }
     },
     {
@@ -103,6 +155,38 @@
       }
     },
     {
+      "name": "product_inventory_profile",
+      "path": "data/processed/product_inventory_profile.csv",
+      "required_columns": ["product_id", "product_name", "category", "abc_class", "average_inventory_units", "average_inventory_value", "average_days_of_supply", "stockout_frequency", "fill_rate_average", "lost_sales_exposure", "slow_moving_inventory_proxy", "excess_day_rate", "working_capital_risk_proxy"],
+      "unique_key": ["product_id"],
+      "critical_columns": ["product_id", "category", "abc_class", "average_inventory_value", "fill_rate_average"],
+      "non_negative": ["average_inventory_units", "average_inventory_value", "average_days_of_supply", "lost_sales_exposure", "working_capital_risk_proxy"],
+      "value_ranges": {
+        "stockout_frequency": {"min": 0, "max": 1},
+        "fill_rate_average": {"min": 0, "max": 1},
+        "slow_moving_inventory_proxy": {"min": 0, "max": 1},
+        "excess_day_rate": {"min": 0, "max": 1},
+        "working_capital_risk_proxy": {"min": 0, "max": 100}
+      },
+      "allowed_values": {
+        "abc_class": ["A", "B", "C"]
+      }
+    },
+    {
+      "name": "warehouse_service_profile",
+      "path": "data/processed/warehouse_service_profile.csv",
+      "required_columns": ["warehouse_id", "warehouse_name", "region", "fill_rate", "stockout_rate", "lost_sales_value", "average_days_of_supply", "inventory_value", "capacity_pressure_proxy", "warehouse_service_risk_proxy"],
+      "unique_key": ["warehouse_id"],
+      "critical_columns": ["warehouse_id", "region", "fill_rate", "inventory_value"],
+      "non_negative": ["lost_sales_value", "average_days_of_supply", "inventory_value", "warehouse_service_risk_proxy"],
+      "value_ranges": {
+        "fill_rate": {"min": 0, "max": 1},
+        "stockout_rate": {"min": 0, "max": 1},
+        "capacity_pressure_proxy": {"min": 0, "max": 1},
+        "warehouse_service_risk_proxy": {"min": 0, "max": 100}
+      }
+    },
+    {
       "name": "sku_risk_table",
       "path": "data/processed/sku_risk_table.csv",
       "required_columns": ["product_id", "warehouse_id", "supplier_id", "service_risk_score", "stockout_risk_score", "excess_inventory_score", "supplier_risk_score", "working_capital_risk_score", "governance_priority_score", "risk_tier", "main_risk_driver", "recommended_action"],
@@ -121,6 +205,373 @@
         "risk_tier": ["Low", "Medium", "High", "Critical"],
         "main_risk_driver": ["Service Risk", "Stockout Risk", "Excess Inventory", "Supplier Risk", "Working Capital"]
       }
+    },
+    {
+      "name": "supplier_risk_table",
+      "path": "data/processed/supplier_risk_table.csv",
+      "required_columns": ["supplier_id", "supplier_name", "service_risk_score", "stockout_risk_score", "excess_inventory_score", "supplier_risk_score", "working_capital_risk_score", "governance_priority_score", "risk_tier", "main_risk_driver", "recommended_action", "on_time_delivery_rate", "average_delay_days", "lead_time_variability", "received_vs_ordered_fill_rate", "fill_rate", "stockout_rate", "lost_sales_share", "inventory_value_share", "lost_sales_revenue", "inventory_value_sum"],
+      "unique_key": ["supplier_id"],
+      "critical_columns": ["supplier_id", "governance_priority_score", "risk_tier", "main_risk_driver"],
+      "non_negative": ["service_risk_score", "stockout_risk_score", "excess_inventory_score", "supplier_risk_score", "working_capital_risk_score", "governance_priority_score", "average_delay_days", "lead_time_variability", "lost_sales_revenue", "inventory_value_sum"],
+      "value_ranges": {
+        "service_risk_score": {"min": 0, "max": 100},
+        "stockout_risk_score": {"min": 0, "max": 100},
+        "excess_inventory_score": {"min": 0, "max": 100},
+        "supplier_risk_score": {"min": 0, "max": 100},
+        "working_capital_risk_score": {"min": 0, "max": 100},
+        "governance_priority_score": {"min": 0, "max": 100},
+        "on_time_delivery_rate": {"min": 0, "max": 1},
+        "received_vs_ordered_fill_rate": {"min": 0, "max": 1},
+        "fill_rate": {"min": 0, "max": 1},
+        "stockout_rate": {"min": 0, "max": 1},
+        "lost_sales_share": {"min": 0, "max": 1},
+        "inventory_value_share": {"min": 0, "max": 1}
+      },
+      "allowed_values": {
+        "risk_tier": ["Low", "Medium", "High", "Critical"],
+        "main_risk_driver": ["Service Risk", "Stockout Risk", "Excess Inventory", "Supplier Risk", "Working Capital"]
+      }
+    },
+    {
+      "name": "segment_risk_table",
+      "path": "data/processed/segment_risk_table.csv",
+      "required_columns": ["segment_id", "category", "region", "service_risk_score", "stockout_risk_score", "excess_inventory_score", "supplier_risk_score", "working_capital_risk_score", "governance_priority_score", "risk_tier", "main_risk_driver", "recommended_action", "fill_rate", "stockout_rate", "lost_sales_share", "inventory_value_share", "lost_sales_revenue", "inventory_value_sum"],
+      "unique_key": ["segment_id"],
+      "critical_columns": ["segment_id", "category", "region", "governance_priority_score", "risk_tier"],
+      "non_negative": ["service_risk_score", "stockout_risk_score", "excess_inventory_score", "supplier_risk_score", "working_capital_risk_score", "governance_priority_score", "lost_sales_revenue", "inventory_value_sum"],
+      "value_ranges": {
+        "service_risk_score": {"min": 0, "max": 100},
+        "stockout_risk_score": {"min": 0, "max": 100},
+        "excess_inventory_score": {"min": 0, "max": 100},
+        "supplier_risk_score": {"min": 0, "max": 100},
+        "working_capital_risk_score": {"min": 0, "max": 100},
+        "governance_priority_score": {"min": 0, "max": 100},
+        "fill_rate": {"min": 0, "max": 1},
+        "stockout_rate": {"min": 0, "max": 1},
+        "lost_sales_share": {"min": 0, "max": 1},
+        "inventory_value_share": {"min": 0, "max": 1}
+      },
+      "allowed_values": {
+        "risk_tier": ["Low", "Medium", "High", "Critical"],
+        "main_risk_driver": ["Service Risk", "Stockout Risk", "Excess Inventory", "Supplier Risk", "Working Capital"]
+      }
+    },
+    {
+      "name": "governance_priority_master",
+      "path": "data/processed/governance_priority_master.csv",
+      "required_columns": ["entity_type", "entity_id", "entity_name", "service_risk_score", "stockout_risk_score", "excess_inventory_score", "supplier_risk_score", "working_capital_risk_score", "governance_priority_score", "risk_tier", "main_risk_driver", "recommended_action", "lost_sales_revenue", "inventory_value_sum"],
+      "unique_key": ["entity_type", "entity_id"],
+      "critical_columns": ["entity_type", "entity_id", "governance_priority_score", "risk_tier", "recommended_action"],
+      "non_negative": ["service_risk_score", "stockout_risk_score", "excess_inventory_score", "supplier_risk_score", "working_capital_risk_score", "governance_priority_score", "lost_sales_revenue", "inventory_value_sum"],
+      "value_ranges": {
+        "service_risk_score": {"min": 0, "max": 100},
+        "stockout_risk_score": {"min": 0, "max": 100},
+        "excess_inventory_score": {"min": 0, "max": 100},
+        "supplier_risk_score": {"min": 0, "max": 100},
+        "working_capital_risk_score": {"min": 0, "max": 100},
+        "governance_priority_score": {"min": 0, "max": 100}
+      },
+      "allowed_values": {
+        "entity_type": ["sku_warehouse", "supplier", "segment"],
+        "risk_tier": ["Low", "Medium", "High", "Critical"],
+        "main_risk_driver": ["Service Risk", "Stockout Risk", "Excess Inventory", "Supplier Risk", "Working Capital"]
+      }
+    },
+    {
+      "name": "impact_overall_summary",
+      "path": "outputs/tables/impact_overall_summary.csv",
+      "required_columns": ["metric", "value", "definition"],
+      "unique_key": ["metric"],
+      "critical_columns": ["metric", "value", "definition"],
+      "non_negative": ["value"]
+    },
+    {
+      "name": "impact_opportunity_priority",
+      "path": "outputs/tables/impact_opportunity_priority.csv",
+      "required_columns": ["entity_type", "entity_id", "entity_name", "opportunity_rank", "opportunity_total_12m_proxy", "opportunity_margin_recovery_12m_proxy", "opportunity_wc_release_12m_proxy", "lost_sales_revenue_annualized", "trapped_working_capital_proxy_average", "supplier_delay_impact_proxy_annualized", "opportunity_share"],
+      "unique_key": ["entity_type", "entity_id"],
+      "critical_columns": ["entity_type", "entity_id", "opportunity_rank", "opportunity_total_12m_proxy"],
+      "non_negative": ["opportunity_rank", "opportunity_total_12m_proxy", "opportunity_margin_recovery_12m_proxy", "opportunity_wc_release_12m_proxy", "lost_sales_revenue_annualized", "trapped_working_capital_proxy_average", "supplier_delay_impact_proxy_annualized"],
+      "value_ranges": {
+        "opportunity_share": {"min": 0, "max": 1}
+      },
+      "allowed_values": {
+        "entity_type": ["SKU", "Warehouse", "Supplier", "Category"]
+      }
+    },
+    {
+      "name": "ingestion_manifest",
+      "path": "outputs/tables/ingestion_manifest.csv",
+      "required_columns": ["adapter_type", "table_name", "source", "row_count", "source_sha256", "canonical_sha256"],
+      "unique_key": ["table_name"],
+      "critical_columns": ["adapter_type", "table_name", "row_count", "canonical_sha256"],
+      "non_negative": ["row_count"],
+      "allowed_values": {
+        "adapter_type": ["synthetic", "directory", "erp_wms"]
+      }
+    },
+    {
+      "name": "storage_manifest",
+      "path": "outputs/tables/storage_manifest.csv",
+      "required_columns": ["layer", "table_name", "source_path", "parquet_path", "compression", "refresh_mode", "input_rows", "stored_rows", "key_columns", "source_sha256", "parquet_sha256"],
+      "unique_key": ["layer", "table_name"],
+      "critical_columns": ["layer", "table_name", "parquet_path", "stored_rows", "parquet_sha256"],
+      "non_negative": ["input_rows", "prior_rows", "stored_rows"],
+      "allowed_values": {
+        "layer": ["raw", "processed", "analytics"],
+        "compression": ["zstd", "snappy", "gzip", "uncompressed"],
+        "refresh_mode": ["skipped", "incremental_upsert", "full_replace"]
+      }
+    },
+    {
+      "name": "source_readiness_checks",
+      "path": "outputs/tables/source_readiness_checks.csv",
+      "required_columns": ["table_name", "check_name", "severity", "status", "observed", "expected", "details"],
+      "unique_key": ["table_name", "check_name"],
+      "critical_columns": ["table_name", "check_name", "severity", "status", "details"],
+      "non_negative": [],
+      "allowed_values": {
+        "status": ["PASS", "WARN", "FAIL", "SKIP"]
+      }
+    },
+    {
+      "name": "source_schema_registry",
+      "path": "outputs/tables/source_schema_registry.csv",
+      "required_columns": ["table_name", "source_system", "owner", "column_name", "data_type", "nullable", "ordinal_position", "schema_fingerprint", "observed_as_of"],
+      "unique_key": ["table_name", "column_name"],
+      "critical_columns": ["table_name", "source_system", "owner", "column_name", "data_type", "schema_fingerprint", "observed_as_of"],
+      "non_negative": ["ordinal_position"]
+    },
+    {
+      "name": "source_schema_drift_events",
+      "path": "outputs/tables/source_schema_drift_events.csv",
+      "required_columns": ["table_name", "drift_type", "severity", "column_name", "previous_type", "current_type", "details", "observed_as_of"],
+      "unique_key": ["table_name", "drift_type", "column_name"],
+      "critical_columns": ["table_name", "drift_type", "severity", "column_name", "details", "observed_as_of"],
+      "non_negative": [],
+      "allowed_values": {
+        "drift_type": ["required_column_missing", "column_removed", "column_added", "type_changed"],
+        "severity": ["WARN", "FAIL"]
+      }
+    },
+    {
+      "name": "policy_backtest_folds",
+      "path": "outputs/tables/policy_backtest_folds.csv",
+      "required_columns": ["product_id", "warehouse_id", "supplier_id", "fold_start", "train_end", "evaluation_end", "warmup_days", "policy_id", "target_service_level", "fill_rate", "average_inventory_value", "evaluation_starting_on_hand", "ending_on_hand", "received_units", "economic_cost_proxy", "balance_error_units", "target_met", "fold_winner"],
+      "unique_key": ["product_id", "warehouse_id", "fold_start", "policy_id"],
+      "critical_columns": ["product_id", "warehouse_id", "fold_start", "policy_id", "fill_rate", "economic_cost_proxy"],
+      "non_negative": ["warmup_days", "average_inventory_value", "evaluation_starting_on_hand", "ending_on_hand", "received_units", "economic_cost_proxy", "order_count", "units_demanded", "units_fulfilled", "units_lost"],
+      "value_ranges": {
+        "target_service_level": {"min": 0, "max": 1},
+        "fill_rate": {"min": 0, "max": 1},
+        "balance_error_units": {"min": 0, "max": 0}
+      },
+      "allowed_values": {
+        "target_met": [true, false],
+        "fold_winner": [true, false]
+      }
+    },
+    {
+      "name": "policy_backtest_recommendations",
+      "path": "outputs/tables/policy_backtest_recommendations.csv",
+      "required_columns": ["product_id", "warehouse_id", "supplier_id", "policy_id", "safety_stock_factor", "cycle_stock_days", "folds_evaluated", "target_success_rate", "mean_fill_rate", "mean_inventory_value", "mean_economic_cost_proxy", "evidence_status"],
+      "unique_key": ["product_id", "warehouse_id"],
+      "critical_columns": ["product_id", "warehouse_id", "policy_id", "mean_fill_rate", "evidence_status"],
+      "non_negative": ["safety_stock_factor", "cycle_stock_days", "folds_evaluated", "mean_inventory_value", "mean_economic_cost_proxy"],
+      "value_ranges": {
+        "target_success_rate": {"min": 0, "max": 1},
+        "mean_fill_rate": {"min": 0, "max": 1}
+      },
+      "allowed_values": {
+        "evidence_status": ["walk_forward_validated", "limited_history"]
+      }
+    },
+    {
+      "name": "monte_carlo_policy_scenarios",
+      "path": "outputs/tables/monte_carlo_policy_scenarios.csv",
+      "required_columns": ["product_id", "warehouse_id", "supplier_id", "scenario_id", "target_service_level", "expected_fill_rate", "probability_target_met", "expected_inventory_value", "expected_lost_margin_proxy", "expected_total_cost_proxy", "balance_error_max", "simulation_count", "warmup_days", "horizon_days", "demand_block_days", "is_frontier", "selection_eligible"],
+      "unique_key": ["product_id", "warehouse_id", "scenario_id"],
+      "critical_columns": ["product_id", "warehouse_id", "scenario_id", "expected_fill_rate", "expected_inventory_value"],
+      "non_negative": ["expected_inventory_value", "expected_lost_margin_proxy", "expected_total_cost_proxy", "simulation_count", "warmup_days", "horizon_days", "demand_block_days"],
+      "value_ranges": {
+        "target_service_level": {"min": 0, "max": 1},
+        "expected_fill_rate": {"min": 0, "max": 1},
+        "probability_target_met": {"min": 0, "max": 1},
+        "balance_error_max": {"min": 0, "max": 0}
+      },
+      "allowed_values": {
+        "is_frontier": [true, false],
+        "selection_eligible": [true, false]
+      }
+    },
+    {
+      "name": "policy_backtest_abc_summary",
+      "path": "outputs/tables/policy_backtest_abc_summary.csv",
+      "required_columns": ["abc_class", "policy_id", "sku_locations", "average_target_success_rate", "average_fill_rate", "average_inventory_value", "average_economic_cost_proxy"],
+      "unique_key": ["abc_class", "policy_id"],
+      "critical_columns": ["abc_class", "policy_id", "sku_locations"],
+      "non_negative": ["sku_locations", "average_inventory_value", "average_economic_cost_proxy"],
+      "value_ranges": {
+        "average_target_success_rate": {"min": 0, "max": 1},
+        "average_fill_rate": {"min": 0, "max": 1}
+      },
+      "allowed_values": {
+        "abc_class": ["A", "B", "C"]
+      }
+    },
+    {
+      "name": "monte_carlo_recommendations",
+      "path": "outputs/tables/monte_carlo_recommendations.csv",
+      "required_columns": ["product_id", "warehouse_id", "supplier_id", "scenario_id", "expected_fill_rate", "probability_target_met", "expected_inventory_value", "expected_total_cost_proxy", "selection_reason"],
+      "unique_key": ["product_id", "warehouse_id"],
+      "critical_columns": ["product_id", "warehouse_id", "scenario_id", "selection_reason"],
+      "non_negative": ["expected_inventory_value", "expected_total_cost_proxy"],
+      "value_ranges": {
+        "expected_fill_rate": {"min": 0, "max": 1},
+        "probability_target_met": {"min": 0, "max": 1}
+      },
+      "allowed_values": {
+        "selection_reason": ["frontier_constraints_met", "service_met_capital_relaxed", "capital_met_service_relaxed", "best_available_under_constraints"]
+      }
+    },
+    {
+      "name": "monte_carlo_portfolio_summary",
+      "path": "outputs/tables/monte_carlo_portfolio_summary.csv",
+      "required_columns": ["metric", "value", "definition"],
+      "unique_key": ["metric"],
+      "critical_columns": ["metric", "value", "definition"],
+      "non_negative": []
+    },
+    {
+      "name": "action_register",
+      "path": "outputs/tables/action_register.csv",
+      "required_columns": ["action_id", "entity_type", "supplier_id", "action_type", "owner", "status", "decision_date", "implementation_date", "target_metric", "target_value", "pre_priority_score", "post_priority_score", "priority_score_improvement", "pre_fill_rate", "post_fill_rate", "observed_total_benefit_proxy", "target_achieved", "measurement_status", "attribution_status"],
+      "unique_key": ["action_id"],
+      "critical_columns": ["action_id", "entity_type", "owner", "status", "target_metric", "target_value", "measurement_status", "attribution_status"],
+      "non_negative": ["target_value", "pre_priority_score", "post_priority_score"],
+      "value_ranges": {
+        "pre_priority_score": {"min": 0, "max": 100},
+        "post_priority_score": {"min": 0, "max": 100},
+        "pre_fill_rate": {"min": 0, "max": 1},
+        "post_fill_rate": {"min": 0, "max": 1}
+      },
+      "allowed_values": {
+        "entity_type": ["sku_warehouse", "supplier"],
+        "status": ["planned", "in_progress", "implemented", "closed", "cancelled"],
+        "target_achieved": [true, false],
+        "measurement_status": ["observed_pre_post_complete", "measurement_pending", "not_eligible_status"],
+        "attribution_status": ["observational_not_causal", "not_measured"]
+      }
+    },
+    {
+      "name": "action_kpi_timeseries",
+      "path": "outputs/tables/action_kpi_timeseries.csv",
+      "required_columns": ["action_id", "month", "period", "observation_days", "fill_rate", "stockout_rate", "lost_sales_revenue", "lost_margin_proxy", "average_inventory_value"],
+      "unique_key": ["action_id", "month", "period"],
+      "critical_columns": ["action_id", "month", "period"],
+      "non_negative": ["observation_days", "lost_sales_revenue", "lost_margin_proxy", "average_inventory_value"],
+      "value_ranges": {
+        "fill_rate": {"min": 0, "max": 1},
+        "stockout_rate": {"min": 0, "max": 1}
+      },
+      "allowed_values": {
+        "period": ["pre", "post"]
+      }
+    },
+    {
+      "name": "causal_effect_estimates",
+      "path": "outputs/tables/causal_effect_estimates.csv",
+      "required_columns": ["experiment_id", "design", "outcome_metric", "estimand", "intervention_date", "treated_units", "control_units", "pre_days", "post_days", "effect_estimate", "standard_error", "ci_lower", "ci_upper", "p_value", "randomization_p_value", "economic_value_estimate", "evidence_status", "attribution_status"],
+      "unique_key": ["experiment_id"],
+      "critical_columns": ["experiment_id", "design", "outcome_metric", "estimand", "effect_estimate", "standard_error", "p_value", "evidence_status", "attribution_status"],
+      "non_negative": ["treated_units", "control_units", "pre_days", "post_days", "standard_error"],
+      "value_ranges": {
+        "p_value": {"min": 0, "max": 1},
+        "randomization_p_value": {"min": 0, "max": 1}
+      },
+      "allowed_values": {
+        "design": ["randomized_controlled_trial", "difference_in_differences"],
+        "estimand": ["average_treatment_effect_on_treated"],
+        "evidence_status": ["causal_supported", "causal_inconclusive", "quasi_causal_supported", "quasi_causal_inconclusive", "insufficient_evidence"],
+        "attribution_status": ["causal_estimate", "quasi_causal_estimate", "not_causal"]
+      }
+    },
+    {
+      "name": "causal_diagnostics",
+      "path": "outputs/tables/causal_diagnostics.csv",
+      "required_columns": ["experiment_id", "diagnostic", "status", "observed", "threshold", "details"],
+      "unique_key": ["experiment_id", "diagnostic"],
+      "critical_columns": ["experiment_id", "diagnostic", "status", "observed", "threshold", "details"],
+      "non_negative": [],
+      "allowed_values": {
+        "status": ["PASS", "WARN", "FAIL"]
+      }
+    },
+    {
+      "name": "causal_cohort_timeseries",
+      "path": "outputs/tables/causal_cohort_timeseries.csv",
+      "required_columns": ["experiment_id", "outcome_metric", "date", "period", "treatment_group", "treatment_flag", "units", "outcome", "weight"],
+      "unique_key": ["experiment_id", "date", "treatment_flag"],
+      "critical_columns": ["experiment_id", "outcome_metric", "date", "period", "treatment_group", "treatment_flag", "units", "outcome", "weight"],
+      "non_negative": ["treatment_flag", "units", "weight"],
+      "allowed_values": {
+        "period": ["pre", "post"],
+        "treatment_flag": [0, 1]
+      }
+    },
+    {
+      "name": "network_optimization_plan",
+      "path": "outputs/tables/network_optimization_plan.csv",
+      "required_columns": ["product_id", "warehouse_id", "demand_units", "starting_inventory_units", "inbound_units", "outbound_units", "fulfilled_units", "shortage_units", "ending_inventory_units", "target_service_level", "achieved_service_level", "ending_inventory_value", "shortage_cost", "balance_error_units"],
+      "unique_key": ["product_id", "warehouse_id"],
+      "critical_columns": ["product_id", "warehouse_id", "demand_units", "fulfilled_units", "shortage_units", "ending_inventory_units", "target_service_level", "achieved_service_level", "balance_error_units"],
+      "non_negative": ["demand_units", "starting_inventory_units", "inbound_units", "outbound_units", "fulfilled_units", "shortage_units", "ending_inventory_units", "ending_inventory_value", "shortage_cost"],
+      "value_ranges": {
+        "target_service_level": {"min": 0, "max": 1},
+        "achieved_service_level": {"min": 0, "max": 1},
+        "balance_error_units": {"min": 0, "max": 0}
+      }
+    },
+    {
+      "name": "network_flow_plan",
+      "path": "outputs/tables/network_flow_plan.csv",
+      "required_columns": ["product_id", "lane_id", "source_node_id", "destination_node_id", "lane_type", "flow_units", "lead_time_days", "unit_purchase_cost", "unit_transport_cost", "total_procurement_cost", "total_transport_cost"],
+      "unique_key": ["product_id", "lane_id"],
+      "critical_columns": ["product_id", "lane_id", "source_node_id", "destination_node_id", "lane_type", "flow_units"],
+      "non_negative": ["flow_units", "lead_time_days", "unit_purchase_cost", "unit_transport_cost", "total_procurement_cost", "total_transport_cost"],
+      "allowed_values": {
+        "lane_type": ["inbound", "transfer"]
+      }
+    },
+    {
+      "name": "network_constraint_utilization",
+      "path": "outputs/tables/network_constraint_utilization.csv",
+      "required_columns": ["constraint_type", "constraint_id", "capacity_units", "used_units", "slack_units", "utilization_rate", "binding"],
+      "unique_key": ["constraint_type", "constraint_id"],
+      "critical_columns": ["constraint_type", "constraint_id", "capacity_units", "used_units", "slack_units", "utilization_rate", "binding"],
+      "non_negative": ["capacity_units", "used_units", "slack_units", "utilization_rate"],
+      "value_ranges": {
+        "utilization_rate": {"min": 0, "max": 1}
+      },
+      "allowed_values": {
+        "constraint_type": ["lane_capacity", "source_capacity", "warehouse_capacity", "service_shortage"],
+        "binding": [true, false]
+      }
+    },
+    {
+      "name": "network_optimization_summary",
+      "path": "outputs/tables/network_optimization_summary.csv",
+      "required_columns": ["solver_status", "solver_message", "objective_value", "mip_gap", "mip_node_count", "horizon_days", "total_demand_units", "total_fulfilled_units", "total_shortage_units", "weighted_service_level", "total_ending_inventory_units", "total_procurement_cost", "total_transport_cost", "total_holding_cost", "total_shortage_cost", "total_ordering_cost", "max_flow_balance_error"],
+      "unique_key": ["solver_status"],
+      "critical_columns": ["solver_status", "solver_message", "objective_value", "mip_gap", "horizon_days", "weighted_service_level", "max_flow_balance_error"],
+      "non_negative": ["objective_value", "mip_gap", "mip_node_count", "horizon_days", "total_demand_units", "total_fulfilled_units", "total_shortage_units", "total_ending_inventory_units", "total_procurement_cost", "total_transport_cost", "total_holding_cost", "total_shortage_cost", "total_ordering_cost"],
+      "value_ranges": {
+        "weighted_service_level": {"min": 0, "max": 1},
+        "max_flow_balance_error": {"min": 0, "max": 0}
+      },
+      "allowed_values": {
+        "solver_status": ["optimal"]
+      }
     }
   ],
   "relationships": [
@@ -133,11 +584,38 @@
     {"source_table": "purchase_orders", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
     {"source_table": "purchase_orders", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
     {"source_table": "product_classification", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "intervention_assignments", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "intervention_assignments", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
+    {"source_table": "intervention_assignments", "source_column": "supplier_id", "target_table": "suppliers", "target_column": "supplier_id"},
+    {"source_table": "network_lanes", "source_column": "source_node_id", "target_table": "network_nodes", "target_column": "node_id"},
+    {"source_table": "network_lanes", "source_column": "destination_node_id", "target_table": "network_nodes", "target_column": "node_id"},
+    {"source_table": "product_sources", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "product_sources", "source_column": "supplier_id", "target_table": "suppliers", "target_column": "supplier_id"},
     {"source_table": "daily_product_warehouse_metrics", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
     {"source_table": "daily_product_warehouse_metrics", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
     {"source_table": "daily_product_warehouse_metrics", "source_column": "supplier_id", "target_table": "suppliers", "target_column": "supplier_id"},
+    {"source_table": "product_inventory_profile", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "warehouse_service_profile", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
     {"source_table": "sku_risk_table", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
     {"source_table": "sku_risk_table", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
-    {"source_table": "sku_risk_table", "source_column": "supplier_id", "target_table": "suppliers", "target_column": "supplier_id"}
+    {"source_table": "sku_risk_table", "source_column": "supplier_id", "target_table": "suppliers", "target_column": "supplier_id"},
+    {"source_table": "supplier_risk_table", "source_column": "supplier_id", "target_table": "suppliers", "target_column": "supplier_id"},
+    {"source_table": "policy_backtest_recommendations", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "policy_backtest_recommendations", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
+    {"source_table": "monte_carlo_recommendations", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "monte_carlo_recommendations", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
+    {"source_table": "action_register", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "action_register", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
+    {"source_table": "action_register", "source_column": "supplier_id", "target_table": "suppliers", "target_column": "supplier_id"},
+    {"source_table": "action_kpi_timeseries", "source_column": "action_id", "target_table": "action_register", "target_column": "action_id"},
+    {"source_table": "causal_effect_estimates", "source_column": "experiment_id", "target_table": "intervention_assignments", "target_column": "experiment_id"},
+    {"source_table": "causal_diagnostics", "source_column": "experiment_id", "target_table": "causal_effect_estimates", "target_column": "experiment_id"},
+    {"source_table": "causal_cohort_timeseries", "source_column": "experiment_id", "target_table": "causal_effect_estimates", "target_column": "experiment_id"},
+    {"source_table": "network_optimization_plan", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "network_optimization_plan", "source_column": "warehouse_id", "target_table": "warehouses", "target_column": "warehouse_id"},
+    {"source_table": "network_flow_plan", "source_column": "product_id", "target_table": "products", "target_column": "product_id"},
+    {"source_table": "network_flow_plan", "source_column": "lane_id", "target_table": "network_lanes", "target_column": "lane_id"},
+    {"source_table": "network_flow_plan", "source_column": "source_node_id", "target_table": "network_nodes", "target_column": "node_id"},
+    {"source_table": "network_flow_plan", "source_column": "destination_node_id", "target_table": "network_nodes", "target_column": "node_id"}
   ]
 }

@@ -5,6 +5,13 @@ on:
     branches: ["**"]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: analytics-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality-gates:
     runs-on: ubuntu-latest
@@ -12,14 +19,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.12", "3.13", "3.14"]
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -38,21 +47,33 @@ jobs:
         run: mypy
 
       - name: Dependency Audit (pip-audit)
-        run: pip-audit -r requirements.txt
+        run: pip-audit -r requirements-dev.txt
 
       - name: Run End-to-End Analytics Pipeline
-        run: python src/run_pipeline.py
+        run: python -m src
 
       - name: Run Unit Tests With Coverage Floor
         run: python -m pytest
 
-      - name: Verify Published Dashboard Is Current
-        run: git diff --exit-code -- index.html
+      - name: Verify Tracked Publications Are Current
+        run: >-
+          git diff --exit-code --
+          index.html
+          outputs/graphs
+          outputs/reports/service_inventory_intelligence_report.pdf
 
-      - name: Upload Pipeline Timings
+      - name: Upload Operational Evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: pipeline-timings-py${{ matrix.python-version }}
-          path: outputs/pipeline_timings.json
+          name: operational-evidence-py${{ matrix.python-version }}
+          path: |
+            outputs/pipeline_timings.json
+            outputs/pipeline_run_events.jsonl
+            outputs/pipeline_run_summary.json
+            outputs/tables/data_catalog.csv
+            outputs/tables/data_lineage.csv
+            outputs/tables/object_publication_manifest.csv
+            data/object_store/pointers/latest.json
           if-no-files-found: ignore
+          retention-days: 14

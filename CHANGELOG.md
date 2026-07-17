@@ -4,6 +4,79 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project aims to
 adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [2.0.0] - 2026-07-14
+
+### Added
+- Governed source-readiness gates for all 11 ERP/WMS contracts, including
+  ownership, watermark SLAs, business keys, stable schema fingerprints, drift
+  classification, and fail-before-overwrite behavior.
+- Registered causal evaluation for a stratified inventory-policy RCT and a
+  supplier-recovery DiD cohort, with cluster-level inference, randomization,
+  pre-trend, placebo, balance, support, and attribution-label controls.
+- Sparse multi-echelon HiGHS MILP for eligible sourcing and transfer flows under
+  MOQ, source, lane, storage, service, integrality, and conservation constraints.
+- Dependency-validated orchestration with stage-owned outputs, checkout-stable
+  content-derived run IDs, bounded transient retries, JSONL telemetry, and final
+  summaries.
+- Validated data catalog and lineage graph plus immutable content-addressed
+  publication through local or S3-compatible object storage.
+- Weekly/manual scheduled workflow with concurrency control and
+  operational-evidence uploads.
+- Configurable synthetic, canonical-directory, and split ERP/WMS ingestion for
+  CSV or Parquet exports, with column mapping and contract-first validation.
+- Compressed Parquet lake with key-based incremental upserts, idempotent hash
+  skips, schema-drift protection, watermarks, and a governed manifest.
+- Leakage-safe walk-forward backtesting of reorder-point and safety-stock
+  policies across the full SKU-location network.
+- Deterministic Monte Carlo service-capital optimization using empirical demand
+  blocks and lead-time histories, warm-up state, explicit constraints, and
+  frontier selection.
+- Lifecycle-aware action register with score migration, equal-window KPI
+  comparison, benefit reconciliation, and explicit non-causal labels.
+- Release checks and data contracts for every persisted raw, processed, and
+  advanced analytical output.
+- Schema-enforced DuckDB loading with operational `CHECK` constraints at the
+  raw-to-analytics boundary.
+- Publication guards for the exact chart set, PNG integrity and dimensions,
+  PDF pagination, and required report sections.
+- Tests for open-order information timing, zero-demand score weighting, schema
+  enforcement, and SQL identifier validation.
+
+### Changed
+- Pipeline configuration moved to schema version 2 with validated source,
+  causal, network, orchestration, and object-store policy.
+- The canonical pipeline now treats causal evaluation and network optimization
+  as required upstream dependencies of downstream storage and release validation.
+- CI operational artifacts now include run telemetry, catalog, lineage,
+  publication manifest, and the promoted pointer.
+- Open-order inventory positions now use ordered quantities, removing future
+  knowledge of supplier underfill from replenishment decisions.
+- Dashboard markup moved to a static template while preserving byte-identical
+  generated HTML and the existing visual design.
+- Pipeline stages now execute as Python modules; GitHub Actions cover Python
+  3.12-3.14 with read-only permissions and commit-pinned actions.
+- Runtime and development dependencies were separated, and `pre-commit` is pinned.
+- CI freshness checks now cover the dashboard, all 14 charts, and the PDF report.
+- Pillow was upgraded to 12.3.0 to incorporate its July 2026 security fixes.
+
+### Fixed
+- Run identifiers no longer depend on the absolute checkout path.
+- Transient S3 throttling/service failures are classified for retry while
+  deterministic object conflicts and integrity failures remain fail-fast.
+- Parquet skips now verify the stored-file hash before reuse; tampered or
+  corrupted files are rebuilt, compression changes force replacement, and null
+  business keys are rejected.
+- Dashboard data embedded in JavaScript now escapes script-breaking characters
+  from external ERP/WMS dimensions.
+- Walk-forward policy simulations now initialize inventory and outstanding
+  orders on the training window before evaluation begins.
+- Action tracking supports pending measurement windows, validates target
+  direction and supplier scope, and preserves both periods for mid-month changes.
+- Raw validation now rejects warehouse-region mismatches and non-positive
+  seasonality indices.
+
 ## [1.2.0] - 2026-07-09
 
 ### Added
@@ -18,12 +91,9 @@ adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   otherwise-blank page.
 
 ### Changed
-- Rewrote the analytical report's prose end to end, removing a repeated
-  antithesis pattern ("X, not Y") used throughout, including verbatim
-  duplicate phrasings, in favour of varied, evidence-led sentences. The
-  recovery-rate assumptions behind the headline value pool (35% margin, 25%
-  working capital) are now stated explicitly in the text, with the correct
-  sensitivity relationship, instead of only appearing in a data table.
+- Tightened the analytical report's prose and made the recovery-rate
+  assumptions behind the headline value pool (35% margin, 25% working capital)
+  explicit in the narrative and sensitivity analysis.
 - Re-typeset the report's pagination: findings no longer force onto a fresh
   page regardless of remaining space, and two subsections that each
   stranded a single paragraph on a near-blank page now share space with
@@ -78,6 +148,8 @@ adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   views, policy-based risk scoring, impact estimates, publication charts, PDF
   report, executive dashboard, and contract/SQL/analytical/publication gates.
 
+[Unreleased]: https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/releases/tag/v2.0.0
 [1.2.0]: https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/releases/tag/v1.2.0
 [1.1.0]: https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/releases/tag/v1.1.0
 [1.0.0]: https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/releases/tag/v1.0.0

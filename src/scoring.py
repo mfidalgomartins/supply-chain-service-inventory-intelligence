@@ -13,11 +13,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-try:
-    from src.config import DATA_PROCESSED, PROJECT_ROOT
-except ModuleNotFoundError:
-    from config import DATA_PROCESSED, PROJECT_ROOT  # type: ignore[no-redef]
-
+from src.config import ABC_DOS_CAPS, DATA_PROCESSED, PROJECT_ROOT
 
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
 
@@ -136,11 +132,7 @@ def prepare_daily_input(daily: pd.DataFrame, supplier_scores: pd.DataFrame) -> p
     out["date"] = pd.to_datetime(out["date"])
     out["month"] = out["date"].dt.to_period("M").dt.to_timestamp()
 
-    out["abc_dos_cap"] = np.select(
-        [out["abc_class"] == "A", out["abc_class"] == "B"],
-        [20.0, 30.0],
-        default=45.0,
-    )
+    out["abc_dos_cap"] = out["abc_class"].map(ABC_DOS_CAPS)
     out["excess_day"] = (out["days_of_supply"] > out["abc_dos_cap"]).astype(int)
     out["slow_moving_day"] = ((out["available_units"] > 0) & (out["units_fulfilled"] == 0)).astype(
         int
@@ -149,13 +141,18 @@ def prepare_daily_input(daily: pd.DataFrame, supplier_scores: pd.DataFrame) -> p
     criticality_map = {"High": 1.0, "Medium": 0.6, "Low": 0.3}
     out["criticality_weight"] = out["criticality_level"].map(criticality_map).fillna(0.6)
 
-    demand_weight = out["units_demanded"].clip(lower=1)
+    demand_weight = out["units_demanded"].clip(lower=0)
     out["demand_weight"] = demand_weight
     out["weighted_criticality"] = out["criticality_weight"] * demand_weight
     out["weighted_dos_cap"] = out["abc_dos_cap"] * demand_weight
 
     supplier_score_map = supplier_scores[["supplier_id", "supplier_risk_score_base"]]
-    out = out.merge(supplier_score_map, on="supplier_id", how="left")
+    out = out.merge(
+        supplier_score_map,
+        on="supplier_id",
+        how="left",
+        validate="many_to_one",
+    )
     out["supplier_risk_score_base"] = out["supplier_risk_score_base"].fillna(50.0)
     out["weighted_supplier_risk"] = out["supplier_risk_score_base"] * demand_weight
 
@@ -200,7 +197,7 @@ def aggregate_entity(daily: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame
             weighted_supplier_risk_sum=("weighted_supplier_risk", "sum"),
             active_days=("date", "nunique"),
         )
-        .merge(stockout_persistence, on=group_cols, how="left")
+        .merge(stockout_persistence, on=group_cols, how="left", validate="one_to_one")
     )
 
     agg["fill_rate"] = safe_divide(agg["units_fulfilled"], agg["units_demanded"])
@@ -361,7 +358,12 @@ def recommended_action(main_driver: str, risk_tier: str, entity_type: str) -> st
         },
     }
 
-    return action_library.get(main_driver, {}).get(entity_type, "review planning assumptions")
+    try:
+        return action_library[main_driver][entity_type]
+    except KeyError as exc:
+        raise ValueError(
+            f"Unsupported action route: driver={main_driver}, entity_type={entity_type}"
+        ) from exc
 
 
 def build_sku_scoring(daily: pd.DataFrame) -> pd.DataFrame:
@@ -422,6 +424,7 @@ def build_supplier_scoring(daily: pd.DataFrame, supplier_base_scores: pd.DataFra
         ],
         on="supplier_id",
         how="left",
+        validate="one_to_one",
     )
 
     supplier["supplier_risk_score"] = supplier["supplier_risk_score_base"].fillna(

@@ -7,21 +7,8 @@ from __future__ import annotations
 import duckdb
 import pandas as pd
 
-try:
-    from src.config import DATA_PROCESSED, DATA_RAW, SQL_DIR
-except ModuleNotFoundError:
-    from config import DATA_PROCESSED, DATA_RAW, SQL_DIR  # type: ignore[no-redef]
-
-
-RAW_TABLE_FILES = {
-    "products": "products.csv",
-    "suppliers": "suppliers.csv",
-    "warehouses": "warehouses.csv",
-    "inventory_snapshots": "inventory_snapshots.csv",
-    "demand_history": "demand_history.csv",
-    "purchase_orders": "purchase_orders.csv",
-    "product_classification": "product_classification.csv",
-}
+from src.config import DATA_PROCESSED, SQL_DIR
+from src.warehouse import load_raw_tables
 
 INTERMEDIATE_VIEWS = {
     "daily_product_warehouse_metrics": [
@@ -85,17 +72,6 @@ INTERMEDIATE_VIEWS = {
 }
 
 
-def _load_raw_tables(con: duckdb.DuckDBPyConnection) -> None:
-    for table_name, file_name in RAW_TABLE_FILES.items():
-        csv_path = DATA_RAW / file_name
-        con.execute(
-            f"""
-            CREATE OR REPLACE TABLE {table_name} AS
-            SELECT * FROM read_csv_auto('{csv_path.as_posix()}', HEADER=TRUE);
-            """
-        )
-
-
 def _execute_intermediate_sql(con: duckdb.DuckDBPyConnection) -> None:
     sql_text = (SQL_DIR / "02_intermediate_views.sql").read_text(encoding="utf-8")
     con.execute(sql_text)
@@ -122,7 +98,7 @@ def _materialize_views(con: duckdb.DuckDBPyConnection) -> None:
 def run_data_preparation() -> None:
     con = duckdb.connect(database=":memory:")
     try:
-        _load_raw_tables(con)
+        load_raw_tables(con)
         _execute_intermediate_sql(con)
         _materialize_views(con)
     finally:

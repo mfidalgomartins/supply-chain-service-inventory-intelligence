@@ -119,6 +119,22 @@ invalid_available_units AS (
     SELECT COUNT(*) AS issue_count
     FROM inventory_snapshots
     WHERE available_units <> (on_hand_units - reserved_units)
+),
+
+-- 9) Demand region must agree with the warehouse master
+demand_warehouse_region_mismatch AS (
+    SELECT COUNT(*) AS issue_count
+    FROM demand_history d
+    INNER JOIN warehouses w
+        ON d.warehouse_id = w.warehouse_id
+    WHERE d.region <> w.region
+),
+
+-- 10) Seasonality multipliers must be strictly positive
+invalid_seasonality_index AS (
+    SELECT COUNT(*) AS issue_count
+    FROM demand_history
+    WHERE seasonality_index <= 0
 )
 
 SELECT 'duplicate_keys_inventory_snapshots' AS check_name, issue_count,
@@ -164,4 +180,12 @@ UNION ALL
 SELECT 'available_units_consistency', issue_count,
        CASE WHEN issue_count = 0 THEN 'PASS' ELSE 'FAIL' END
 FROM invalid_available_units
+UNION ALL
+SELECT 'demand_warehouse_region_consistency', issue_count,
+       CASE WHEN issue_count = 0 THEN 'PASS' ELSE 'FAIL' END
+FROM demand_warehouse_region_mismatch
+UNION ALL
+SELECT 'seasonality_index_positive', issue_count,
+       CASE WHEN issue_count = 0 THEN 'PASS' ELSE 'FAIL' END
+FROM invalid_seasonality_index
 ORDER BY check_name;

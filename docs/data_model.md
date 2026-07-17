@@ -2,10 +2,11 @@
 
 ## Overview
 The project uses a layered data model:
-1. Raw operational tables (`/data/raw/`)
-2. SQL intermediate analytical tables (`/data/processed/`)
-3. Scored governance outputs (`/data/processed/` and `/outputs/tables/`)
-4. Dashboard-serving fact/dim extracts (`/outputs/tables/`)
+1. Canonical raw operational tables (`/data/raw/`)
+2. Governed Parquet persistence (`/data/lake/`)
+3. SQL intermediate analytical tables (`/data/processed/`)
+4. Scored and advanced decision outputs (`/data/processed/` and `/outputs/tables/`)
+5. Dashboard-serving fact/dim extracts (`/outputs/tables/`)
 
 All CSV layers are deterministic pipeline outputs and are intentionally excluded
 from version control.
@@ -21,6 +22,10 @@ from version control.
 | demand_history | `/data/raw/demand_history.csv` | 1 row per `date + warehouse_id + product_id` | composite | `warehouse_id -> warehouses`, `product_id -> products` |
 | purchase_orders | `/data/raw/purchase_orders.csv` | 1 row per PO | `po_id` | `supplier_id -> suppliers`, `product_id -> products`, `warehouse_id -> warehouses` |
 | product_classification | `/data/raw/product_classification.csv` | 1 row per SKU | `product_id` | `product_id -> products` |
+| intervention_assignments | `/data/raw/intervention_assignments.csv` | 1 row per experiment-unit assignment | `experiment_id + unit_id` | `product_id -> products`, `warehouse_id -> warehouses`, `supplier_id -> suppliers` |
+| network_nodes | `/data/raw/network_nodes.csv` | 1 row per physical node | `node_id` | None |
+| network_lanes | `/data/raw/network_lanes.csv` | 1 row per directed lane | `lane_id` | source/destination node IDs -> `network_nodes` |
+| product_sources | `/data/raw/product_sources.csv` | 1 row per eligible product-supplier pair | `product_id + supplier_id` | `product_id -> products`, `supplier_id -> suppliers` |
 
 Latest run row counts:
 - products: 120
@@ -28,8 +33,12 @@ Latest run row counts:
 - warehouses: 4
 - inventory_snapshots: 350,880
 - demand_history: 350,880
-- purchase_orders: 13,610
+- purchase_orders: 13,446
 - product_classification: 120
+- intervention_assignments: 648
+- network_nodes: 16
+- network_lanes: 15
+- product_sources: 240
 
 Date coverage:
 - `2024-01-01` to `2025-12-31` (731 days)
@@ -50,6 +59,10 @@ Supplier-performance path:
 
 Important modeling note:
 - `daily_product_warehouse_metrics` is the canonical fact table for downstream KPI, scoring, impact, and dashboard layers.
+- `inventory_snapshots.on_order_units` is the sum of ordered quantities on open
+  POs. Eventual under-receipt is not visible to the replenishment decision.
+- Raw extracts load through `sql/01_schema.sql`; data contracts then add
+  cross-table reference, domain, range, null, and fingerprint checks.
 
 ## Intermediate Analytical Tables
 Built via `sql/02_intermediate_views.sql` and materialized by `src/data_preparation.py`.
@@ -71,15 +84,48 @@ Built via `src/scoring.py`.
 | segment_risk_table | `/data/processed/segment_risk_table.csv` | `category + region` | Segment-level risk concentration and governance |
 | governance_priority_master | `/data/processed/governance_priority_master.csv` | mixed entity list | Unified governance queue across SKU, supplier, and segment entities |
 
-The canonical scored extract mirrored to `/outputs/tables/` is:
-- `scoring_sku_risk_table.csv`
-
 ## Impact Outputs
 Built via `src/impact_analysis.py`. Curated impact summaries are stored in `/outputs/tables/`:
 - `impact_overall_summary.csv` (portfolio-level exposure snapshot)
 - `impact_opportunity_priority.csv` (top business-value priorities)
 
-No additional diagnostic layers are generated beyond the core impact summaries in this release.
+## Advanced Decision Outputs
+
+| Table | Grain | Purpose |
+|---|---|---|
+| `policy_backtest_folds` | `product_id + warehouse_id + fold_start + policy_id` | Leakage-safe observed-demand policy evaluation |
+| `policy_backtest_recommendations` | `product_id + warehouse_id` | Evidence-ranked replenishment policy |
+| `policy_backtest_abc_summary` | `abc_class + policy_id` | Portfolio policy comparison |
+| `monte_carlo_policy_scenarios` | `product_id + warehouse_id + scenario_id` | Probabilistic service-capital trade-off |
+| `monte_carlo_recommendations` | `product_id + warehouse_id` | Constraint-aware efficient-frontier selection |
+| `monte_carlo_portfolio_summary` | `metric` | Selected scenario portfolio summary |
+| `action_register` | `action_id` | Intervention lifecycle, score migration, and benefit proxy |
+| `action_kpi_timeseries` | `action_id + month + period` | Pre/post operating evidence; mid-month changes retain both periods |
+| `causal_effect_estimates` | `experiment_id` | RCT/DiD estimand, inference, economic point estimate, and evidence status |
+| `causal_diagnostics` | `experiment_id + diagnostic` | Design, support, balance, randomization, pre-trend, and placebo checks |
+| `causal_cohort_timeseries` | `experiment_id + date + treatment_flag` | Weighted cohort outcome evidence by period |
+| `network_optimization_plan` | `product_id + warehouse_id` | Service-constrained node plan and flow reconciliation |
+| `network_flow_plan` | `product_id + lane_id` | Sourcing/transfer decisions and cost components |
+| `network_constraint_utilization` | `constraint_type + constraint_id` | Capacity use, slack, and binding state |
+| `network_optimization_summary` | `solver_status` | Objective, solver diagnostics, system service, cost, and balance |
+
+## Ingestion and Storage Lineage
+
+`source_readiness_checks` records schema, drift, key, and freshness decisions;
+`source_schema_registry` retains the latest accepted canonical fingerprint.
+`ingestion_manifest` records adapter, row count, and source/canonical hashes for
+each raw table. `storage_manifest` records the Parquet path, refresh mode,
+compression, business key, watermark bounds, row counts, and both source and
+stored hashes.
+
+The Parquet lake mirrors raw, processed, and analytics layers. Dated facts use
+key-based incremental upserts; compact dimensions and summaries use
+deterministic full replacement.
+
+After all release gates pass, `data_catalog` profiles every contracted asset
+with content/schema hashes and business watermarks. `data_lineage` contains the
+validated parent-child graph, and `object_publication_manifest` maps each logical
+asset to an immutable content-addressed object. None is self-referential.
 
 ## SQL Quality Gate Output
 Built via `src/sql_quality_gate.py`.
@@ -125,7 +171,8 @@ Dashboard fact/dim exports:
 
 Runtime HTML payload:
 - `/index.html` embeds the dashboard data as JSON and loads the pinned Plotly
-  JavaScript bundle from a CDN. The payload includes:
+  JavaScript bundle from a CDN. JSON is escaped for safe embedding in a script
+  element. The payload includes:
   - monthly fact records
   - product dimension map
   - supplier/warehouse dimensions
@@ -134,9 +181,11 @@ Runtime HTML payload:
   - refresh/version metadata
 
 ## Lineage Summary
-`data/raw/*.csv`
+configured ingestion -> source readiness -> `data/raw/*.csv` + `data/lake/raw/*.parquet`
 -> SQL views (`daily_product_warehouse_metrics`, `supplier_performance_summary`, `product_inventory_profile`, `warehouse_service_profile`)
 -> policy scoring (`sku_risk_table`, `supplier_risk_table`, `segment_risk_table`, `governance_priority_master`)
--> impact outputs
+-> impact + backtest + simulation + action + causal + network-optimization outputs
+-> `data/lake/processed/*.parquet` + `data/lake/analytics/*.parquet`
 -> dashboard + validation + CI quality gates
--> curated impact summaries and governance outputs for decision-support review.
+-> catalog + validated lineage + immutable object manifest
+-> atomic `latest` promotion for decision-support review.

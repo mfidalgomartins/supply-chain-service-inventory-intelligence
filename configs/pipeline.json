@@ -1,0 +1,200 @@
+{
+  "version": 2,
+  "adapter": {
+    "type": "synthetic",
+    "source_path": null,
+    "erp_path": null,
+    "wms_path": null,
+    "file_format": "csv",
+    "column_mapping": {}
+  },
+  "storage": {
+    "incremental": true,
+    "compression": "zstd"
+  },
+  "backtesting": {
+    "lookback_days": 180,
+    "horizon_days": 90,
+    "fold_start_dates": [
+      "2025-01-01",
+      "2025-04-01",
+      "2025-07-01",
+      "2025-10-01"
+    ],
+    "annual_holding_cost_rate": 0.18,
+    "ordering_cost": 35.0,
+    "service_tolerance": 0.005,
+    "policies": [
+      {
+        "policy_id": "lean",
+        "safety_stock_factor": 0.75,
+        "cycle_stock_days": 7
+      },
+      {
+        "policy_id": "balanced",
+        "safety_stock_factor": 1.0,
+        "cycle_stock_days": 14
+      },
+      {
+        "policy_id": "resilient",
+        "safety_stock_factor": 1.25,
+        "cycle_stock_days": 21
+      }
+    ]
+  },
+  "monte_carlo": {
+    "seed": 20260711,
+    "simulations": 200,
+    "warmup_days": 60,
+    "horizon_days": 180,
+    "demand_block_days": 7,
+    "target_entities": 25,
+    "target_confidence": 0.8,
+    "max_inventory_increase_rate": 0.25,
+    "annual_holding_cost_rate": 0.18,
+    "ordering_cost": 35.0,
+    "variants": [
+      {
+        "scenario_id": "capital_disciplined",
+        "safety_factor_multiplier": 0.75,
+        "cycle_days_delta": -7
+      },
+      {
+        "scenario_id": "recommended",
+        "safety_factor_multiplier": 1.0,
+        "cycle_days_delta": 0
+      },
+      {
+        "scenario_id": "service_protected",
+        "safety_factor_multiplier": 2.0,
+        "cycle_days_delta": 21
+      },
+      {
+        "scenario_id": "continuity_buffer",
+        "safety_factor_multiplier": 3.0,
+        "cycle_days_delta": 45
+      }
+    ]
+  },
+  "action_tracking": {
+    "events_file": "configs/action_events.json",
+    "measurement_window_days": 90
+  },
+  "source_governance": {
+    "enabled": true,
+    "as_of_date": "2025-12-31",
+    "registry_path": "outputs/tables/source_schema_registry.csv",
+    "table_policies": {
+      "products": {
+        "source_system": "ERP",
+        "owner": "Master Data",
+        "watermark_column": null,
+        "max_lag_hours": null,
+        "stale_severity": "WARN"
+      },
+      "suppliers": {
+        "source_system": "ERP",
+        "owner": "Procurement",
+        "watermark_column": null,
+        "max_lag_hours": null,
+        "stale_severity": "WARN"
+      },
+      "warehouses": {
+        "source_system": "WMS",
+        "owner": "Network Operations",
+        "watermark_column": null,
+        "max_lag_hours": null,
+        "stale_severity": "WARN"
+      },
+      "inventory_snapshots": {
+        "source_system": "WMS",
+        "owner": "Inventory Control",
+        "watermark_column": "snapshot_date",
+        "max_lag_hours": 48,
+        "stale_severity": "FAIL"
+      },
+      "demand_history": {
+        "source_system": "WMS",
+        "owner": "Demand Planning",
+        "watermark_column": "date",
+        "max_lag_hours": 48,
+        "stale_severity": "FAIL"
+      },
+      "purchase_orders": {
+        "source_system": "ERP",
+        "owner": "Procurement",
+        "watermark_column": "actual_arrival_date",
+        "max_lag_hours": 168,
+        "stale_severity": "WARN"
+      },
+      "product_classification": {
+        "source_system": "ERP",
+        "owner": "Inventory Policy",
+        "watermark_column": null,
+        "max_lag_hours": null,
+        "stale_severity": "WARN"
+      },
+      "intervention_assignments": {
+        "source_system": "Planning",
+        "owner": "Supply Chain Excellence",
+        "watermark_column": null,
+        "max_lag_hours": null,
+        "stale_severity": "WARN"
+      },
+      "network_nodes": {
+        "source_system": "ERP",
+        "owner": "Network Design",
+        "watermark_column": null,
+        "max_lag_hours": null,
+        "stale_severity": "WARN"
+      },
+      "network_lanes": {
+        "source_system": "TMS",
+        "owner": "Network Design",
+        "watermark_column": null,
+        "max_lag_hours": null,
+        "stale_severity": "WARN"
+      },
+      "product_sources": {
+        "source_system": "ERP",
+        "owner": "Procurement",
+        "watermark_column": null,
+        "max_lag_hours": null,
+        "stale_severity": "WARN"
+      }
+    }
+  },
+  "causal_evaluation": {
+    "enabled": true,
+    "seed": 20260714,
+    "permutations": 999,
+    "min_units_per_group": 12,
+    "pre_days": 90,
+    "post_days": 90,
+    "alpha": 0.05,
+    "parallel_trend_alpha": 0.05
+  },
+  "network_optimization": {
+    "enabled": true,
+    "horizon_days": 30,
+    "demand_lookback_days": 90,
+    "annual_holding_cost_rate": 0.18,
+    "shortage_penalty_multiplier": 2.5,
+    "ordering_cost": 35.0,
+    "time_limit_seconds": 60,
+    "mip_relative_gap": 0.001
+  },
+  "orchestration": {
+    "max_retries": 2,
+    "retry_base_seconds": 0.25,
+    "object_store": {
+      "backend": "local",
+      "local_root": "data/object_store",
+      "s3_bucket": null,
+      "s3_prefix": "supply-chain-intelligence",
+      "s3_endpoint_url": null,
+      "s3_region": "eu-west-1",
+      "s3_server_side_encryption": "AES256"
+    }
+  }
+}

@@ -24,11 +24,13 @@ OUT = ROOT / "outputs" / "graphs"
 OUT.mkdir(parents=True, exist_ok=True)
 
 # ---- Shared style -----------------------------------------------------------
-INK = "#1d1d1f"  # primary text / strong elements (Apple ink)
-MUTED = "#aeaeb2"  # neutral bars and secondary marks (Apple system gray)
-GRID = "#e6e6eb"  # gridlines
-ACCENT = "#0071e3"  # single accent for the element that carries the point (Apple blue)
-ACCENT_SOFT = "#a8ccf5"  # accent tint
+INK = "#101418"  # primary text / strong elements
+NAVY = "#081F4D"  # benchmark and total-value marks
+MUTED = "#9AAEC5"  # secondary bars and comparison marks
+GRID = "#DCE5F0"  # quiet chart scaffolding
+ACCENT = "#2164F3"  # single analytical emphasis
+ACCENT_SOFT = "#B8D6FF"  # emphasis tint
+SLATE = "#475569"  # supporting labels and annotations
 
 plt.rcParams.update(
     {
@@ -42,7 +44,7 @@ plt.rcParams.update(
         "axes.linewidth": 0.8,
         "axes.titlesize": 14,
         "axes.titleweight": "bold",
-        "axes.titlecolor": INK,
+        "axes.titlecolor": NAVY,
         "axes.labelcolor": INK,
         "axes.labelsize": 11,
         "text.color": INK,
@@ -51,6 +53,9 @@ plt.rcParams.update(
         "figure.dpi": 150,
         "savefig.dpi": 200,
         "savefig.bbox": "tight",
+        "figure.facecolor": "white",
+        "axes.facecolor": "white",
+        "savefig.facecolor": "white",
     }
 )
 
@@ -58,7 +63,7 @@ plt.rcParams.update(
 def _titles(ax, title, subtitle):
     """Title above, subtitle below it, both clear of the plot area."""
     ax.set_title(title, loc="left", pad=40)
-    ax.text(0, 1.045, subtitle, transform=ax.transAxes, fontsize=10.5, color="#6e6e73", va="bottom")
+    ax.text(0, 1.045, subtitle, transform=ax.transAxes, fontsize=10.5, color=SLATE, va="bottom")
 
 
 def _clean(ax, grid_axis="y"):
@@ -118,7 +123,7 @@ def chart_opportunity_by_category():
             va="center",
             ha="left",
             fontsize=10,
-            color=INK if val == d["opportunity_total_12m_proxy"].max() else "#6e6e73",
+            color=INK if val == d["opportunity_total_12m_proxy"].max() else SLATE,
             fontweight="bold" if val == d["opportunity_total_12m_proxy"].max() else "normal",
         )
     _titles(
@@ -322,7 +327,7 @@ def chart_top_sku():
             va="center",
             ha="left",
             fontsize=9.5,
-            color="#6e6e73",
+            color=SLATE,
         )
     _titles(
         ax,
@@ -477,7 +482,7 @@ def chart_abc_cohort():
             f"{inv_sh[c]:.0f}%",
             va="center",
             fontsize=9.5,
-            color="#6e6e73",
+            color=SLATE,
         )
         ax.text(
             lost_sh[c] + 1,
@@ -560,7 +565,7 @@ def chart_supplier_ranking():
             va="center",
             ha="right",
             fontsize=9,
-            color="white",
+            color="white" if v < 0.80 else INK,
             fontweight="bold",
             zorder=5,
         )
@@ -596,12 +601,12 @@ def chart_opportunity_bridge():
     labels = ["Margin\nrecovery", "Working-capital\nrelease", "Total\nvalue pool"]
     ax.bar(0, margin, color=ACCENT, zorder=3, width=0.62)
     ax.bar(1, wc, bottom=margin, color=MUTED, zorder=3, width=0.62)
-    ax.bar(2, total, color=INK, zorder=3, width=0.62)
+    ax.bar(2, total, color=NAVY, zorder=3, width=0.62)
     # waterfall connectors at the running-total level
     ax.plot(
         [0.31, 0.69],
         [margin, margin],
-        color="#aeaeb2",
+        color=MUTED,
         linewidth=0.9,
         linestyle=(0, (2, 2)),
         zorder=2,
@@ -609,7 +614,7 @@ def chart_opportunity_bridge():
     ax.plot(
         [1.31, 1.69],
         [total, total],
-        color="#aeaeb2",
+        color=MUTED,
         linewidth=0.9,
         linestyle=(0, (2, 2)),
         zorder=2,
@@ -635,7 +640,7 @@ def chart_opportunity_bridge():
         ha="center",
         fontsize=10.5,
         fontweight="bold",
-        color="#6e6e73",
+        color=SLATE,
     )
     ax.text(
         2,
@@ -758,7 +763,7 @@ def chart_category_fill():
             va="center",
             ha="right",
             fontsize=9,
-            color="white",
+            color="white" if v == g["fill"].min() else INK,
             fontweight="bold",
             zorder=5,
         )
@@ -803,7 +808,7 @@ def chart_before_after():
     fig, ax = plt.subplots(figsize=(8.6, 5.2))
     y = range(len(m))
     for i, (_, r) in enumerate(m.iterrows()):
-        ax.plot([r["early"], r["late"]], [i, i], color="#d2d2d7", linewidth=2.4, zorder=2)
+        ax.plot([r["early"], r["late"]], [i, i], color="#CBD5E1", linewidth=2.4, zorder=2)
         ax.scatter(r["early"], i, color=MUTED, s=90, zorder=3)
         ax.scatter(r["late"], i, color=ACCENT, s=90, zorder=4)
         ax.annotate(

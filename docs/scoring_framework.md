@@ -179,4 +179,7 @@ Examples by driver:
 - Treat scores as prioritization logic; they do not constitute causal proof.
 
 ## Operationalization Layer
-Governance actions should be logged outside this repo (S&OP or ticketing tools) using the score table as the weekly intake list.
+`configs/action_events.json` is the reproducible portfolio action register.
+`src/action_tracking.py` measures eligible actions against the score table and
+operating KPIs. In a deployed environment, the same event contract can be fed
+from the organization's S&OP, ERP, or ticketing workflow.

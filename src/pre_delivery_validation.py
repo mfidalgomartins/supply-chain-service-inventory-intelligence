@@ -6,6 +6,7 @@ high-severity WARN downstream blocks publication via ci_quality_gate."""
 
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass
 
@@ -13,11 +14,9 @@ import duckdb
 import numpy as np
 import pandas as pd
 
-try:
-    from src.config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
-except ModuleNotFoundError:
-    from config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT  # type: ignore[no-redef]
-
+from src.config import ABC_DOS_CAPS, DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
+from src.settings import load_settings
+from src.warehouse import load_csv_table, load_raw_tables
 
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
 OUTPUT_DASHBOARD_FILE = PROJECT_ROOT / "index.html"
@@ -46,22 +45,429 @@ def _add_check(results: list[CheckResult], **kwargs) -> None:
     results.append(CheckResult(**kwargs))
 
 
+def _strategic_expansion_checks(
+    source_readiness: pd.DataFrame,
+    causal_effects: pd.DataFrame,
+    causal_diagnostics: pd.DataFrame,
+    network_summary: pd.DataFrame,
+    network_plan: pd.DataFrame,
+    network_constraints: pd.DataFrame,
+    *,
+    max_mip_gap: float = 0.001,
+) -> list[CheckResult]:
+    """Validate publish-critical claims and feasibility for the expansion layers."""
+    results: list[CheckResult] = []
+
+    source_failures = int(source_readiness["status"].eq("FAIL").sum())
+    source_invalid_decisions = int((~source_readiness["status"].isin(["PASS", "WARN"])).sum())
+    source_duplicates = (
+        int(source_readiness.duplicated(["table_name", "check_name"]).sum())
+        if {"table_name", "check_name"}.issubset(source_readiness.columns)
+        else 0
+    )
+    _add_check(
+        results,
+        check_name="source_readiness_release_gate",
+        layer="source_governance",
+        method="Python",
+        status=(
+            "PASS"
+            if not source_readiness.empty
+            and source_failures == 0
+            and source_invalid_decisions == 0
+            and source_duplicates == 0
+            else "FAIL"
+        ),
+        severity="HIGH",
+        observed=(
+            f"checks={len(source_readiness)}, failures={source_failures}, "
+            f"invalid_decisions={source_invalid_decisions}, "
+            f"duplicate_checks={source_duplicates}"
+        ),
+        expected="checks>0, failures=0, invalid_decisions=0, duplicate_checks=0",
+        details=(
+            "Canonical writes require a complete source-readiness result with no failed "
+            "schema, key, drift, or freshness control."
+        ),
+    )
+
+    causal_design = causal_effects["design"].astype(str)
+    causal_attribution = causal_effects["attribution_status"].astype(str)
+    evidence = causal_effects["evidence_status"].astype(str)
+    claim_errors = int(
+        (
+            (
+                causal_attribution.eq("causal_estimate")
+                & causal_design.ne("randomized_controlled_trial")
+            )
+            | (
+                causal_attribution.eq("quasi_causal_estimate")
+                & causal_design.ne("difference_in_differences")
+            )
+            | (evidence.eq("causal_supported") & causal_design.ne("randomized_controlled_trial"))
+            | (
+                evidence.eq("quasi_causal_supported")
+                & causal_design.ne("difference_in_differences")
+            )
+            | (evidence.eq("insufficient_evidence") & causal_attribution.ne("not_causal"))
+        ).sum()
+    )
+    supported = set(
+        causal_effects.loc[
+            causal_effects["evidence_status"].astype(str).str.endswith("supported"),
+            "experiment_id",
+        ].astype(str)
+    )
+    failed_diagnostics = set(
+        causal_diagnostics.loc[causal_diagnostics["status"].ne("PASS"), "experiment_id"].astype(str)
+    )
+    effect_experiments = set(causal_effects["experiment_id"].astype(str))
+    diagnostic_experiments = set(causal_diagnostics["experiment_id"].astype(str))
+    diagnostic_coverage_errors = sorted(
+        effect_experiments.symmetric_difference(diagnostic_experiments)
+    )
+    supported_with_failed_diagnostics = sorted(supported & failed_diagnostics)
+    duplicate_experiments = int(causal_effects["experiment_id"].duplicated().sum())
+    _add_check(
+        results,
+        check_name="causal_claim_discipline",
+        layer="causal",
+        method="Python",
+        status=(
+            "PASS"
+            if not causal_effects.empty
+            and not causal_diagnostics.empty
+            and claim_errors == 0
+            and duplicate_experiments == 0
+            and not diagnostic_coverage_errors
+            and not supported_with_failed_diagnostics
+            else "FAIL"
+        ),
+        severity="HIGH",
+        observed=(
+            f"experiments={len(causal_effects)}, claim_errors={claim_errors}, "
+            f"duplicates={duplicate_experiments}, "
+            f"diagnostic_coverage_errors={diagnostic_coverage_errors}, "
+            f"supported_with_failed_diagnostics={supported_with_failed_diagnostics}"
+        ),
+        expected=(
+            "experiments>0, claim_errors=0, duplicates=0, diagnostic_coverage_errors=[], "
+            "supported_with_failed_diagnostics=[]"
+        ),
+        details=(
+            "Causal labels are reserved for randomized evidence; quasi-causal labels "
+            "require DiD identification and supported claims require clean diagnostics."
+        ),
+    )
+
+    summary_valid = (
+        len(network_summary) == 1
+        and str(network_summary.iloc[0]["solver_status"]) == "optimal"
+        and float(network_summary.iloc[0]["mip_gap"]) <= max_mip_gap + 1e-12
+        and abs(float(network_summary.iloc[0]["max_flow_balance_error"])) <= 1e-9
+    )
+    service_violations = int(
+        (
+            network_plan["achieved_service_level"] + 1e-12 < network_plan["target_service_level"]
+        ).sum()
+    )
+    balance_violations = int((network_plan["balance_error_units"].abs() > 1e-9).sum())
+    capacity_violations = int(
+        (
+            (network_constraints["slack_units"] < -1e-9)
+            | (network_constraints["used_units"] > network_constraints["capacity_units"] + 1e-9)
+        ).sum()
+    )
+    _add_check(
+        results,
+        check_name="network_solution_feasibility",
+        layer="network_optimization",
+        method="Python",
+        status=(
+            "PASS"
+            if summary_valid
+            and not network_plan.empty
+            and not network_constraints.empty
+            and service_violations == 0
+            and balance_violations == 0
+            and capacity_violations == 0
+            else "FAIL"
+        ),
+        severity="HIGH",
+        observed=(
+            f"summary_valid={summary_valid}, service_violations={service_violations}, "
+            f"balance_violations={balance_violations}, "
+            f"capacity_violations={capacity_violations}"
+        ),
+        expected=(
+            "summary_valid=True, service_violations=0, balance_violations=0, capacity_violations=0"
+        ),
+        details=(
+            "The published MILP solution must be optimal, within the configured gap, "
+            "flow-balanced, capacity-feasible, and service-feasible."
+        ),
+    )
+    return results
+
+
+def _advanced_analytics_checks() -> list[CheckResult]:
+    results: list[CheckResult] = []
+    settings = load_settings()
+
+    results.extend(
+        _strategic_expansion_checks(
+            pd.read_csv(OUTPUT_TABLES_DIR / "source_readiness_checks.csv"),
+            pd.read_csv(OUTPUT_TABLES_DIR / "causal_effect_estimates.csv"),
+            pd.read_csv(OUTPUT_TABLES_DIR / "causal_diagnostics.csv"),
+            pd.read_csv(OUTPUT_TABLES_DIR / "network_optimization_summary.csv"),
+            pd.read_csv(OUTPUT_TABLES_DIR / "network_optimization_plan.csv"),
+            pd.read_csv(OUTPUT_TABLES_DIR / "network_constraint_utilization.csv"),
+            max_mip_gap=settings.network_optimization.mip_relative_gap,
+        )
+    )
+
+    storage = pd.read_csv(OUTPUT_TABLES_DIR / "storage_manifest.csv")
+    storage_duplicates = int(storage.duplicated(["layer", "table_name"]).sum())
+    missing_parquet = 0
+    hash_mismatches = 0
+    source_hash_mismatches = 0
+    compression_mismatches = int((storage["compression"] != settings.storage.compression).sum())
+    for row in storage.itertuples(index=False):
+        parquet_path = PROJECT_ROOT / row.parquet_path
+        source_path = PROJECT_ROOT / row.source_path
+        if not source_path.exists():
+            source_hash_mismatches += 1
+        else:
+            source_hash = hashlib.sha256(source_path.read_bytes()).hexdigest()
+            source_hash_mismatches += int(source_hash != row.source_sha256)
+        if not parquet_path.exists():
+            missing_parquet += 1
+            continue
+        observed_hash = hashlib.sha256(parquet_path.read_bytes()).hexdigest()
+        hash_mismatches += int(observed_hash != row.parquet_sha256)
+    _add_check(
+        results,
+        check_name="parquet_manifest_integrity",
+        layer="storage",
+        method="Python",
+        status=(
+            "PASS"
+            if storage_duplicates == 0
+            and missing_parquet == 0
+            and hash_mismatches == 0
+            and source_hash_mismatches == 0
+            and compression_mismatches == 0
+            else "FAIL"
+        ),
+        severity="HIGH",
+        observed=(
+            f"duplicates={storage_duplicates}, missing={missing_parquet}, "
+            f"hash_mismatches={hash_mismatches}, "
+            f"source_hash_mismatches={source_hash_mismatches}, "
+            f"compression_mismatches={compression_mismatches}"
+        ),
+        expected=(
+            "duplicates=0, missing=0, hash_mismatches=0, "
+            "source_hash_mismatches=0, compression_mismatches=0"
+        ),
+        details="Every manifest entry must resolve to a unique, hash-matching Parquet file.",
+    )
+    contract_profile_path = OUTPUT_TABLES_DIR / "data_contract_table_profile.csv"
+    contract_tables = (
+        set(pd.read_csv(contract_profile_path)["table_name"])
+        if contract_profile_path.exists()
+        else set()
+    )
+    missing_storage_contracts = sorted(
+        (set(storage["table_name"]) | {"storage_manifest"}) - contract_tables
+    )
+    _add_check(
+        results,
+        check_name="storage_table_contract_coverage",
+        layer="storage",
+        method="Python",
+        status="PASS" if not missing_storage_contracts else "FAIL",
+        severity="HIGH",
+        observed=", ".join(missing_storage_contracts) or "none",
+        expected="none",
+        details="Every persisted lake table and its manifest must have a validated data contract.",
+    )
+
+    backtest_folds = pd.read_csv(
+        OUTPUT_TABLES_DIR / "policy_backtest_folds.csv",
+        parse_dates=["train_start", "train_end", "fold_start", "evaluation_end"],
+    )
+    backtest_rec = pd.read_csv(OUTPUT_TABLES_DIR / "policy_backtest_recommendations.csv")
+    expected_backtest_entities = len(
+        pd.read_csv(
+            DATA_PROCESSED / "daily_product_warehouse_metrics.csv",
+            usecols=["product_id", "warehouse_id"],
+        ).drop_duplicates()
+    )
+    expected_folds = len(settings.backtesting.fold_start_dates)
+    leakage_rows = int((backtest_folds["train_end"] >= backtest_folds["fold_start"]).sum())
+    balance_errors = int((backtest_folds["balance_error_units"] != 0).sum())
+    warmup_errors = int((backtest_folds["warmup_days"] != settings.backtesting.lookback_days).sum())
+    fold_coverage_issues = int((backtest_rec["folds_evaluated"] < expected_folds).sum())
+    _add_check(
+        results,
+        check_name="policy_backtest_temporal_and_balance_integrity",
+        layer="backtesting",
+        method="Python",
+        status=(
+            "PASS"
+            if leakage_rows == 0
+            and balance_errors == 0
+            and warmup_errors == 0
+            and fold_coverage_issues == 0
+            and len(backtest_rec) == expected_backtest_entities
+            else "FAIL"
+        ),
+        severity="HIGH",
+        observed=(
+            f"leakage={leakage_rows}, balance_errors={balance_errors}, "
+            f"warmup_errors={warmup_errors}, "
+            f"limited_folds={fold_coverage_issues}, recommendations={len(backtest_rec)}"
+        ),
+        expected=(
+            "leakage=0, balance_errors=0, warmup_errors=0, limited_folds=0, "
+            f"recommendations={expected_backtest_entities}"
+        ),
+        details=(
+            "Walk-forward folds must predate evaluation, initialize policy state on the "
+            "training window, and conserve inventory flow."
+        ),
+    )
+
+    monte_scenarios = pd.read_csv(OUTPUT_TABLES_DIR / "monte_carlo_policy_scenarios.csv")
+    monte_rec = pd.read_csv(OUTPUT_TABLES_DIR / "monte_carlo_recommendations.csv")
+    monte_balance_errors = int((monte_scenarios["balance_error_max"] != 0).sum())
+    monte_probability_errors = int(
+        (
+            (monte_scenarios["probability_target_met"] < 0)
+            | (monte_scenarios["probability_target_met"] > 1)
+        ).sum()
+    )
+    non_frontier_selections = int((~monte_rec["is_frontier"]).sum())
+    reason_errors = int(
+        (
+            (
+                (monte_rec["selection_reason"] == "frontier_constraints_met")
+                & ~(
+                    monte_rec["is_frontier"]
+                    & monte_rec["service_constraint_met"]
+                    & monte_rec["capital_constraint_met"]
+                )
+            )
+            | (
+                (monte_rec["selection_reason"] == "service_met_capital_relaxed")
+                & ~(monte_rec["service_constraint_met"] & ~monte_rec["capital_constraint_met"])
+            )
+            | (
+                (monte_rec["selection_reason"] == "capital_met_service_relaxed")
+                & ~(monte_rec["capital_constraint_met"] & ~monte_rec["service_constraint_met"])
+            )
+            | (
+                (monte_rec["selection_reason"] == "best_available_under_constraints")
+                & (monte_rec["capital_constraint_met"] | monte_rec["service_constraint_met"])
+            )
+        ).sum()
+    )
+    service_success_rate = float(monte_rec["service_constraint_met"].mean())
+    risk_entity_count = len(
+        pd.read_csv(
+            DATA_PROCESSED / "sku_risk_table.csv",
+            usecols=["product_id", "warehouse_id"],
+        ).drop_duplicates()
+    )
+    expected_monte_entities = min(settings.monte_carlo.target_entities, risk_entity_count)
+    expected_monte_scenarios = expected_monte_entities * len(settings.monte_carlo.variants)
+    demand_block_errors = int(
+        (monte_scenarios["demand_block_days"] != settings.monte_carlo.demand_block_days).sum()
+    )
+    _add_check(
+        results,
+        check_name="monte_carlo_frontier_and_conservation",
+        layer="simulation",
+        method="Python",
+        status=(
+            "PASS"
+            if monte_balance_errors == 0
+            and monte_probability_errors == 0
+            and non_frontier_selections == 0
+            and reason_errors == 0
+            and demand_block_errors == 0
+            and len(monte_rec) == expected_monte_entities
+            and len(monte_scenarios) == expected_monte_scenarios
+            and service_success_rate >= settings.monte_carlo.target_confidence
+            else "FAIL"
+        ),
+        severity="HIGH",
+        observed=(
+            f"balance_errors={monte_balance_errors}, probability_errors={monte_probability_errors}, "
+            f"non_frontier={non_frontier_selections}, reason_errors={reason_errors}, "
+            f"demand_block_errors={demand_block_errors}, "
+            f"recommendations={len(monte_rec)}, "
+            f"scenarios={len(monte_scenarios)}, service_success={service_success_rate:.3f}"
+        ),
+        expected=(
+            "balance_errors=0, probability_errors=0, non_frontier=0, reason_errors=0, "
+            "demand_block_errors=0, "
+            f"recommendations={expected_monte_entities}, "
+            f"scenarios={expected_monte_scenarios}, "
+            f"service_success>={settings.monte_carlo.target_confidence:.3f}"
+        ),
+        details="Selected stochastic policies must conserve flow and lie on the service-capital frontier.",
+    )
+
+    actions = pd.read_csv(OUTPUT_TABLES_DIR / "action_register.csv")
+    action_duplicates = int(actions["action_id"].duplicated().sum())
+    benefit_error = np.abs(
+        actions["observed_total_benefit_proxy"]
+        - (
+            actions["observed_lost_margin_recovery_proxy"]
+            + actions["observed_inventory_release_proxy"]
+        )
+    )
+    benefit_mismatches = int((benefit_error > 0.01).sum())
+    measured = actions["measurement_status"] == "observed_pre_post_complete"
+    attribution_errors = int(
+        (
+            (measured & (actions["attribution_status"] != "observational_not_causal"))
+            | (~measured & (actions["attribution_status"] != "not_measured"))
+        ).sum()
+    )
+    _add_check(
+        results,
+        check_name="action_tracking_measurement_integrity",
+        layer="actions",
+        method="Python",
+        status=(
+            "PASS"
+            if action_duplicates == 0
+            and benefit_mismatches == 0
+            and attribution_errors == 0
+            and len(actions) > 0
+            else "FAIL"
+        ),
+        severity="HIGH",
+        observed=(
+            f"actions={len(actions)}, duplicates={action_duplicates}, "
+            f"benefit_mismatches={benefit_mismatches}, attribution_errors={attribution_errors}"
+        ),
+        expected="actions>0, duplicates=0, benefit_mismatches=0, attribution_errors=0",
+        details=(
+            "Measured action benefits must reconcile and remain observational; "
+            "non-eligible actions must not claim attribution."
+        ),
+    )
+    return results
+
+
 def _run_sql_checks() -> tuple[pd.DataFrame, pd.DataFrame]:
     con = duckdb.connect(database=":memory:")
 
-    raw_tables = {
-        "products": DATA_RAW / "products.csv",
-        "suppliers": DATA_RAW / "suppliers.csv",
-        "warehouses": DATA_RAW / "warehouses.csv",
-        "inventory_snapshots": DATA_RAW / "inventory_snapshots.csv",
-        "demand_history": DATA_RAW / "demand_history.csv",
-        "purchase_orders": DATA_RAW / "purchase_orders.csv",
-        "product_classification": DATA_RAW / "product_classification.csv",
-    }
-    for name, path in raw_tables.items():
-        con.execute(
-            f"CREATE OR REPLACE TABLE {name} AS SELECT * FROM read_csv_auto('{path.as_posix()}', HEADER=TRUE);"
-        )
+    load_raw_tables(con)
 
     sql_raw = (SQL_DIR / "04_validation_queries.sql").read_text(encoding="utf-8")
     sql_raw_df = con.execute(sql_raw).df()
@@ -75,9 +481,7 @@ def _run_sql_checks() -> tuple[pd.DataFrame, pd.DataFrame]:
     }
 
     for name, path in processed_tables.items():
-        con.execute(
-            f"CREATE OR REPLACE TABLE {name} AS SELECT * FROM read_csv_auto('{path.as_posix()}', HEADER=TRUE);"
-        )
+        load_csv_table(con, name, path)
 
     sql_processed = """
     WITH
@@ -184,7 +588,9 @@ def _python_validation_checks() -> list[CheckResult]:
 
     # 1) Row count sanity
     expected_dense_rows = (
-        demand["date"].nunique() * demand["warehouse_id"].nunique() * demand["product_id"].nunique()
+        demand["date"].nunique()
+        * warehouses["warehouse_id"].nunique()
+        * products["product_id"].nunique()
     )
     _add_check(
         results,
@@ -454,11 +860,7 @@ def _python_validation_checks() -> list[CheckResult]:
 
     # 7) Working capital calculation consistency (impact layer)
     daily_wc = daily.copy()
-    daily_wc["dos_cap"] = np.select(
-        [daily_wc["abc_class"] == "A", daily_wc["abc_class"] == "B"],
-        [20.0, 30.0],
-        default=45.0,
-    )
+    daily_wc["dos_cap"] = daily_wc["abc_class"].map(ABC_DOS_CAPS)
     daily_wc["excess_proxy"] = daily_wc["inventory_value"] * (
         (daily_wc["days_of_supply"] - daily_wc["dos_cap"]).clip(lower=0)
         / daily_wc["days_of_supply"].clip(lower=1e-9)
@@ -697,9 +1099,10 @@ def _python_validation_checks() -> list[CheckResult]:
         details="Non-low risk tiers must map to active intervention actions.",
     )
 
+    stability_top_n = min(25, len(sku_risk))
     base_top = set(
         sku_risk.sort_values("governance_priority_score", ascending=False)
-        .head(25)
+        .head(stability_top_n)
         .apply(lambda x: f"{x['product_id']}|{x['warehouse_id']}|{x['supplier_id']}", axis=1)
         .tolist()
     )
@@ -722,19 +1125,19 @@ def _python_validation_checks() -> list[CheckResult]:
     service_top = set(
         sku_risk.assign(tmp=service_bias_score)
         .sort_values("tmp", ascending=False)
-        .head(25)
+        .head(stability_top_n)
         .apply(lambda x: f"{x['product_id']}|{x['warehouse_id']}|{x['supplier_id']}", axis=1)
         .tolist()
     )
     wc_top = set(
         sku_risk.assign(tmp=wc_bias_score)
         .sort_values("tmp", ascending=False)
-        .head(25)
+        .head(stability_top_n)
         .apply(lambda x: f"{x['product_id']}|{x['warehouse_id']}|{x['supplier_id']}", axis=1)
         .tolist()
     )
-    overlap_service = len(base_top & service_top) / 25.0
-    overlap_wc = len(base_top & wc_top) / 25.0
+    overlap_service = len(base_top & service_top) / stability_top_n
+    overlap_wc = len(base_top & wc_top) / stability_top_n
     min_overlap = min(overlap_service, overlap_wc)
     stability_status = (
         "PASS" if min_overlap >= 0.65 else ("WARN" if min_overlap >= 0.50 else "FAIL")
@@ -761,6 +1164,15 @@ def _python_validation_checks() -> list[CheckResult]:
         "dashboard_sku_risk_baseline.csv",
         "dashboard_official_snapshot.csv",
         "ci_sql_validation_checks.csv",
+        "ingestion_manifest.csv",
+        "storage_manifest.csv",
+        "policy_backtest_folds.csv",
+        "policy_backtest_recommendations.csv",
+        "monte_carlo_policy_scenarios.csv",
+        "monte_carlo_recommendations.csv",
+        "monte_carlo_portfolio_summary.csv",
+        "action_register.csv",
+        "action_kpi_timeseries.csv",
     ]
     missing_upgrade_tables = [
         t for t in required_upgrade_tables if not (OUTPUT_TABLES_DIR / t).exists()
@@ -911,19 +1323,29 @@ def _python_validation_checks() -> list[CheckResult]:
 
     style_match = re.search(r"<style>(.*?)</style>", html_text, flags=re.DOTALL | re.IGNORECASE)
     style_text = style_match.group(1) if style_match else ""
-    absolute_position_count = style_text.count("position:absolute") + style_text.count(
-        "position: absolute"
+    absolute_position_selectors = re.findall(
+        r"([^{}]+)\{[^{}]*position:\s*absolute", style_text, flags=re.IGNORECASE
     )
+    unexpected_absolute_selectors = [
+        selector.strip()
+        for selector in absolute_position_selectors
+        if selector.strip() not in {".skip-link", ".sr-only"}
+        and "::before" not in selector
+        and "::after" not in selector
+    ]
     _add_check(
         results,
         check_name="dashboard_layout_no_absolute_positioning",
         layer="dashboard",
         method="Python",
-        status="PASS" if absolute_position_count <= 2 else "WARN",
+        status="PASS" if not unexpected_absolute_selectors else "WARN",
         severity="MEDIUM",
-        observed=str(absolute_position_count),
-        expected="<= 2",
-        details="Only the keyboard skip-link and screen-reader-only utility should use absolute positioning.",
+        observed=", ".join(unexpected_absolute_selectors) or "none",
+        expected="none",
+        details=(
+            "Layout elements should avoid absolute positioning; accessibility utilities and "
+            "decorative pseudo-elements are allowed."
+        ),
     )
 
     # Responsiveness is asserted by intent, not exact breakpoint pixels: at least two
@@ -1027,6 +1449,7 @@ def _python_validation_checks() -> list[CheckResult]:
         details="Dashboard snapshot must reconcile service KPIs and average daily trapped WC to governed outputs.",
     )
 
+    results.extend(_advanced_analytics_checks())
     return results
 
 
@@ -1045,11 +1468,37 @@ def _compute_release_state_matrix(checks_df: pd.DataFrame) -> pd.DataFrame:
     ]
     analytical_fail = checks_df[
         (checks_df["status"] == "FAIL")
-        & (checks_df["layer"].isin(["impact", "scoring", "reporting", "dashboard"]))
+        & (
+            checks_df["layer"].isin(
+                [
+                    "impact",
+                    "scoring",
+                    "reporting",
+                    "dashboard",
+                    "backtesting",
+                    "simulation",
+                    "actions",
+                    "causal",
+                    "network_optimization",
+                ]
+            )
+        )
     ]
     technical_fail = checks_df[
         (checks_df["status"] == "FAIL")
-        & (checks_df["layer"].isin(["raw", "processed", "dashboard", "scoring"]))
+        & (
+            checks_df["layer"].isin(
+                [
+                    "raw",
+                    "processed",
+                    "storage",
+                    "dashboard",
+                    "scoring",
+                    "source_governance",
+                    "network_optimization",
+                ]
+            )
+        )
     ]
 
     technically_valid = technical_fail.empty

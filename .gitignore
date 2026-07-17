@@ -25,9 +25,13 @@ htmlcov/
 # Reproducible pipeline outputs
 data/raw/*.csv
 data/processed/*.csv
+data/lake/
+data/object_store/
 outputs/tables/*.csv
 outputs/dashboard/
 outputs/pipeline_timings.json
+outputs/pipeline_run_events.jsonl
+outputs/pipeline_run_summary.json
 
 # Environment files
 .env

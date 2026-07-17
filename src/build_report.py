@@ -11,7 +11,7 @@ import pathlib
 
 import pandas as pd
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT
+from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
@@ -31,10 +31,7 @@ from reportlab.platypus import (
 )
 from reportlab.platypus.tableofcontents import TableOfContents
 
-try:
-    from src.impact_analysis import ASSUMPTIONS as ASSUMP
-except ModuleNotFoundError:
-    from impact_analysis import ASSUMPTIONS as ASSUMP  # type: ignore[no-redef]
+from src.impact_analysis import ASSUMPTIONS as ASSUMP
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PROC = ROOT / "data" / "processed"
@@ -43,14 +40,23 @@ GRAPHS = ROOT / "outputs" / "graphs"
 OUT = ROOT / "outputs" / "reports"
 OUT.mkdir(parents=True, exist_ok=True)
 
-# Palette (matches charts)
-INK = colors.HexColor("#1d1d1f")
-SLATE = colors.HexColor("#6e6e73")
-MUTED = colors.HexColor("#6d6d72")
-ACCENT = colors.HexColor("#0071e3")
-LINE = colors.HexColor("#d2d2d7")
-BG = colors.HexColor("#f5f5f7")
+# Consulting publication palette: saturated cobalt, deep navy, cool neutrals,
+# and a restrained cyan wash for status and decision callouts.
+INK = colors.HexColor("#101418")
+NAVY = colors.HexColor("#081F4D")
+BLUE_DARK = colors.HexColor("#173F9E")
+ACCENT = colors.HexColor("#2164F3")
+SLATE = colors.HexColor("#475569")
+MUTED = colors.HexColor("#667085")
+LINE = colors.HexColor("#CBD5E1")
+BG = colors.HexColor("#EEF6FB")
+PALE_BLUE = colors.HexColor("#DDF3F8")
 WHITE = colors.white
+
+# Core-14 serif for display type keeps the build byte-reproducible across
+# machines (no font files to embed) while giving headings an editorial voice.
+SERIF = "Times-Bold"
+SERIF_ITALIC = "Times-Italic"
 
 PAGE_W, PAGE_H = A4
 MARGIN = 2.0 * cm
@@ -203,33 +209,33 @@ body = ParagraphStyle(
     "body",
     parent=ss["BodyText"],
     fontName="Helvetica",
-    fontSize=10,
-    leading=15.5,
+    fontSize=9.25,
+    leading=13.25,
     textColor=INK,
-    alignment=TA_JUSTIFY,
-    spaceAfter=8,
+    alignment=TA_LEFT,
+    spaceAfter=7,
 )
-lead = ParagraphStyle("lead", parent=body, fontSize=11, leading=17, textColor=INK, spaceAfter=10)
+lead = ParagraphStyle("lead", parent=body, fontSize=10.1, leading=14.5, textColor=INK, spaceAfter=9)
 bullet_item = ParagraphStyle("bullet_item", parent=body, spaceAfter=4)
 h1 = ParagraphStyle(
     "h1",
     parent=ss["Heading1"],
-    fontName="Helvetica-Bold",
-    fontSize=16,
-    leading=20,
+    fontName=SERIF,
+    fontSize=22.5,
+    leading=26,
     textColor=INK,
-    spaceBefore=4,
-    spaceAfter=4,
+    spaceBefore=5,
+    spaceAfter=5,
 )
 kicker = ParagraphStyle(
-    "kicker", fontName="Helvetica-Bold", fontSize=8.5, textColor=ACCENT, leading=11, spaceAfter=2
+    "kicker", fontName="Helvetica-Bold", fontSize=8, textColor=BLUE_DARK, leading=10, spaceAfter=3
 )
 h2 = ParagraphStyle(
     "h2",
     parent=ss["Heading2"],
-    fontName="Helvetica-Bold",
-    fontSize=12.5,
-    leading=16,
+    fontName=SERIF,
+    fontSize=14.5,
+    leading=18,
     textColor=INK,
     spaceBefore=14,
     spaceAfter=5,
@@ -238,28 +244,28 @@ h3 = ParagraphStyle(
     "h3",
     parent=ss["Heading3"],
     fontName="Helvetica-Bold",
-    fontSize=10.5,
-    leading=14,
-    textColor=ACCENT,
+    fontSize=10.2,
+    leading=13.5,
+    textColor=BLUE_DARK,
     spaceBefore=10,
     spaceAfter=3,
 )
 caption = ParagraphStyle(
     "caption",
     fontName="Helvetica-Oblique",
-    fontSize=8,
+    fontSize=7.7,
     textColor=MUTED,
-    leading=11,
+    leading=10.5,
     spaceBefore=3,
     spaceAfter=12,
 )
-small = ParagraphStyle("small", fontName="Helvetica", fontSize=8.5, textColor=SLATE, leading=12)
+small = ParagraphStyle("small", fontName="Helvetica", fontSize=8.2, textColor=SLATE, leading=11.2)
 takeaway = ParagraphStyle(
     "takeaway",
     parent=body,
     fontName="Helvetica-Bold",
-    fontSize=10,
-    leading=14,
+    fontSize=9.4,
+    leading=13,
     textColor=INK,
     alignment=TA_LEFT,
     spaceAfter=2,
@@ -291,32 +297,37 @@ class HRule(Flowable):
 
 
 class KpiStrip(Flowable):
-    """Headline metrics in a row of cards."""
+    """Headline metrics separated by editorial rules, without card chrome."""
 
     def __init__(self, items, width):
         super().__init__()
         self.items = items
         self.width = width
-        self.height = 2.5 * cm
+        self.height = 2.35 * cm
 
     def draw(self):
         c = self.canv
         n = len(self.items)
-        gap = 0.35 * cm
-        cw = (self.width - gap * (n - 1)) / n
+        cw = self.width / n
+        c.setStrokeColor(LINE)
+        c.setLineWidth(0.65)
+        c.line(0, self.height, self.width, self.height)
+        c.setStrokeColor(ACCENT)
+        c.setLineWidth(2.2)
+        c.line(0, self.height, 2.15 * cm, self.height)
         for i, (val, lab) in enumerate(self.items):
-            x = i * (cw + gap)
-            c.setFillColor(BG)
-            c.roundRect(x, 0, cw, self.height, 5, stroke=0, fill=1)
+            x = i * cw
+            if i:
+                c.setStrokeColor(LINE)
+                c.setLineWidth(0.55)
+                c.line(x, 0.18 * cm, x, self.height - 0.3 * cm)
             c.setFillColor(ACCENT)
-            c.rect(x, 0, 3, self.height, stroke=0, fill=1)
-            c.setFillColor(INK)
-            c.setFont("Helvetica-Bold", 16)
-            c.drawString(x + 0.42 * cm, self.height - 0.95 * cm, val)
+            c.setFont(SERIF, 18)
+            c.drawString(x + 0.36 * cm, self.height - 0.86 * cm, val)
             c.setFillColor(SLATE)
-            c.setFont("Helvetica", 7.6)
-            for j, line in enumerate(_wrap(lab, 26)):
-                c.drawString(x + 0.42 * cm, self.height - 1.5 * cm - j * 0.36 * cm, line)
+            c.setFont("Helvetica", 7.15)
+            for j, line in enumerate(_wrap(lab, 23)):
+                c.drawString(x + 0.36 * cm, self.height - 1.38 * cm - j * 0.34 * cm, line)
 
 
 def _wrap(text, width):
@@ -333,13 +344,13 @@ def _wrap(text, width):
 
 
 def takeaway_box(text, width=CW):
-    p = Paragraph(f'<font color="#0071e3"><b>Takeaway&nbsp;&nbsp;</b></font>{text}', takeaway)
+    p = Paragraph(f'<font color="#173F9E"><b>Takeaway&nbsp;&nbsp;</b></font>{text}', takeaway)
     t = Table([[p]], colWidths=[width])
     t.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, -1), BG),
-                ("LINEBEFORE", (0, 0), (0, -1), 3, ACCENT),
+                ("BACKGROUND", (0, 0), (-1, -1), PALE_BLUE),
+                ("LINEABOVE", (0, 0), (-1, 0), 1.1, ACCENT),
                 ("LEFTPADDING", (0, 0), (-1, -1), 12),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 12),
                 ("TOPPADDING", (0, 0), (-1, -1), 9),
@@ -351,21 +362,14 @@ def takeaway_box(text, width=CW):
 
 
 def note_box(label, text, width=CW):
-    """Compact bordered aside for supplementary, non-analytical context.
-
-    Visually distinct from ``takeaway_box`` on purpose: a neutral outline and
-    slate accent (versus the takeaway's blue fill) signal "reference" rather
-    than "conclusion". As a single Table flowable it moves to the next page as
-    one unit if it doesn't fit, so the label can never be orphaned from its text.
-    """
-    p = Paragraph(f'<font color="#1d1d1f"><b>{label}&nbsp;&nbsp;</b></font>{text}', takeaway)
+    """Compact bordered aside that stays with its label during pagination."""
+    p = Paragraph(f'<font color="#081F4D"><b>{label}&nbsp;&nbsp;</b></font>{text}', takeaway)
     t = Table([[p]], colWidths=[width])
     t.setStyle(
         TableStyle(
             [
                 ("BACKGROUND", (0, 0), (-1, -1), WHITE),
                 ("BOX", (0, 0), (-1, -1), 0.75, LINE),
-                ("LINEBEFORE", (0, 0), (0, -1), 3, MUTED),
                 ("LEFTPADDING", (0, 0), (-1, -1), 12),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 12),
                 ("TOPPADDING", (0, 0), (-1, -1), 9),
@@ -418,7 +422,7 @@ def data_table(rows, col_widths, header=True, align_right=None, fs=8.5):
         style += [
             ("FONT", (0, 0), (-1, 0), "Helvetica-Bold", fs - 0.3),
             ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
-            ("BACKGROUND", (0, 0), (-1, 0), INK),
+            ("BACKGROUND", (0, 0), (-1, 0), NAVY),
             ("TOPPADDING", (0, 0), (-1, 0), 6),
             ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
         ]
@@ -447,23 +451,56 @@ TITLE = "Service Level and Inventory Intelligence"
 
 def cover(canvas, doc):
     canvas.saveState()
-    canvas.setFillColor(INK)
-    canvas.rect(0, PAGE_H - 5.4 * cm, PAGE_W, 5.4 * cm, stroke=0, fill=1)
-    canvas.setFillColor(ACCENT)
-    canvas.rect(0, PAGE_H - 5.55 * cm, PAGE_W, 0.15 * cm, stroke=0, fill=1)
-    canvas.setFillColor(WHITE)
-    canvas.setFont("Helvetica-Bold", 9)
-    canvas.drawString(MARGIN, PAGE_H - 1.7 * cm, "ANALYTICAL REPORT")
-    canvas.setFont("Helvetica", 9)
-    canvas.drawRightString(PAGE_W - MARGIN, PAGE_H - 1.7 * cm, "Supply Chain Analytics")
-    canvas.setFont("Helvetica-Bold", 25)
-    canvas.drawString(MARGIN, PAGE_H - 3.5 * cm, "Service Level and Inventory")
-    canvas.drawString(MARGIN, PAGE_H - 4.5 * cm, "Intelligence")
+    canvas.setFillColor(BLUE_DARK)
+    canvas.rect(0, 0, PAGE_W, PAGE_H, stroke=0, fill=1)
 
-    canvas.setFillColor(BG)
-    canvas.rect(0, 0, PAGE_W, 2.4 * cm, stroke=0, fill=1)
-    canvas.setFillColor(SLATE)
-    canvas.setFont("Helvetica", 8.5)
+    # A restrained network diagram gives the cover a subject-specific visual
+    # anchor while keeping the same full-bleed, image-led weight as the reference.
+    nodes = [
+        (13.2 * cm, 3.2 * cm, 0.16 * cm),
+        (16.2 * cm, 5.0 * cm, 0.22 * cm),
+        (14.3 * cm, 7.3 * cm, 0.18 * cm),
+        (18.2 * cm, 8.6 * cm, 0.24 * cm),
+        (15.8 * cm, 10.6 * cm, 0.16 * cm),
+        (19.2 * cm, 12.3 * cm, 0.20 * cm),
+    ]
+    canvas.setStrokeColor(colors.HexColor("#78A5FF"))
+    canvas.setLineWidth(1.2)
+    canvas.line(nodes[0][0], nodes[0][1], nodes[1][0], nodes[1][1])
+    canvas.line(nodes[1][0], nodes[1][1], nodes[2][0], nodes[2][1])
+    canvas.line(nodes[2][0], nodes[2][1], nodes[3][0], nodes[3][1])
+    canvas.line(nodes[3][0], nodes[3][1], nodes[4][0], nodes[4][1])
+    canvas.line(nodes[4][0], nodes[4][1], nodes[5][0], nodes[5][1])
+    canvas.line(nodes[1][0], nodes[1][1], nodes[3][0], nodes[3][1])
+    for x, y, r in nodes:
+        canvas.setFillColor(colors.HexColor("#D9E7FF"))
+        canvas.circle(x, y, r, stroke=0, fill=1)
+        canvas.setStrokeColor(colors.HexColor("#9FC0FF"))
+        canvas.setLineWidth(0.8)
+        canvas.circle(x, y, r + 0.17 * cm, stroke=1, fill=0)
+
+    canvas.setFillColor(WHITE)
+    canvas.setFont(SERIF, 20)
+    canvas.drawString(MARGIN, PAGE_H - 2.15 * cm, "Supply Chain")
+    canvas.drawString(MARGIN, PAGE_H - 2.9 * cm, "Analytics")
+    canvas.setFont(SERIF, 36)
+    canvas.drawString(MARGIN + 3.7 * cm, PAGE_H - 6.55 * cm, "Service Level and")
+    canvas.drawString(MARGIN + 3.7 * cm, PAGE_H - 7.95 * cm, "Inventory")
+    canvas.drawString(MARGIN + 3.7 * cm, PAGE_H - 9.35 * cm, "Intelligence")
+    canvas.setFont("Helvetica", 11)
+    canvas.setFillColor(colors.HexColor("#D9E7FF"))
+    canvas.drawString(
+        MARGIN + 3.7 * cm,
+        PAGE_H - 10.45 * cm,
+        "An operating review of service, capital, and risk",
+    )
+    canvas.drawString(MARGIN + 3.7 * cm, PAGE_H - 11.2 * cm, "July 2026")
+
+    canvas.setStrokeColor(colors.HexColor("#6D94E3"))
+    canvas.setLineWidth(0.55)
+    canvas.line(MARGIN, 2.1 * cm, PAGE_W - MARGIN, 2.1 * cm)
+    canvas.setFillColor(colors.HexColor("#D9E7FF"))
+    canvas.setFont("Helvetica", 8.1)
     canvas.drawString(
         MARGIN,
         1.45 * cm,
@@ -471,7 +508,6 @@ def cover(canvas, doc):
     )
     canvas.drawString(MARGIN, 0.95 * cm, f"Data through {DATA_THROUGH_DATE}")
     canvas.setFont("Helvetica-Oblique", 7.5)
-    canvas.setFillColor(MUTED)
     canvas.drawRightString(
         PAGE_W - MARGIN, 0.95 * cm, "Synthetic dataset. Financial values are proxy estimates."
     )
@@ -480,17 +516,19 @@ def cover(canvas, doc):
 
 def standard(canvas, doc):
     canvas.saveState()
+    canvas.setFillColor(NAVY)
+    canvas.rect(0, PAGE_H - 0.78 * cm, PAGE_W, 0.78 * cm, stroke=0, fill=1)
+    canvas.setFont("Helvetica", 7.4)
+    canvas.setFillColor(WHITE)
+    canvas.drawString(MARGIN, PAGE_H - 0.5 * cm, f"{TITLE}  |  Decision report")
     canvas.setStrokeColor(LINE)
-    canvas.setLineWidth(0.6)
-    canvas.line(MARGIN, PAGE_H - 1.35 * cm, PAGE_W - MARGIN, PAGE_H - 1.35 * cm)
-    canvas.setFont("Helvetica", 7.6)
-    canvas.setFillColor(MUTED)
-    canvas.drawString(MARGIN, PAGE_H - 1.15 * cm, TITLE)
-    canvas.drawRightString(PAGE_W - MARGIN, PAGE_H - 1.15 * cm, "Analytical Report")
+    canvas.setLineWidth(0.55)
     canvas.line(MARGIN, 1.25 * cm, PAGE_W - MARGIN, 1.25 * cm)
     canvas.setFillColor(MUTED)
-    canvas.drawString(MARGIN, 0.85 * cm, "Synthetic data | proxy financials")
-    canvas.drawRightString(PAGE_W - MARGIN, 0.85 * cm, f"Page {doc.page - 1}")
+    canvas.setFont("Helvetica", 7.3)
+    canvas.drawString(MARGIN, 0.83 * cm, f"{doc.page - 1}")
+    canvas.drawString(MARGIN + 1.05 * cm, 0.83 * cm, TITLE)
+    canvas.drawRightString(PAGE_W - MARGIN, 0.83 * cm, "Synthetic data | proxy financials")
     canvas.restoreState()
 
 
@@ -505,7 +543,12 @@ class Report(BaseDocTemplate):
         if level is None:
             return
         text = flowable.getPlainText()
-        key = f"toc-{id(flowable)}"
+        key = getattr(flowable, "_toc_key", None)
+        if key is None:
+            sequence = getattr(self, "_toc_sequence", 0) + 1
+            self._toc_sequence = sequence
+            key = f"toc-{sequence:03d}"
+            flowable._toc_key = key
         self.canv.bookmarkPage(key)
         self.notify("TOCEntry", (level, text, self.page - 1, key))
 
@@ -540,36 +583,7 @@ def build():
 
     # ============================= COVER ================================
     A(NextPageTemplate("Body"))
-    A(Spacer(1, 10.6 * cm))
-    A(
-        Paragraph(
-            "What the data says",
-            ParagraphStyle("ct", fontName="Helvetica-Bold", fontSize=12, textColor=ACCENT),
-        )
-    )
-    A(Spacer(1, 4))
-    A(
-        Paragraph(
-            "Service quality across the four-warehouse network has eroded steadily "
-            "over two years while inventory sits unevenly against demand. This report "
-            "quantifies where service is failing, which suppliers and locations carry "
-            "the exposure, how concentrated the losses are, and the size of the value "
-            "pool that disciplined intervention can recover.",
-            ParagraphStyle("cl", parent=body, fontSize=11, leading=16.5),
-        )
-    )
-    A(Spacer(1, 0.5 * cm))
-    A(
-        KpiStrip(
-            [
-                (f"{two_high_share * 100:.0f}%", "of lost-sales value tied to two suppliers"),
-                ("7.6 pts", "network fill-rate decline over 24 months"),
-                (eur(opp_total), "estimated 12-month value pool"),
-                (f"{top10_share:.0f}%", "of lost sales in the worst 10% of SKU-pairs"),
-            ],
-            CW,
-        )
-    )
+    A(Spacer(1, 23.4 * cm))
     A(PageBreak())
 
     # ============================= TOC ==================================
@@ -579,21 +593,44 @@ def build():
     A(Spacer(1, 6))
     toc = TableOfContents()
     toc.levelStyles = [
-        ParagraphStyle("toc0", fontName="Helvetica-Bold", fontSize=11, leading=16.5, textColor=INK),
+        ParagraphStyle("toc0", fontName=SERIF, fontSize=10.3, leading=13, textColor=INK),
         ParagraphStyle(
-            "toc1", fontName="Helvetica", fontSize=9.5, leading=13, textColor=SLATE, leftIndent=14
+            "toc1", fontName="Helvetica", fontSize=8.5, leading=10.2, textColor=SLATE, leftIndent=14
         ),
     ]
     A(toc)
+    A(PageBreak())
 
     # ========================= EXECUTIVE SUMMARY ========================
     A(
         KeepTogether(
             [
-                Paragraph("SECTION 1", kicker),
                 H1("Executive summary"),
                 HRule(CW),
                 Spacer(1, 6),
+                Paragraph("What the data says", h2),
+                Paragraph(
+                    "Service quality across the four-warehouse network has eroded steadily "
+                    "over two years while inventory sits unevenly against demand. This report "
+                    "quantifies where service is failing, which suppliers and locations carry "
+                    "the exposure, how concentrated the losses are, and the size of the value "
+                    "pool that disciplined intervention can recover.",
+                    lead,
+                ),
+                Spacer(1, 5),
+                KpiStrip(
+                    [
+                        (
+                            f"{two_high_share * 100:.0f}%",
+                            "of lost-sales value tied to two suppliers",
+                        ),
+                        ("7.6 pts", "network fill-rate decline over 24 months"),
+                        (eur(opp_total), "estimated 12-month value pool"),
+                        (f"{top10_share:.0f}%", "of lost sales in the worst 10% of SKU-pairs"),
+                    ],
+                    CW,
+                ),
+                Spacer(1, 10),
                 Paragraph(
                     f"<b>The evidence is strong enough to act on now.</b> "
                     f"Across 120 products, four warehouses, and 12 suppliers over 24 "
@@ -677,7 +714,6 @@ def build():
     A(PageBreak())
 
     # ========================= CONTEXT ==================================
-    A(Paragraph("SECTION 2", kicker))
     A(H1("Context and objectives"))
     A(HRule(CW))
     A(Spacer(1, 6))
@@ -711,7 +747,7 @@ def build():
         [
             "Where is service failing, and is the trend improving or deteriorating?",
             "Which suppliers carry the largest downstream lost-sales exposure?",
-            "Where is inventory misaligned with demand rather than simply high?",
+            "Where is the inventory-to-demand mismatch most severe?",
             "How concentrated are the losses across products, locations, and segments?",
             "What is the recoverable value, and how should the work be sequenced?",
             "Which assumptions must be validated before the value case is treated as budget-ready?",
@@ -762,7 +798,6 @@ def build():
     A(PageBreak())
 
     # ========================= DATA & METHODOLOGY =======================
-    A(Paragraph("SECTION 3", kicker))
     A(H1("Data and methodology"))
     A(HRule(CW))
     A(Spacer(1, 6))
@@ -772,8 +807,7 @@ def build():
             "views, policy-based risk scoring, directional impact estimates, and a "
             "published dashboard. Every stage is covered by data contracts and "
             "reconciliation gates that block release on any failure or high-severity "
-            "warning. The sections below describe each metric so that the findings can "
-            "be read against a precise definition rather than an intuition.",
+            "warning. The sections below define the metrics used to interpret each finding.",
             body,
         )
     )
@@ -833,7 +867,7 @@ def build():
     A(H2("Impact and opportunity estimates"))
     A(
         Paragraph(
-            "Financial figures are directional proxy estimates rather than audited "
+            "Financial figures are directional proxy estimates and are not audited "
             "profit and loss. Observed values are annualised using a 365-over-731-day "
             "factor. The twelve-month value pool applies two explicit recovery rates: "
             f"{ASSUMP.recoverable_lost_margin_rate_12m * 100:.0f}% of annualised "
@@ -844,7 +878,7 @@ def build():
             "fitted parameters, and each component of the pool scales directly with "
             "its rate: halving either one roughly halves that component's "
             f"contribution to the {eur(opp_total)} pool. The value case is a stated "
-            "assumption to be tested, not a black-box output.",
+            "scenario assumption that must be validated before implementation.",
             body,
         )
     )
@@ -865,7 +899,6 @@ def build():
     )
 
     # ========================= ANALYTICAL FRAMEWORK =====================
-    A(Paragraph("SECTION 4", kicker))
     A(H1("Analytical framework"))
     A(HRule(CW))
     A(Spacer(1, 6))
@@ -887,8 +920,8 @@ def build():
                     "The trend lens tracks fill rate, stockout rate, and lost-sales "
                     "value month by month and compares the first and last 90-day "
                     "windows by location. A declining baseline changes the "
-                    "economics of any fix, because inventory added to a sliding "
-                    "system is absorbed rather than converted to service.",
+                    "economics of any fix: a sliding baseline can absorb added "
+                    "inventory without producing the expected service gain.",
                     body,
                 ),
             ]
@@ -958,7 +991,6 @@ def build():
     A(PageBreak())
 
     # ========================= DECISION CASE ============================
-    A(Paragraph("SECTION 5", kicker))
     A(H1("Decision case"))
     A(HRule(CW))
     A(Spacer(1, 6))
@@ -1023,8 +1055,8 @@ def build():
                 f"Health and Pet Care hold {top2_cat_share * 100:.0f}% of the "
                 f"recoverable value pool; Health alone is {health_lost_share:.0f}% of "
                 f"lost sales at {health_fill:.1f}% fill. Create a Health and Pet Care "
-                "service cell with weekly category-level decisions rather than "
-                "diffuse catalogue-wide reviews."
+                "service cell for weekly category-level decisions focused on these "
+                "two value pools."
             ),
         ),
     ]
@@ -1037,9 +1069,9 @@ def build():
             "The current evidence is sufficient to start the no-regret actions: supplier "
             "stabilisation, Health Product 16 recovery, and SKU-level policy review. "
             "Three findings would change the investment case before material inventory "
-            "is moved. The first is a commercial substitution effect showing that a "
-            "large share of stockout demand was captured by another SKU rather than "
-            "lost. The second is a supplier contract or promotion calendar proving that "
+            "is moved. The first is a commercial substitution effect showing that "
+            "other SKUs captured a large share of stockout demand. The second is a "
+            "supplier contract or promotion calendar proving that "
             "Health Product 16 demand was abnormal and non-repeatable. The third is a "
             "warehouse capacity constraint that prevents Madrid or Lyon from absorbing "
             "rebalanced stock without higher handling cost. None invalidates the "
@@ -1057,7 +1089,6 @@ def build():
     A(PageBreak())
 
     # ============================= FINDINGS =============================
-    A(Paragraph("SECTION 6", kicker))
     A(H1("Findings"))
     A(HRule(CW))
     A(Spacer(1, 6))
@@ -1083,9 +1114,8 @@ def build():
                     "the rate drifts down through 2024, recovers partially in early "
                     "2025, then slides again to its lowest point in the final month "
                     "of the window. December 2025 is the worst month in the series on "
-                    "both fill rate and lost-sales value, which means the network "
-                    "entered 2026 at its weakest observed state rather than "
-                    "recovering toward the mean.",
+                    "both fill rate and lost-sales value. The network therefore "
+                    "entered 2026 at its weakest observed state.",
                     body,
                 ),
             ]
@@ -1101,8 +1131,8 @@ def build():
             "story from the cost side. The stockout rate climbed from 0.4% to 7.9% over "
             "the window, and monthly lost-sales value rose with it, peaking in the "
             f"final months: the last three months averaged {last3_lost_multiple:.1f}x "
-            "the lost-sales value of the first three months. Service did not just "
-            "get worse; it got materially more expensive to run. That has a direct "
+            "the lost-sales value of the first three months. The deterioration made "
+            "the network materially more expensive to run. That has a direct "
             "planning consequence: inventory added on top of a sliding baseline gets "
             "absorbed into the drift instead of converting to service, so "
             "stabilising the trend has to happen before any inventory investment can "
@@ -1117,8 +1147,8 @@ def build():
         A(it)
     A(
         Paragraph(
-            "The decline shows up at every warehouse, not just the weakest one. "
-            "Comparing the first and last 90 days of the window, every site serves "
+            "The decline reaches every warehouse. Comparing the first and last 90 "
+            "days of the window, every site serves "
             "worse at the end than at the start. Madrid falls 5.4 points and Lyon "
             "4.2, the two that were already weakest, while even the strongest sites, "
             "Lisbon and Porto, give up 2.3 and 3.7 points. A decline that reaches "
@@ -1152,7 +1182,7 @@ def build():
                 H2("6.2  Two suppliers carry four fifths of the exposure"),
                 Paragraph(
                     f"Supplier 2 and Supplier 3 are the only two suppliers in the High "
-                    f"risk tier. Supplier 2 delivers on time on just 66% of orders "
+                    f"risk tier. Supplier 2 delivers on time on 66% of orders "
                     f"with lead-time variability of 4.0 days; Supplier 3 sits at 78% "
                     f"on-time and 3.8 days. Together they are associated with "
                     f"{eur(two_high_lost)} of lost-sales value, "
@@ -1246,8 +1276,8 @@ def build():
             f"is trapped in slow lines, an average of {eur(trapped_wc)} per day in the "
             f"trapped working-capital proxy and {eur(excess_inv)} per day above the ABC "
             f"days-of-supply caps, while the fast lines that drive lost sales run "
-            f"short. The problem is distribution and policy, not a uniform shortage or "
-            f"a uniform glut.",
+            f"short. Distribution and policy drive the mismatch; the data do not support "
+            f"a uniform shortage or glut.",
             body,
         )
     )
@@ -1258,8 +1288,8 @@ def build():
         A(it)
     A(
         takeaway_box(
-            "Rebalance toward Madrid and Lyon and trim the 30-plus-day tail rather "
-            "than adding network-wide stock. The service gap is a placement gap."
+            "Rebalance toward Madrid and Lyon and trim the 30-plus-day tail. The "
+            "service gap is a placement problem that does not require more network stock."
         )
     )
 
@@ -1309,11 +1339,11 @@ def build():
         Paragraph(
             "The category signal repeats at the category-region grain. Every Health "
             "segment scores in the high 40s to low 50s on governance priority, the "
-            "highest band in the network, and each one is driven by stockout risk "
-            "rather than overstock. Health in France South-East tops the segment "
+            "highest band in the network, and stockout risk drives each score. "
+            "Health in France South-East tops the segment "
             "ranking at 52. Pet Care segments form the next band. No region escapes "
-            "the Health problem, which reinforces that the fix belongs at category and "
-            "product level rather than at a single site.",
+            "the Health problem, which places ownership at category and product level "
+            "across the network.",
             body,
         )
     )
@@ -1360,10 +1390,9 @@ def build():
             f"each warehouse. Combined they represent {eur(h16_opp)} of twelve-month "
             f"opportunity and {h16_pool_share * 100:.0f}% of the ranked SKU-location "
             f"pool. The single largest pair is Health Product 16 in Madrid at roughly "
-            f"€158k. Failing in all four warehouses at once is the signature of a "
-            f"product-level cause in supply or planning, not a set of four unrelated "
-            f"local problems, so it should be run as one cross-warehouse recovery "
-            f"plan rather than four separate fixes.",
+            f"€158k. Concurrent failure across all four warehouses points to a "
+            f"product-level supply or planning cause. It should be managed as one "
+            f"cross-warehouse recovery plan.",
             body,
         )
     )
@@ -1379,8 +1408,8 @@ def build():
             "exposure. Class C, 60 SKUs and a third of inventory value, carries only "
             "8% of the loss while absorbing capital that the fast lines need. The "
             "network is overstocked on slow C lines and underserved on fast A lines. "
-            "That is a policy and placement gap, not evidence that the network needs "
-            "a larger inventory budget.",
+            "That points to a policy and placement gap; network-wide inventory growth "
+            "is unsupported.",
             body,
         )
     )
@@ -1430,8 +1459,8 @@ def build():
             f"The working-capital component is modest by design. The trapped-capital "
             f"proxy averages {eur(trapped_wc)} per day; at the "
             f"{ASSUMP.releasable_trapped_wc_rate_12m * 100:.0f}% releasable rate, "
-            f"that credits {eur(opp_wc)} to the pool rather than the full balance, "
-            f"because only a portion can be freed without re-exposing service. The "
+            f"that credits {eur(opp_wc)} to the pool. Only a portion can be freed "
+            f"without re-exposing service. The "
             f"asymmetry is deliberate: this network's losses come from missing the "
             f"sale, so protecting and recovering demand is the prize, and capital "
             f"release from trimming the slow-moving tail is a secondary benefit.",
@@ -1440,14 +1469,13 @@ def build():
     )
     A(
         takeaway_box(
-            "Manage to the margin pool first. Working-capital release is a by-product "
-            "of fixing service and trimming slow lines, not a separate programme."
+            "Manage to the margin pool first. Working-capital release follows the "
+            "service fixes and slow-line reductions within the same programme."
         )
     )
     A(PageBreak())
 
     # ========================= RISKS & LIMITATIONS ======================
-    A(Paragraph("SECTION 7", kicker))
     A(H1("Risks, limitations, and caveats"))
     A(HRule(CW))
     A(Spacer(1, 6))
@@ -1477,8 +1505,8 @@ def build():
         Paragraph(
             "Every euro figure is a directional proxy. Lost-sales value prices unmet "
             "demand at list price and assumes the demand was real and would have "
-            "converted. The margin proxy applies category-level gross-margin "
-            "assumptions rather than SKU-level actuals. The opportunity pool applies a "
+            "converted. The margin proxy uses category-level gross-margin assumptions; "
+            "SKU-level actuals are unavailable. The opportunity pool applies a "
             "scenario recovery rate. None of these are audited profit and loss, and "
             "the absolute numbers would move with different assumptions. The relative "
             "structure, which suppliers, products, and locations dominate, is far more "
@@ -1506,12 +1534,12 @@ def build():
         Paragraph(
             "The analysis covers service and inventory outcomes. It does not model "
             "price elasticity, promotional cannibalisation, substitution between SKUs "
-            "when one stocks out, or the cost of the interventions themselves. A "
-            "stockout on one product may shift demand to another rather than lose it "
-            "outright, which would lower the true lost-sales figure. The recommended "
+            "when one stocks out, or the cost of the interventions themselves. "
+            "Product substitution may recapture some stockout demand and lower the "
+            "true lost-sales figure. The recommended "
             "actions carry implementation cost that is not netted against the value "
-            "pool. Both effects argue for treating the pool as an upper-bound on "
-            "service-side value rather than a net benefit.",
+            "pool. The reported service-side value is therefore an upper bound before "
+            "implementation costs and substitution effects.",
             body,
         )
     )
@@ -1526,7 +1554,6 @@ def build():
     A(PageBreak())
 
     # ========================= RECOMMENDATIONS ==========================
-    A(Paragraph("SECTION 8", kicker))
     A(H1("Recommendations and action priorities"))
     A(HRule(CW))
     A(Spacer(1, 6))
@@ -1572,8 +1599,8 @@ def build():
         ),
         (
             "4. Rebalance inventory to Madrid and Lyon",
-            f"Shift placement from Lisbon and Porto toward the two underserved hubs "
-            f"rather than adding network-wide stock. Closes the {fill_spread:.1f}-point "
+            f"Shift placement from Lisbon and Porto toward the two underserved hubs. "
+            f"Closes the {fill_spread:.1f}-point "
             f"fill spread without raising total inventory.",
             "3-6 months",
             "Medium-High",
@@ -1598,7 +1625,7 @@ def build():
     rows = [["Recommendation", "Horizon", "Priority"]]
     for title, desc, hor, pr in recs:
         cell = Paragraph(
-            f"<b>{title}</b><br/><font size=8.5 color='#6e6e73'>{desc}</font>",
+            f"<b>{title}</b><br/><font size=8.5 color='#475569'>{desc}</font>",
             ParagraphStyle("rc", parent=body, spaceAfter=0, leading=12.5),
         )
         rows.append([cell, Paragraph(hor, small), Paragraph(pr, small)])
@@ -1608,7 +1635,7 @@ def build():
             [
                 ("FONT", (0, 0), (-1, 0), "Helvetica-Bold", 8.5),
                 ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
-                ("BACKGROUND", (0, 0), (-1, 0), INK),
+                ("BACKGROUND", (0, 0), (-1, 0), NAVY),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ("TOPPADDING", (0, 0), (-1, -1), 8),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
@@ -1628,8 +1655,8 @@ def build():
             f"plan come first because they carry the largest return, need no capital, "
             f"and stabilise the inputs that every later fix depends on. The category "
             f"service cell institutionalises that focus. Inventory rebalancing and the "
-            f"ABC policy change come next, once supply is reliable enough that moving "
-            f"stock does not simply relocate the stockout. The monitoring step runs "
+            f"ABC policy change come next, once supply is reliable enough to avoid "
+            f"relocating the stockout between sites. The monitoring step runs "
             f"throughout. Executed in sequence, the plan targets the {eur(opp_total)} "
             f"pool, {eur(opp_margin)} of recoverable margin and {eur(opp_wc)} of "
             f"released capital, with the first two actions carrying most of it.",
@@ -1731,7 +1758,6 @@ def build():
     A(PageBreak())
 
     # ============================= APPENDIX =============================
-    A(Paragraph("SECTION 9", kicker))
     A(H1("Appendix"))
     A(HRule(CW))
     A(Spacer(1, 6))
@@ -1902,6 +1928,7 @@ def build():
     A(data_table(rows, [3.5 * cm, 3.5 * cm, 4.0 * cm, CW - 11.0 * cm], align_right=[1, 2, 3], fs=8))
     A(Spacer(1, 14))
 
+    A(PageBreak())
     A(H2("I. Most overstocked SKUs (releasable-capital candidates)"))
     A(
         Paragraph(

@@ -13,20 +13,16 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-try:
-    from src.config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
-except ModuleNotFoundError:
-    from config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT  # type: ignore[no-redef]
-
+from src.config import ABC_DOS_CAPS, DATA_PROCESSED, DATA_RAW, PROJECT_ROOT
 
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
 
 
 @dataclass(frozen=True)
 class ImpactAssumptions:
-    dos_cap_a: float = 20.0
-    dos_cap_b: float = 30.0
-    dos_cap_c: float = 45.0
+    dos_cap_a: float = ABC_DOS_CAPS["A"]
+    dos_cap_b: float = ABC_DOS_CAPS["B"]
+    dos_cap_c: float = ABC_DOS_CAPS["C"]
     slow_moving_incremental_weight: float = 0.50
     recoverable_lost_margin_rate_12m: float = 0.35
     releasable_trapped_wc_rate_12m: float = 0.25
@@ -51,7 +47,7 @@ def load_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
 def build_supplier_delay_factor(suppliers: pd.DataFrame) -> pd.DataFrame:
     """Blend OTD gap, average delay, and lead-time variability into a 0-1
-    severity factor used to attribute lost-sales exposure to suppliers.
+    severity factor used to associate lost-sales exposure with suppliers.
 
     The factor expresses association strength, not causal share: it weights
     how strongly each supplier's delivery behaviour co-occurs with downstream
@@ -94,10 +90,16 @@ def enrich_daily(
     supplier_delay = build_supplier_delay_factor(suppliers)
 
     out = daily.merge(
-        margin[["product_id", "product_name", "gross_margin_rate"]], on="product_id", how="left"
+        margin[["product_id", "product_name", "gross_margin_rate"]],
+        on="product_id",
+        how="left",
+        validate="many_to_one",
     )
     out = out.merge(
-        supplier_delay[["supplier_id", "supplier_delay_factor"]], on="supplier_id", how="left"
+        supplier_delay[["supplier_id", "supplier_delay_factor"]],
+        on="supplier_id",
+        how="left",
+        validate="many_to_one",
     )
 
     out["gross_margin_rate"] = out["gross_margin_rate"].fillna(0.30).clip(0, 0.90)
@@ -394,8 +396,10 @@ def run_impact_analysis() -> None:
         ]
     ]
 
-    warehouse = warehouse.merge(warehouse_names, on="warehouse_id", how="left")
-    supplier = supplier.merge(supplier_names, on="supplier_id", how="left")
+    warehouse = warehouse.merge(
+        warehouse_names, on="warehouse_id", how="left", validate="one_to_one"
+    )
+    supplier = supplier.merge(supplier_names, on="supplier_id", how="left", validate="one_to_one")
 
     overall = build_overall_summary(enriched, annualization_factor)
     opportunity = build_opportunity_priority_view(sku, warehouse, supplier, category)

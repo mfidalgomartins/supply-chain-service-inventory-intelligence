@@ -7,24 +7,11 @@ from __future__ import annotations
 import duckdb
 import pandas as pd
 
-try:
-    from src.config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT, SQL_DIR
-except ModuleNotFoundError:
-    from config import DATA_PROCESSED, DATA_RAW, PROJECT_ROOT, SQL_DIR  # type: ignore[no-redef]
-
+from src.config import DATA_PROCESSED, PROJECT_ROOT, SQL_DIR
+from src.warehouse import load_csv_table, load_raw_tables
 
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"
 
-
-RAW_TABLES = {
-    "products": DATA_RAW / "products.csv",
-    "suppliers": DATA_RAW / "suppliers.csv",
-    "warehouses": DATA_RAW / "warehouses.csv",
-    "inventory_snapshots": DATA_RAW / "inventory_snapshots.csv",
-    "demand_history": DATA_RAW / "demand_history.csv",
-    "purchase_orders": DATA_RAW / "purchase_orders.csv",
-    "product_classification": DATA_RAW / "product_classification.csv",
-}
 
 PROCESSED_TABLES = {
     "daily_product_warehouse_metrics": DATA_PROCESSED / "daily_product_warehouse_metrics.csv",
@@ -42,23 +29,12 @@ def _split_sql_statements(sql_text: str) -> list[str]:
 def _run_kpi_query_smoke_test() -> int:
     con = duckdb.connect(database=":memory:")
     try:
-        for table_name, path in RAW_TABLES.items():
-            con.execute(
-                f"""
-                CREATE OR REPLACE TABLE {table_name} AS
-                SELECT * FROM read_csv_auto('{path.as_posix()}', HEADER=TRUE);
-                """
-            )
+        load_raw_tables(con)
 
         intermediate_sql = (SQL_DIR / "02_intermediate_views.sql").read_text(encoding="utf-8")
         con.execute(intermediate_sql)
 
-        con.execute(
-            f"""
-            CREATE OR REPLACE TABLE sku_risk_table AS
-            SELECT * FROM read_csv_auto('{PROCESSED_TABLES["sku_risk_table"].as_posix()}', HEADER=TRUE);
-            """
-        )
+        load_csv_table(con, "sku_risk_table", PROCESSED_TABLES["sku_risk_table"])
 
         kpi_sql = (SQL_DIR / "03_kpi_queries.sql").read_text(encoding="utf-8")
         statements = _split_sql_statements(kpi_sql)
@@ -75,13 +51,9 @@ def run_sql_quality_gate() -> pd.DataFrame:
 
     con = duckdb.connect(database=":memory:")
     try:
-        for table_name, path in {**RAW_TABLES, **PROCESSED_TABLES}.items():
-            con.execute(
-                f"""
-                CREATE OR REPLACE TABLE {table_name} AS
-                SELECT * FROM read_csv_auto('{path.as_posix()}', HEADER=TRUE);
-                """
-            )
+        load_raw_tables(con)
+        for table_name, path in PROCESSED_TABLES.items():
+            load_csv_table(con, table_name, path)
 
         sql = (SQL_DIR / "04_validation_queries.sql").read_text(encoding="utf-8")
         checks = con.execute(sql).df()

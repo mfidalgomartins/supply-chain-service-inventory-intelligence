@@ -131,6 +131,17 @@ def test_payload_floats_are_stabilised_for_reproducible_output() -> None:
     }
 
 
+def test_dashboard_payload_cannot_terminate_embedded_script() -> None:
+    payload = _minimal_payload()
+    payload["product_name_map"] = {"P1": "</script><script>alert(1)</script>&\u2028"}
+
+    html = _build_html(payload)
+
+    assert "</script><script>alert(1)</script>" not in html
+    assert "\\u003c/script\\u003e\\u003cscript\\u003ealert(1)" in html
+    assert "\\u0026\\u2028" in html
+
+
 def test_dashboard_sortable_table_announces_sort_state() -> None:
     html = _build_html(_minimal_payload())
     assert 'aria-sort="descending">Priority</th>' in html

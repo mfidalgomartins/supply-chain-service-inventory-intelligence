@@ -1,6 +1,5 @@
-"""SQL gate mechanics: statement splitting must drop empty segments, and the
-inventory KPI queries must average daily network balances rather than
-summing them across the window."""
+"""SQL gate mechanics: statement splitting drops empty segments, and inventory
+KPI queries use daily network averages because balances are not additive over time."""
 
 from __future__ import annotations
 

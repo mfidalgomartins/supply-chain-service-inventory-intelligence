@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="Reproducible decision-support review of service level, stockout, supplier reliability, and inventory risk across a multi-warehouse network." />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eef2f7" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b111b" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Service &amp; Inventory Intelligence — Operating Review" />
+  <meta property="og:description" content="Where the network loses service, where capital sits idle, and the SKU-location actions that recover the most value over the next 12 months." />
+  <meta property="og:url" content="https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/" />
+  <meta property="og:image" content="https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/outputs/graphs/01_opportunity_by_category.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Service &amp; Inventory Intelligence — Operating Review" />
+  <meta name="twitter:description" content="Where the network loses service, where capital sits idle, and the SKU-location actions that recover the most value over the next 12 months." />
+  <meta name="twitter:image" content="https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/outputs/graphs/01_opportunity_by_category.png" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='6'%20fill='%232164f3'/%3E%3Ctext%20x='16'%20y='22'%20font-size='16'%20font-weight='600'%20fill='%23ffffff'%20font-family='Georgia,serif'%20text-anchor='middle'%3ES%C2%B7I%3C/text%3E%3C/svg%3E" />
+  <title>Service &amp; Inventory Intelligence — Operating Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" />
+  <style>
+    /* Shared blue palette — the same analytical language as the PDF report
+       (src/build_report.py) and the published exhibits (src/build_charts.py):
+       #2164f3 carries the single point, #081f4d marks totals and benchmarks. */
+    :root {
+      color-scheme: light;
+      --bg: #eef2f7;
+      --surface: #fbfcfe;
+      --surface-soft: #f4f7fb;
+      --inset: #e6ecf5;
+      --ink: #101418;
+      --ink-soft: #2b3648;
+      --muted: #4a5769;
+      --faint: #56637a;
+      --border: #dbe3ee;
+      --border-strong: #c2cddd;
+      --accent: #2164f3;
+      --accent-ink: #ffffff;
+      --accent-soft: #dbe9ff;
+      --navy: #081f4d;
+      /* Status keeps its own hues — green/amber/red are read semantically, not as
+         palette members — but the tints are cleaned of the warm cast they carried
+         on the old paper background. */
+      --good: #1e6b33;
+      --warn: #8a5300;
+      --bad: #b3261e;
+      --good-soft: #dff1e3;
+      --warn-soft: #fdeecd;
+      --bad-soft: #fbdfdb;
+      --grain-alpha: 0.35;
+      --band-alpha: 0.5;
+      --shadow: 0 1px 2px rgba(16, 26, 45, 0.05), 0 10px 30px -18px rgba(16, 26, 45, 0.20);
+      --shadow-pop: 0 22px 48px -20px rgba(16, 26, 45, 0.30);
+      --radius: 4px;
+      --radius-sm: 3px;
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+      --spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+      --font: "Hanken Grotesk", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+      --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+      --mono: "Spline Sans Mono", ui-monospace, "SF Mono", Menlo, monospace;
+      --gutter: 16px;
+    }
+
+    /* Dark is selected, not flipped: #2164f3 only reaches 3.5:1 on a dark
+       surface, so the accent steps up the same ramp to #6ea8ff. */
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0b111b;
+      --surface: #121a26;
+      --surface-soft: #16202e;
+      --inset: #1e2a3c;
+      --ink: #e8eef7;
+      --ink-soft: #c3cede;
+      --muted: #93a4bd;
+      --faint: #8496b1;
+      --border: #24314a;
+      --border-strong: #3a4b68;
+      --accent: #6ea8ff;
+      --accent-ink: #0a1220;
+      --accent-soft: #1c2c47;
+      --navy: #b8d6ff;
+      --good: #82cf92;
+      --warn: #e0b263;
+      --bad: #f2917e;
+      --good-soft: #1c2e1f;
+      --warn-soft: #342a13;
+      --bad-soft: #3a1d17;
+      --grain-alpha: 0.5;
+      --band-alpha: 0.75;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 32px -16px rgba(0, 0, 0, 0.65);
+      --shadow-pop: 0 24px 56px -22px rgba(0, 0, 0, 0.85);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 78px; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.5;
+      letter-spacing: 0.002em;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    /* Paper grain so the canvas never reads as flat pixels. */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: var(--grain-alpha);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    body > * { position: relative; z-index: 1; }
+
+    a { color: inherit; }
+    button, input, select { font: inherit; color: inherit; }
+    ::selection { background: color-mix(in srgb, var(--accent) 24%, transparent); }
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+    .num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; letter-spacing: -0.01em; }
+
+    .skip-link {
+      position: absolute;
+      top: -48px;
+      left: 16px;
+      z-index: 60;
+      padding: 9px 13px;
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow);
+    }
+    .skip-link:focus { top: 12px; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* ---------- Masthead ---------- */
+    .masthead {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      -webkit-backdrop-filter: saturate(140%) blur(14px);
+      backdrop-filter: saturate(140%) blur(14px);
+      border-bottom: 1px solid var(--border-strong);
+    }
+    .masthead::after {
+      content: "";
+      display: block;
+      height: 3px;
+      background:
+        linear-gradient(90deg, var(--accent) 0 72px, transparent 72px 100%),
+        linear-gradient(var(--border) 0 0);
+      background-size: 100% 1px, 100% 1px;
+      background-position: 0 0, 0 2px;
+      background-repeat: no-repeat;
+    }
+    .masthead-inner {
+      width: min(1360px, calc(100% - 48px));
+      margin: 0 auto;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      flex: none;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: var(--accent-ink);
+      display: grid;
+      place-items: center;
+      font-family: var(--serif);
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.01em;
+    }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.12; min-width: 0; }
+    .brand-name {
+      font-family: var(--serif);
+      font-size: 0.98rem;
+      font-weight: 600;
+      letter-spacing: 0.002em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .brand-sub {
+      font-size: 0.62rem;
+      color: var(--faint);
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .site-nav { display: flex; align-items: center; gap: 2px; }
+    .site-nav a {
+      display: inline-flex;
+      align-items: center;
+      height: 30px;
+      padding: 0 11px;
+      border-radius: var(--radius-sm);
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: color 0.15s var(--ease), background 0.15s var(--ease);
+    }
+    .site-nav a:hover { color: var(--ink); background: var(--inset); }
+    /* Underlined rather than filled: the accent needs a near-white backdrop to
+       hold AA, which a tinted chip would not give it. */
+    .site-nav a[aria-current="true"] { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); border-radius: 0; }
+    .masthead-actions { display: flex; align-items: center; gap: 8px; }
+
+    /* ---------- Page ---------- */
+    .page {
+      width: min(1360px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 34px 0 64px;
+    }
+    .grid12 {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: var(--gutter);
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    /* ---------- Hero ---------- */
+    .hero { margin-bottom: 30px; align-items: stretch; }
+    .brief { grid-column: span 7; padding: 32px 34px; display: flex; flex-direction: column; }
+    .call { grid-column: span 5; padding: 30px 30px 26px; border-top: 3px solid var(--accent); display: flex; flex-direction: column; }
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--accent);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .eyebrow::after {
+      content: "";
+      flex: 0 0 34px;
+      height: 1px;
+      background: var(--border-strong);
+    }
+    h1 {
+      margin: 0;
+      max-width: 18ch;
+      font-family: var(--serif);
+      font-size: clamp(2rem, 3.3vw, 3.15rem);
+      font-weight: 500;
+      line-height: 1.04;
+      letter-spacing: -0.012em;
+      text-wrap: balance;
+    }
+    h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
+    .lead {
+      max-width: 52ch;
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+      line-height: 1.6;
+    }
+
+    /* Scope strip — the shape of the network, not filler. */
+    .scope-strip {
+      margin: 28px 0 0;
+      padding: 18px 0 0;
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .scope-strip > div { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .scope-strip > div + div { border-left: 1px solid var(--border); padding-left: 14px; }
+    .scope-strip dt {
+      color: var(--faint);
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    .scope-strip dd { margin: 0; font-size: 1.02rem; font-weight: 500; letter-spacing: -0.02em; }
+
+    /* ---------- The call ---------- */
+    .call .eyebrow { color: var(--faint); }
+    .call-line {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 1.3rem;
+      font-weight: 500;
+      line-height: 1.28;
+      letter-spacing: -0.005em;
+      text-wrap: balance;
+    }
+    .call-copy { margin: 12px 0 0; color: var(--muted); font-size: 0.86rem; line-height: 1.55; }
+    .call-foot { margin-top: auto; padding-top: 22px; display: grid; gap: 14px; }
+    .call-stat { display: grid; gap: 3px; }
+    .call-stat + .call-stat { border-top: 1px dashed var(--border-strong); padding-top: 14px; }
+    .call-k { color: var(--faint); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }
+    .call-v { font-size: 0.98rem; font-weight: 700; letter-spacing: -0.005em; }
+    .call-d { color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      height: 32px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--ink-soft);
+      padding: 0 13px;
+      cursor: pointer;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: background 0.16s var(--ease), border-color 0.16s var(--ease),
+        color 0.16s var(--ease), transform 0.16s var(--spring);
+    }
+    .btn:hover { background: var(--inset); color: var(--ink); }
+    .btn:active { transform: scale(0.97); }
+    .btn[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+    .btn-ghost { border-color: transparent; background: transparent; }
+    .btn-ghost:hover { background: var(--inset); }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      height: 27px;
+      padding: 0 11px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-soft);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .chip-quiet { background: transparent; border-color: transparent; }
+    .chip-dot::before {
+      content: "";
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--good);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 18%, transparent);
+    }
+
+    /* ---------- Controls ---------- */
+    .controls { padding: 16px 20px 18px; margin-bottom: 34px; }
+    /* Filters take the full width so the localised month inputs never clip;
+       the buttons share the footer line with the scope readout. */
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr)) repeat(2, minmax(0, 1.18fr));
+      gap: 12px;
+    }
+    .controls-bar { display: flex; gap: 7px; flex: none; }
+    .field { min-width: 0; }
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--faint);
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .field select, .field input {
+      width: 100%;
+      height: 38px;
+      padding: 0 11px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 0.84rem;
+      transition: border-color 0.16s var(--ease), box-shadow 0.16s var(--ease);
+    }
+    .field select {
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 32px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.5 4.5L6 8l3.5-3.5' stroke='%2356637a' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 11px center;
+    }
+    .field select:hover, .field input:hover { border-color: var(--faint); }
+    .field select:focus, .field input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .controls-foot {
+      margin: 14px 0 0;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .scope-readout { margin: 0; color: var(--faint); font-size: 0.76rem; }
+    .scope-readout b { color: var(--ink-soft); font-weight: 600; }
+
+    /* ---------- Sections ---------- */
+    .section { margin-bottom: 40px; }
+    .section-head {
+      margin-bottom: 20px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-strong);
+      display: flex;
+      gap: 20px;
+      align-items: baseline;
+    }
+    .section-no {
+      flex: none;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .section h2 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 1.5rem;
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      line-height: 1.15;
+    }
+    .section-sub { margin: 6px 0 0; max-width: 74ch; color: var(--muted); font-size: 0.86rem; }
+
+    .reveal { opacity: 0; transform: translateY(14px); }
+    .reveal.in {
+      opacity: 1;
+      transform: none;
+      transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+    }
+
+    /* ---------- Signals: primary metric blocks ---------- */
+    .signal-primary { margin-bottom: var(--gutter); }
+    .metric {
+      padding: 20px 22px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+    }
+    .metric-lead { grid-column: span 4; }
+    .metric-wide { grid-column: span 8; }
+    .metric-label {
+      color: var(--muted);
+      font-size: 0.64rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .metric-value {
+      margin-top: 10px;
+      font-family: var(--mono);
+      font-size: clamp(2.1rem, 3vw, 2.9rem);
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      font-variant-numeric: tabular-nums;
+    }
+    .metric-sub { margin-top: 9px; color: var(--faint); font-size: 0.78rem; line-height: 1.45; }
+    .metric-sub b { color: var(--ink-soft); font-weight: 600; }
+    .metric-gauge { margin-top: 16px; }
+    .metric-trend { margin-top: 20px; }
+    .metric-trend .spark svg { height: 54px; }
+    .metric-foot { margin-top: auto; padding-top: 14px; }
+
+    /* Bullet gauge: governed bands + target tick. */
+    .gauge svg { display: block; width: 100%; height: 14px; }
+    .gauge-scale {
+      margin-top: 5px;
+      display: flex;
+      justify-content: space-between;
+      color: var(--faint);
+      font-family: var(--mono);
+      font-size: 0.62rem;
+    }
+
+    /* Exposure -> claim composition. */
+    .comp { margin-top: 18px; display: grid; gap: 13px; }
+    .comp-row { display: grid; grid-template-columns: minmax(0, 190px) minmax(0, 1fr) minmax(0, 96px); gap: 14px; align-items: center; }
+    .comp-k { color: var(--ink-soft); font-size: 0.78rem; line-height: 1.35; }
+    .comp-k span { display: block; color: var(--faint); font-size: 0.68rem; }
+    .comp-track {
+      height: 22px;
+      border-radius: 2px;
+      background: var(--inset);
+      display: flex;
+      align-items: stretch;
+      min-width: 2px;
+    }
+    .comp-claim {
+      background: var(--accent);
+      border-radius: 2px 0 0 2px;
+      min-width: 2px;
+      box-shadow: 1px 0 0 var(--surface);
+    }
+    .comp-v { text-align: right; font-family: var(--mono); font-size: 0.8rem; font-weight: 500; }
+    .comp-v span { display: block; color: var(--faint); font-size: 0.68rem; font-weight: 400; }
+    .comp-total {
+      margin-top: 4px;
+      padding-top: 13px;
+      border-top: 1px solid var(--border-strong);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .comp-total-k { color: var(--faint); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+    /* Navy is the shared palette's total/benchmark mark — the same role it plays
+       in the report and the exhibits. */
+    .comp-total-v { font-family: var(--mono); font-size: 1.32rem; font-weight: 500; letter-spacing: -0.03em; color: var(--navy); }
+    .comp-legend { margin-top: 10px; display: flex; gap: 16px; color: var(--faint); font-size: 0.7rem; flex-wrap: wrap; }
+    .comp-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .comp-legend i { width: 9px; height: 9px; border-radius: 2px; }
+    .swatch-claim { background: var(--accent); }
+    .swatch-gross { background: var(--inset); border: 1px solid var(--border-strong); }
+
+    /* ---------- Signals: secondary ribbon ---------- */
+    .signal-ribbon { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gutter); }
+    .tile {
+      padding: 16px 18px 15px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      min-height: 152px;
+    }
+    .tile-value {
+      margin-top: 9px;
+      font-family: var(--mono);
+      font-size: 1.5rem;
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+    .tile-body { margin-top: 13px; }
+    .tile-note { margin-top: auto; padding-top: 11px; color: var(--faint); font-size: 0.72rem; line-height: 1.45; }
+    .tile-note b { color: var(--ink-soft); font-weight: 600; }
+    .spark svg { display: block; width: 100%; height: 30px; overflow: visible; }
+    .spark-line { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+    .spark-area { fill: var(--accent); opacity: 0.09; stroke: none; }
+    .spark-dot { fill: var(--accent); }
+
+    .delta-good { color: var(--good); font-weight: 700; }
+    .delta-bad { color: var(--bad); font-weight: 700; }
+    .delta-flat { color: var(--faint); font-weight: 600; }
+    .tone-good { color: var(--good); }
+    .tone-warn { color: var(--warn); }
+    .tone-bad { color: var(--bad); }
+
+    /* ---------- Priorities ---------- */
+    .triage-summary {
+      padding: 18px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: var(--gutter);
+    }
+    .triage-summary-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+    .triage-summary-k { color: var(--faint); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+    .triage-summary-v { color: var(--muted); font-size: 0.8rem; }
+    .triage-summary-v b { color: var(--ink); font-weight: 700; }
+    .tier-bar { margin-top: 12px; display: flex; gap: 2px; height: 12px; }
+    .tier-seg { border-radius: 1px; min-width: 3px; }
+    .seg-low { background: var(--good); }
+    .seg-medium { background: var(--warn); }
+    .seg-high { background: var(--bad); }
+    .seg-critical { background: var(--ink); }
+    .tier-key { margin-top: 10px; display: flex; gap: 18px; flex-wrap: wrap; color: var(--faint); font-size: 0.72rem; }
+    .tier-key span { display: inline-flex; align-items: center; gap: 7px; }
+    .tier-key i { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+    .tier-key b { color: var(--ink-soft); font-weight: 600; font-family: var(--mono); }
+
+    .moves { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); }
+    .move {
+      display: grid;
+      grid-template-columns: 54px minmax(0, 230px) minmax(0, 1fr);
+      gap: 20px;
+      align-items: baseline;
+      padding: 20px 4px 20px 0;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.18s var(--ease);
+    }
+    .move:hover { background: var(--surface-soft); }
+    .move-no {
+      font-family: var(--serif);
+      font-size: 1.7rem;
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1;
+      color: var(--border-strong);
+      text-align: right;
+    }
+    .move-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--faint);
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+    .move-label i { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+    .move-title { font-family: var(--serif); font-size: 1.14rem; font-weight: 500; line-height: 1.25; }
+    .move-body { color: var(--muted); font-size: 0.85rem; line-height: 1.55; }
+    .move-body b { color: var(--ink); font-weight: 600; }
+    .move.bad .move-label i { background: var(--bad); }
+    .move.warn .move-label i { background: var(--warn); }
+    .move.good .move-label i { background: var(--good); }
+    .move.accent .move-label i { background: var(--accent); }
+
+    /* ---------- Exhibits ---------- */
+    .exhibit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gutter); }
+    .exhibit-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .exhibit {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 18px 18px 10px;
+      transition: border-color 0.22s var(--ease), box-shadow 0.22s var(--ease);
+    }
+    .exhibit:hover { border-color: var(--border-strong); box-shadow: var(--shadow); }
+    .exhibit-head { padding: 0 4px 10px; }
+    .exhibit-q {
+      margin: 0 0 7px;
+      color: var(--faint);
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    /* The finding is the headline — it recomputes with the active scope. */
+    .exhibit-title {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 1.04rem;
+      font-weight: 500;
+      line-height: 1.32;
+      text-wrap: balance;
+    }
+    .exhibit-title b { font-weight: 500; color: var(--accent); font-style: italic; }
+    .chart-body { flex: 1; min-height: 292px; }
+    .exhibit.tall .chart-body { min-height: 348px; }
+    .chart-body > .js-plotly-plot,
+    .chart-body > .plot-container { width: 100% !important; min-height: inherit; }
+
+    /* ---------- Scenario / method ---------- */
+    .scenario-panel, .method-panel {
+      display: none;
+      padding: 18px 20px;
+      margin-bottom: 34px;
+      border-left: 3px solid var(--accent);
+    }
+    .method-panel { color: var(--muted); font-size: 0.86rem; line-height: 1.65; max-width: 90ch; }
+    .scenario-grid { display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 18px; }
+    .scenario-grid input[type="range"] { width: 100%; accent-color: var(--accent); margin-top: 4px; }
+    .scenario-value { margin-top: 6px; color: var(--muted); font-size: 0.78rem; }
+    .scenario-value b { font-family: var(--mono); color: var(--ink); font-weight: 600; }
+
+    /* ---------- Table ---------- */
+    .table-tools {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .table-tools input {
+      width: min(380px, 100%);
+      height: 36px;
+      padding: 0 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 0.84rem;
+    }
+    .table-tools input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .table-wrap {
+      max-height: 520px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th, td {
+      padding: 11px 11px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr { transition: background 0.1s ease, box-shadow 0.1s ease; }
+    tbody tr:hover { background: var(--surface-soft); box-shadow: inset 3px 0 0 var(--accent); }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--inset);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.64rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-strong);
+      user-select: none;
+    }
+    th:hover { color: var(--ink); }
+    th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--accent); }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .wrap { white-space: normal; min-width: 190px; color: var(--muted); }
+    .score { font-family: var(--mono); font-weight: 600; }
+    .score-cell { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 52px; }
+    .score-bar { width: 46px; height: 3px; border-radius: 2px; background: var(--inset); overflow: hidden; }
+    .score-bar i { display: block; height: 100%; background: var(--accent); }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 20px;
+      padding: 0 8px;
+      border-radius: var(--radius-sm);
+      font-size: 0.64rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex: none; }
+    .tier-low { color: var(--good); background: var(--good-soft); }
+    .tier-medium { color: var(--warn); background: var(--warn-soft); }
+    .tier-high, .tier-critical { color: var(--bad); background: var(--bad-soft); }
+
+    /* ---------- Closing memo ---------- */
+    .memo { padding: 30px 34px; }
+    .memo-lead {
+      margin: 0;
+      max-width: 68ch;
+      font-family: var(--serif);
+      font-size: 1.24rem;
+      font-weight: 500;
+      line-height: 1.4;
+      letter-spacing: -0.005em;
+      text-wrap: balance;
+    }
+    .memo-lead b { color: var(--accent); font-weight: 500; }
+    .memo-grid {
+      margin-top: 26px;
+      padding-top: 22px;
+      border-top: 1px solid var(--border-strong);
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 26px;
+    }
+    .memo-grid > div + div { border-left: 1px solid var(--border); padding-left: 26px; }
+    .memo-k { color: var(--accent); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }
+    .memo-c { margin-top: 10px; color: var(--ink-soft); font-size: 0.88rem; line-height: 1.6; }
+    .memo-c b { color: var(--ink); font-weight: 700; }
+
+    /* ---------- Footer / status ---------- */
+    .foot {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-strong);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: var(--faint);
+      font-size: 0.74rem;
+    }
+    .foot .num { letter-spacing: 0; font-size: 0.72rem; }
+    .status-alert {
+      display: none;
+      margin: 0 0 28px;
+      padding: 12px 14px;
+      border: 1px solid var(--border-strong);
+      border-left: 3px solid var(--warn);
+      border-radius: var(--radius-sm);
+      background: var(--warn-soft);
+      color: var(--ink);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 1180px) {
+      .site-nav { display: none; }
+    }
+    @media (max-width: 1080px) {
+      .brief, .call { grid-column: span 12; }
+      .metric-lead, .metric-wide { grid-column: span 12; }
+      .filters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .controls-bar { justify-content: flex-end; }
+      .signal-ribbon { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .exhibit-grid, .exhibit-grid.three { grid-template-columns: 1fr; }
+      .memo-grid { grid-template-columns: 1fr; gap: 20px; }
+      .memo-grid > div + div { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); padding-top: 20px; }
+    }
+    @media (max-width: 640px) {
+      .page { width: calc(100% - 28px); padding-top: 20px; }
+      .masthead-inner { width: calc(100% - 28px); }
+      .brand-sub { display: none; }
+      .masthead .chip-quiet { display: none; }
+      h1 { font-size: clamp(1.7rem, 8vw, 2.2rem); }
+      .brief, .call, .memo { padding: 22px 20px; }
+      .filters, .scenario-grid, .signal-ribbon { grid-template-columns: 1fr; }
+      .scope-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 0; }
+      .scope-strip > div + div { border-left: 0; padding-left: 0; }
+      .scope-strip > div:nth-child(even) { border-left: 1px solid var(--border); padding-left: 14px; }
+      .move { grid-template-columns: 1fr; gap: 8px; }
+      .move-no { text-align: left; font-size: 1.2rem; }
+      .comp-row { grid-template-columns: 1fr; gap: 6px; }
+      .comp-v { text-align: left; }
+      th, td { padding: 10px 12px; font-size: 0.78rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .reveal { opacity: 1; transform: none; }
+      *, *::before, *::after { transition: none !important; animation: none !important; }
+    }
+
+    @media print {
+      body { background: #fff; color: #111; }
+      body::before { display: none; }
+      .masthead { position: static; backdrop-filter: none; }
+      .page { width: 100%; padding: 0; }
+      .panel, .section, .exhibit, .metric, .tile { box-shadow: none; break-inside: avoid; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+      .controls, .scenario-panel, .method-panel, .table-tools, .masthead-actions, .site-nav { display: none !important; }
+      .exhibit-grid, .exhibit-grid.three { grid-template-columns: 1fr; }
+      .chart-body, .exhibit.tall .chart-body { min-height: 280px; }
+      .table-wrap { max-height: none; overflow: visible; }
+      th { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to dashboard content</a>
+
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">S·I</span>
+        <span class="brand-text">
+          <span class="brand-name">Service &amp; Inventory Intelligence</span>
+          <span class="brand-sub">Operating review</span>
+        </span>
+      </div>
+      <nav class="site-nav" aria-label="Sections">
+        <a href="#scorecard-title">Signals</a>
+        <a href="#priorities-title">Priorities</a>
+        <a href="#charts-title">Drivers</a>
+        <a href="#tradeoff-title">Trade-off</a>
+        <a href="#detail-title">Queue</a>
+      </nav>
+      <div class="masthead-actions">
+        <span class="chip chip-quiet chip-dot" id="meta-refresh">Snapshot loading</span>
+        <button class="btn btn-ghost" id="toggle-theme" type="button">Dark</button>
+        <button class="btn btn-ghost" id="print-dashboard" type="button">Print</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="page">
+    <section class="hero grid12" aria-labelledby="page-title">
+      <div class="panel brief">
+        <p class="eyebrow" id="hero-eyebrow">Supply chain operating review</p>
+        <h1 id="page-title">Service, inventory&nbsp;&amp; <em>working capital</em></h1>
+        <p class="lead">Where the network loses service, where capital sits idle, and the SKU-locations that recover the most value over the next twelve months.</p>
+        <dl class="scope-strip" id="scope-strip"></dl>
+      </div>
+
+      <aside class="panel call" aria-label="Current decision frame">
+        <p class="eyebrow">The call</p>
+        <p class="call-line" id="decision-title">Loading decision frame</p>
+        <p class="call-copy" id="decision-copy"></p>
+        <div class="call-foot">
+          <div class="call-stat">
+            <span class="call-k">Act first</span>
+            <span class="call-v" id="hero-action"></span>
+            <span class="call-d" id="hero-action-detail"></span>
+          </div>
+          <div class="call-stat">
+            <span class="call-k">12-month value at stake</span>
+            <span class="call-v num" id="hero-value"></span>
+            <span class="call-d" id="hero-value-detail"></span>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel controls" aria-label="Dashboard filters">
+      <div class="filters">
+        <div class="field"><label for="filter-region">Region</label><select id="filter-region"></select></div>
+        <div class="field"><label for="filter-warehouse">Warehouse</label><select id="filter-warehouse"></select></div>
+        <div class="field"><label for="filter-category">Category</label><select id="filter-category"></select></div>
+        <div class="field"><label for="filter-supplier">Supplier</label><select id="filter-supplier"></select></div>
+        <div class="field"><label for="filter-abc">ABC class</label><select id="filter-abc"></select></div>
+        <div class="field"><label for="filter-start">From</label><input id="filter-start" type="month" /></div>
+        <div class="field"><label for="filter-end">To</label><input id="filter-end" type="month" /></div>
+      </div>
+      <div class="controls-foot">
+        <p class="scope-readout" id="scope-readout"></p>
+        <div class="controls-bar">
+          <button class="btn" id="reset-filters" type="button">Reset</button>
+          <button class="btn" id="toggle-scenario" type="button" aria-controls="scenario-panel" aria-expanded="false">Assumptions</button>
+          <button class="btn" id="toggle-method" type="button" aria-controls="method-panel" aria-expanded="false">Method</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="status-alert" class="status-alert" role="status"></div>
+
+    <section class="panel scenario-panel" id="scenario-panel" aria-label="Scenario assumptions">
+      <div class="scenario-grid">
+        <div class="field">
+          <label for="assump-margin-rate">Recoverable lost margin rate</label>
+          <input id="assump-margin-rate" type="range" min="10" max="60" step="1" />
+          <div class="scenario-value" id="assump-margin-rate-value"></div>
+        </div>
+        <div class="field">
+          <label for="assump-wc-rate">Releasable working capital rate</label>
+          <input id="assump-wc-rate" type="range" min="5" max="60" step="1" />
+          <div class="scenario-value" id="assump-wc-rate-value"></div>
+        </div>
+        <div class="field">
+          <label for="assump-slow-weight">Slow-moving incremental weight</label>
+          <input id="assump-slow-weight" type="range" min="0" max="100" step="1" />
+          <div class="scenario-value" id="assump-slow-weight-value"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel method-panel" id="method-panel">
+      Metrics are demand-weighted where required. Fill rate is fulfilled units divided by demanded units. Stockout rate is lost units divided by demanded units. The 12-month opportunity proxy combines annualized recoverable lost-sales margin and releasable trapped working capital under the visible scenario assumptions. Financial values are directional operating proxies, not accounting entries.
+    </section>
+
+    <main id="main-content">
+      <section class="section reveal" aria-labelledby="scorecard-title">
+        <div class="section-head">
+          <span class="section-no" aria-hidden="true">01</span>
+          <div>
+            <h2 id="scorecard-title">Where the network stands</h2>
+            <p class="section-sub">Service against its governed bar, the exposure behind the gap, and how much of that exposure is actually claimable over twelve months.</p>
+          </div>
+        </div>
+        <div class="signal-primary grid12" id="signal-primary"></div>
+        <div class="signal-ribbon" id="signal-ribbon"></div>
+      </section>
+
+      <section class="section reveal" aria-labelledby="priorities-title">
+        <div class="section-head">
+          <span class="section-no" aria-hidden="true">02</span>
+          <div>
+            <h2 id="priorities-title">How much of the network to touch</h2>
+            <p class="section-sub">The governed baseline sorts every SKU-location into a tier. Most need nothing. These four moves cover the ones that do.</p>
+          </div>
+        </div>
+        <div class="triage-summary" id="triage-summary"></div>
+        <ol class="moves" id="priority-list"></ol>
+      </section>
+
+      <section class="section reveal" aria-labelledby="charts-title">
+        <div class="section-head">
+          <span class="section-no" aria-hidden="true">03</span>
+          <div>
+            <h2 id="charts-title">What drives the gap</h2>
+            <p class="section-sub">Monthly movement, and the warehouses and categories carrying most of the exposure in the active scope.</p>
+          </div>
+        </div>
+        <div class="exhibit-grid">
+          <article class="exhibit">
+            <div class="exhibit-head">
+              <p class="exhibit-q">Is service holding the 97% bar?</p>
+              <h3 class="exhibit-title" id="finding-trend"></h3>
+            </div>
+            <div class="chart-body" id="chart-trend" role="img" aria-label="Monthly fill rate trend against the 97 percent service target"></div>
+          </article>
+          <article class="exhibit">
+            <div class="exhibit-head">
+              <p class="exhibit-q">Revenue leak or idle capital?</p>
+              <h3 class="exhibit-title" id="finding-value-trend"></h3>
+            </div>
+            <div class="chart-body" id="chart-value-trend" role="img" aria-label="Monthly lost sales flow and trapped working capital balance, shown as two panels on a shared timeline"></div>
+          </article>
+          <article class="exhibit">
+            <div class="exhibit-head">
+              <p class="exhibit-q">Which site loses the most revenue?</p>
+              <h3 class="exhibit-title" id="finding-bottlenecks"></h3>
+            </div>
+            <div class="chart-body" id="chart-bottlenecks" role="img" aria-label="Warehouse lost sales comparison"></div>
+          </article>
+          <article class="exhibit">
+            <div class="exhibit-head">
+              <p class="exhibit-q">Where is working capital trapped?</p>
+              <h3 class="exhibit-title" id="finding-category-capital"></h3>
+            </div>
+            <div class="chart-body" id="chart-category-capital" role="img" aria-label="Category working capital concentration"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section reveal" aria-labelledby="tradeoff-title">
+        <div class="section-head">
+          <span class="section-no" aria-hidden="true">04</span>
+          <div>
+            <h2 id="tradeoff-title">Service against inventory</h2>
+            <p class="section-sub">Segments that under-serve while holding stock, suppliers carrying downstream exposure, and how tightly the loss concentrates.</p>
+          </div>
+        </div>
+        <div class="exhibit-grid three">
+          <article class="exhibit tall">
+            <div class="exhibit-head">
+              <p class="exhibit-q">Who under-serves despite inventory?</p>
+              <h3 class="exhibit-title" id="finding-tradeoff"></h3>
+            </div>
+            <div class="chart-body" id="chart-tradeoff" role="img" aria-label="Service level versus days of supply by category and region"></div>
+          </article>
+          <article class="exhibit tall">
+            <div class="exhibit-head">
+              <p class="exhibit-q">Which suppliers carry the exposure?</p>
+              <h3 class="exhibit-title" id="finding-supplier"></h3>
+            </div>
+            <div class="chart-body" id="chart-supplier" role="img" aria-label="Supplier execution and downstream lost sales"></div>
+          </article>
+          <article class="exhibit tall">
+            <div class="exhibit-head">
+              <p class="exhibit-q">How concentrated is the loss?</p>
+              <h3 class="exhibit-title" id="finding-governance"></h3>
+            </div>
+            <div class="chart-body" id="chart-governance" role="img" aria-label="Cumulative share of lost sales across SKU-locations ranked by exposure, against an even-spread reference"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section reveal" aria-labelledby="detail-title">
+        <div class="section-head">
+          <span class="section-no" aria-hidden="true">05</span>
+          <div>
+            <h2 id="detail-title">Priority Action Queue</h2>
+            <p class="section-sub">Scores use the full-period governed baseline; operating metrics reflect the active filters.</p>
+          </div>
+        </div>
+        <div class="table-tools">
+          <input id="table-search" type="search" placeholder="Search SKU, product, warehouse, supplier, driver, action" aria-label="Search priority action queue" />
+          <div class="chip" id="table-meta">Rows loading</div>
+        </div>
+        <div class="table-wrap">
+          <table id="detail-table">
+            <caption class="sr-only">Full-period priority scores with operating metrics from the active filters</caption>
+            <thead>
+              <tr>
+                <th tabindex="0" class="num" data-key="governance_priority_score" aria-sort="descending">Priority</th>
+                <th tabindex="0" data-key="product_id" aria-sort="none">SKU</th>
+                <th tabindex="0" data-key="product_name" aria-sort="none">Product</th>
+                <th tabindex="0" data-key="warehouse_id" aria-sort="none">Warehouse</th>
+                <th tabindex="0" data-key="supplier_id" aria-sort="none">Supplier</th>
+                <th tabindex="0" class="num" data-key="fill_rate" aria-sort="none">Fill</th>
+                <th tabindex="0" class="num" data-key="stockout_rate" aria-sort="none">Stockout</th>
+                <th tabindex="0" class="num" data-key="lost_sales_revenue" aria-sort="none">Lost sales</th>
+                <th tabindex="0" data-key="risk_tier" aria-sort="none">Tier</th>
+                <th tabindex="0" data-key="main_risk_driver" aria-sort="none">Driver</th>
+                <th tabindex="0" data-key="recommended_action" aria-sort="none">Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section reveal" aria-labelledby="memo-title">
+        <div class="section-head">
+          <span class="section-no" aria-hidden="true">06</span>
+          <div>
+            <h2 id="memo-title">The decision</h2>
+            <p class="section-sub">What the active scope says, the sequence it implies, and the trigger that would overturn it.</p>
+          </div>
+        </div>
+        <div class="panel memo" id="memo"></div>
+      </section>
+
+      <footer class="foot" aria-label="Dataset provenance">
+        <span class="num" id="foot-provenance"></span>
+        <span>Demand-weighted metrics · financial values are directional operating proxies, not accounting entries</span>
+      </footer>
+    </main>
+  </div>
+
+  <script src="__PLOTLY_CDN_URL__" integrity="__PLOTLY_SRI__" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    const dashboardData = __DATA_JSON__;
+
+    function decodeMonthlyFact(compact) {
+      const dim = compact.dim || {};
+      return (compact.rows || []).map(r => ({
+        month: dim.month[r[0]],
+        region: dim.region[r[1]],
+        warehouse_id: dim.warehouse_id[r[2]],
+        product_id: dim.product_id[r[3]],
+        category: dim.category[r[4]],
+        supplier_id: dim.supplier_id[r[5]],
+        abc_class: dim.abc_class[r[6]],
+        units_demanded: Number(r[7]),
+        units_fulfilled: Number(r[8]),
+        units_lost_sales: Number(r[9]),
+        lost_sales_revenue: Number(r[10]),
+        inventory_value: Number(r[11]),
+        avg_days_of_supply: Number(r[12]),
+        excess_inventory_proxy: Number(r[13]),
+        slow_moving_proxy: Number(r[14]),
+        slow_moving_non_excess_proxy: Number(r[15]),
+        trapped_wc_proxy: Number(r[16]),
+        lost_sales_margin_proxy: Number(r[17]),
+        observation_days: Number(r[18]),
+        stockout_month_flag: Number(r[19]),
+      }));
+    }
+
+    const monthlyFact = decodeMonthlyFact(dashboardData.monthly_sku_compact);
+    const productMeta = dashboardData.product_name_map || {};
+    const supplierMeta = Object.fromEntries((dashboardData.suppliers || []).map(s => [s.supplier_id, s]));
+    const warehouseMeta = Object.fromEntries((dashboardData.warehouses || []).map(w => [w.warehouse_id, w]));
+    const skuRiskBaselineMap = Object.fromEntries(
+      (dashboardData.sku_risk_baseline || []).map(s => [`${s.product_id}|${s.warehouse_id}|${s.supplier_id}`, s])
+    );
+
+    // Governed thresholds. These mirror the scoring policy documented in the
+    // repository — the gauges read from here so a policy change lands in one place.
+    const TARGETS = {
+      fill: { target: 0.97, floor: 0.95, domain: [0.90, 1.0] },
+      stockout: { target: 0.02, ceiling: 0.05, domain: [0, 0.10] },
+      otd: { target: 0.92, floor: 0.88, domain: [0.70, 1.0] },
+      trappedShare: { target: 0.12, ceiling: 0.18, domain: [0, 0.25] },
+    };
+
+    const filters = {
+      region: document.getElementById('filter-region'),
+      warehouse: document.getElementById('filter-warehouse'),
+      category: document.getElementById('filter-category'),
+      supplier: document.getElementById('filter-supplier'),
+      abc: document.getElementById('filter-abc'),
+      start: document.getElementById('filter-start'),
+      end: document.getElementById('filter-end'),
+    };
+    const scenario = {
+      marginRate: document.getElementById('assump-margin-rate'),
+      wcRate: document.getElementById('assump-wc-rate'),
+      slowWeight: document.getElementById('assump-slow-weight'),
+      marginRateValue: document.getElementById('assump-margin-rate-value'),
+      wcRateValue: document.getElementById('assump-wc-rate-value'),
+      slowWeightValue: document.getElementById('assump-slow-weight-value'),
+    };
+    const tableBody = document.querySelector('#detail-table tbody');
+    const tableSearch = document.getElementById('table-search');
+    const tableMeta = document.getElementById('table-meta');
+    const plotConfig = { displayModeBar: false, responsive: true, scrollZoom: false };
+    const CHART_IDS = ['chart-trend', 'chart-value-trend', 'chart-bottlenecks', 'chart-category-capital', 'chart-tradeoff', 'chart-supplier', 'chart-governance'];
+    let tableSort = { key: 'governance_priority_score', dir: 'desc' };
+    let currentAgg = null;
+    let currentTheme = 'light';
+
+    const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const fmtPct = v => `${((Number(v) || 0) * 100).toFixed(1)}%`;
+    const fmtPct0 = v => `${Math.round((Number(v) || 0) * 100)}%`;
+    // Pinned to en-US: the dashboard is written in English, and an unpinned
+    // toLocaleString would render "11 520" here and "11,520" there.
+    const fmtNum = v => Number(v || 0).toLocaleString('en-US');
+    const fmtPp = v => `${(Math.abs(Number(v) || 0) * 100).toFixed(1)}pp`;
+    const fmtCompactEur = v => {
+      const value = Math.abs(Number(v) || 0);
+      const sign = (Number(v) || 0) < 0 ? '-' : '';
+      if (value >= 1_000_000_000) return `${sign}€${(value / 1_000_000_000).toFixed(2)}B`;
+      if (value >= 1_000_000) return `${sign}€${(value / 1_000_000).toFixed(1)}M`;
+      if (value >= 1_000) return `${sign}€${(value / 1_000).toFixed(0)}K`;
+      return `${sign}€${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+    };
+    const short = (value, limit = 30) => {
+      const text = String(value || '');
+      return text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
+    };
+    const clamp = (x, min, max) => Math.max(min, Math.min(max, x));
+    const norm = (x, min, max) => max <= min ? 0 : clamp((x - min) / (max - min), 0, 1);
+    const monthLabel = m => {
+      const [y, mo] = String(m).slice(0, 7).split('-');
+      return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(mo) - 1]} ${y.slice(2)}`;
+    };
+
+    function palette() {
+      if (currentTheme === 'dark') {
+        return {
+          paper: 'rgba(0,0,0,0)', plot: 'rgba(0,0,0,0)',
+          text: '#e8eef7', muted: '#93a4bd', faint: '#75859d', grid: '#24314a',
+          accent: '#6ea8ff', accentDim: 'rgba(110,168,255,0.28)',
+          good: '#82cf92', warn: '#e0b263', bad: '#f2917e', slate: '#7c8ba1',
+          surface: '#121a26',
+        };
+      }
+      return {
+        paper: 'rgba(0,0,0,0)', plot: 'rgba(0,0,0,0)',
+        text: '#101418', muted: '#4a5769', faint: '#6b7a91', grid: '#dce5f0',
+        accent: '#2164f3', accentDim: 'rgba(33,100,243,0.13)',
+        good: '#1e6b33', warn: '#8a5300', bad: '#b3261e',
+        // Recessive mark colour for data that clears its threshold. Kept dark
+        // enough to hold 3:1 against the surface, per WCAG non-text contrast.
+        slate: '#64748b',
+        surface: '#fbfcfe',
+      };
+    }
+
+    function baseLayout() {
+      const c = palette();
+      return {
+        paper_bgcolor: c.paper,
+        plot_bgcolor: c.plot,
+        font: { family: '"Hanken Grotesk", "Segoe UI", system-ui, sans-serif', size: 11.5, color: c.muted },
+        margin: { l: 64, r: 18, t: 14, b: 42 },
+        xaxis: { gridcolor: c.grid, zeroline: false, automargin: true, tickfont: { family: '"Spline Sans Mono", monospace', size: 10.5, color: c.faint }, linecolor: c.grid },
+        yaxis: { gridcolor: c.grid, zeroline: false, automargin: true, tickfont: { family: '"Spline Sans Mono", monospace', size: 10.5, color: c.faint } },
+        hoverlabel: { bgcolor: currentTheme === 'dark' ? '#060a12' : '#101418', bordercolor: 'rgba(0,0,0,0)', font: { color: '#f5f8fd', family: '"Hanken Grotesk", system-ui, sans-serif', size: 12 } },
+        showlegend: false,
+        dragmode: false,
+      };
+    }
+
+    /* Plotly's SI format renders thousands as "500k" and millions as "1.5M",
+       which reads inconsistently next to the "€500K" used everywhere else. These
+       ticks are generated so every euro axis speaks the same notation. */
+    const NICE_STEPS = [1, 2, 2.5, 5, 10];
+    function euroAxisTicks(maxValue, targetCount = 4) {
+      const max = Math.max(Number(maxValue) || 0, 1);
+      const raw = max / targetCount;
+      const mag = 10 ** Math.floor(Math.log10(raw));
+      const step = (NICE_STEPS.find(s => s * mag >= raw) || 10) * mag;
+      const tickvals = [];
+      for (let v = 0; v <= max * 1.0001; v += step) tickvals.push(Number(v.toPrecision(12)));
+      return { tickmode: 'array', tickvals, ticktext: tickvals.map(fmtCompactEur) };
+    }
+
+    function getUnique(rows, key) {
+      return [...new Set(rows.map(r => r[key]).filter(Boolean))].sort();
+    }
+
+    function populateSelect(select, values) {
+      select.innerHTML = '<option value="ALL">All</option>' + values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+    }
+
+    function initializeControls() {
+      populateSelect(filters.region, getUnique(monthlyFact, 'region'));
+      populateSelect(filters.warehouse, getUnique(monthlyFact, 'warehouse_id'));
+      populateSelect(filters.category, getUnique(monthlyFact, 'category'));
+      populateSelect(filters.supplier, getUnique(monthlyFact, 'supplier_id'));
+      populateSelect(filters.abc, getUnique(monthlyFact, 'abc_class'));
+      filters.start.value = dashboardData.meta.date_min.slice(0, 7);
+      filters.end.value = dashboardData.meta.date_max.slice(0, 7);
+
+      const defaults = dashboardData.meta.assumptions_default || {};
+      scenario.marginRate.value = String(Math.round((defaults.recoverable_margin_rate ?? 0.35) * 100));
+      scenario.wcRate.value = String(Math.round((defaults.releasable_wc_rate ?? 0.25) * 100));
+      scenario.slowWeight.value = String(Math.round((defaults.slow_moving_incremental_weight ?? 0.50) * 100));
+      updateScenarioLabels();
+    }
+
+    function readScenario() {
+      return {
+        recoverableMarginRate: Number(scenario.marginRate.value) / 100,
+        releasableWcRate: Number(scenario.wcRate.value) / 100,
+        slowMovingIncrementalWeight: Number(scenario.slowWeight.value) / 100,
+      };
+    }
+
+    function updateScenarioLabels() {
+      const s = readScenario();
+      scenario.marginRateValue.innerHTML = `<b>${fmtPct(s.recoverableMarginRate)}</b> of annualized lost-sales margin`;
+      scenario.wcRateValue.innerHTML = `<b>${fmtPct(s.releasableWcRate)}</b> of trapped working capital`;
+      scenario.slowWeightValue.innerHTML = `<b>${fmtPct(s.slowMovingIncrementalWeight)}</b> incremental slow-moving value`;
+    }
+
+    function getDateRange() {
+      let start = `${filters.start.value || dashboardData.meta.date_min.slice(0, 7)}-01`;
+      let end = `${filters.end.value || dashboardData.meta.date_max.slice(0, 7)}-01`;
+      if (start > end) [start, end] = [end, start];
+      return { start, end };
+    }
+
+    function rowPasses(row, range) {
+      return (
+        (filters.region.value === 'ALL' || row.region === filters.region.value) &&
+        (filters.warehouse.value === 'ALL' || row.warehouse_id === filters.warehouse.value) &&
+        (filters.category.value === 'ALL' || row.category === filters.category.value) &&
+        (filters.supplier.value === 'ALL' || row.supplier_id === filters.supplier.value) &&
+        (filters.abc.value === 'ALL' || row.abc_class === filters.abc.value) &&
+        row.month >= range.start && row.month <= range.end
+      );
+    }
+
+    function ensure(map, key, seed) {
+      if (!map.has(key)) map.set(key, seed());
+      return map.get(key);
+    }
+
+    function aggregate(rows, s) {
+      const monthMap = new Map();
+      const warehouseMap = new Map();
+      const categoryMap = new Map();
+      const supplierMap = new Map();
+      const segmentMap = new Map();
+      const skuMap = new Map();
+      let demand = 0, fulfilled = 0, lost = 0, lostSales = 0, lostMargin = 0;
+
+      const addMonthlyBalance = (entity, month, obsDays, inventory, excess, trapped) => {
+        const balance = ensure(entity.balanceByMonth, month, () => ({ obsDays, inventory: 0, excess: 0, trapped: 0 }));
+        balance.inventory += inventory;
+        balance.excess += excess;
+        balance.trapped += trapped;
+      };
+      const finalizeBalance = entity => {
+        const balances = [...entity.balanceByMonth.values()];
+        const days = balances.reduce((sum, x) => sum + x.obsDays, 0);
+        const weighted = key => balances.reduce((sum, x) => sum + x[key] * x.obsDays, 0) / Math.max(days, 1);
+        const { balanceByMonth, ...clean } = entity;
+        return { ...clean, inventory: weighted('inventory'), excess: weighted('excess'), trapped: weighted('trapped') };
+      };
+
+      for (const r of rows) {
+        const d = r.units_demanded;
+        const f = r.units_fulfilled;
+        const l = r.units_lost_sales;
+        const ls = r.lost_sales_revenue;
+        const inv = r.inventory_value;
+        const ex = r.excess_inventory_proxy;
+        const trappedScenario = ex + s.slowMovingIncrementalWeight * r.slow_moving_non_excess_proxy;
+        const obsDays = r.observation_days;
+        demand += d; fulfilled += f; lost += l; lostSales += ls; lostMargin += r.lost_sales_margin_proxy;
+
+        const m = ensure(monthMap, r.month, () => ({ month: r.month, obsDays, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, inventory: 0, excess: 0, trapped: 0 }));
+        m.demand += d; m.fulfilled += f; m.lost += l; m.lostSales += ls; m.inventory += inv; m.trapped += trappedScenario;
+        m.excess += ex;
+
+        const wMeta = warehouseMeta[r.warehouse_id] || {};
+        const w = ensure(warehouseMap, r.warehouse_id, () => ({ warehouse_id: r.warehouse_id, warehouse_name: wMeta.warehouse_name || r.warehouse_id, region: r.region, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, balanceByMonth: new Map(), dosWeighted: 0, obsDays: 0 }));
+        w.demand += d; w.fulfilled += f; w.lost += l; w.lostSales += ls; w.dosWeighted += r.avg_days_of_supply * obsDays; w.obsDays += obsDays;
+        addMonthlyBalance(w, r.month, obsDays, inv, ex, trappedScenario);
+
+        const c = ensure(categoryMap, r.category, () => ({ category: r.category, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, balanceByMonth: new Map(), dosWeighted: 0, obsDays: 0 }));
+        c.demand += d; c.fulfilled += f; c.lost += l; c.lostSales += ls; c.dosWeighted += r.avg_days_of_supply * obsDays; c.obsDays += obsDays;
+        addMonthlyBalance(c, r.month, obsDays, inv, ex, trappedScenario);
+
+        const sMeta = supplierMeta[r.supplier_id] || {};
+        const sup = ensure(supplierMap, r.supplier_id, () => ({ supplier_id: r.supplier_id, supplier_name: sMeta.supplier_name || r.supplier_id, on_time_delivery_rate: Number(sMeta.on_time_delivery_rate || 0), average_delay_days: Number(sMeta.average_delay_days || 0), lead_time_variability: Number(sMeta.lead_time_variability || 0), demand: 0, fulfilled: 0, lost: 0, lostSales: 0 }));
+        sup.demand += d; sup.fulfilled += f; sup.lost += l; sup.lostSales += ls;
+
+        const segKey = `${r.category}|${r.region}`;
+        const seg = ensure(segmentMap, segKey, () => ({ segment: segKey, category: r.category, region: r.region, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, balanceByMonth: new Map(), dosWeighted: 0, obsDays: 0 }));
+        seg.demand += d; seg.fulfilled += f; seg.lost += l; seg.lostSales += ls; seg.dosWeighted += r.avg_days_of_supply * obsDays; seg.obsDays += obsDays;
+        addMonthlyBalance(seg, r.month, obsDays, inv, ex, trappedScenario);
+
+        const skuKey = `${r.product_id}|${r.warehouse_id}|${r.supplier_id}`;
+        const sku = ensure(skuMap, skuKey, () => ({ product_id: r.product_id, product_name: productMeta[r.product_id] || r.product_id, warehouse_id: r.warehouse_id, supplier_id: r.supplier_id, category: r.category, region: r.region, abc_class: r.abc_class, demand: 0, fulfilled: 0, lost: 0, lostSales: 0, balanceByMonth: new Map(), dosWeighted: 0, obsDays: 0 }));
+        sku.demand += d; sku.fulfilled += f; sku.lost += l; sku.lostSales += ls; sku.dosWeighted += r.avg_days_of_supply * obsDays; sku.obsDays += obsDays;
+        addMonthlyBalance(sku, r.month, obsDays, inv, ex, trappedScenario);
+      }
+
+      const finalizeService = x => ({ ...x, fill_rate: x.demand > 0 ? x.fulfilled / x.demand : 1, stockout_rate: x.demand > 0 ? x.lost / x.demand : 0 });
+      const monthSeries = [...monthMap.values()].sort((a,b) => a.month.localeCompare(b.month)).map(finalizeService);
+      const warehouses = [...warehouseMap.values()].map(finalizeBalance).map(x => ({ ...finalizeService(x), avg_dos: x.obsDays > 0 ? x.dosWeighted / x.obsDays : 0 })).sort((a,b) => b.lostSales - a.lostSales);
+      const categories = [...categoryMap.values()].map(finalizeBalance).map(x => ({ ...finalizeService(x), avg_dos: x.obsDays > 0 ? x.dosWeighted / x.obsDays : 0 })).sort((a,b) => b.lostSales - a.lostSales);
+      const suppliers = [...supplierMap.values()].map(finalizeService).sort((a,b) => b.lostSales - a.lostSales);
+      const segments = [...segmentMap.values()].map(finalizeBalance).map(x => ({ ...finalizeService(x), avg_dos: x.obsDays > 0 ? x.dosWeighted / x.obsDays : 0 })).sort((a,b) => b.lostSales - a.lostSales);
+      const skuRows = [...skuMap.values()].map(finalizeBalance).map(x => {
+        const baseline = skuRiskBaselineMap[`${x.product_id}|${x.warehouse_id}|${x.supplier_id}`] || {};
+        return {
+          ...finalizeService(x),
+          avg_dos: x.obsDays > 0 ? x.dosWeighted / x.obsDays : 0,
+          service_risk_score: Number(baseline.service_risk_score || 0),
+          stockout_risk_score: Number(baseline.stockout_risk_score || 0),
+          excess_inventory_score: Number(baseline.excess_inventory_score || 0),
+          supplier_risk_score: Number(baseline.supplier_risk_score || 0),
+          working_capital_risk_score: Number(baseline.working_capital_risk_score || 0),
+          governance_priority_score: Number(baseline.governance_priority_score || 0),
+          risk_tier: baseline.risk_tier || 'Low',
+          main_risk_driver: baseline.main_risk_driver || 'No dominant driver',
+          recommended_action: baseline.recommended_action || 'monitor within normal replenishment cadence',
+        };
+      }).sort((a,b) => b.governance_priority_score - a.governance_priority_score);
+
+      const weightedSupplierOTD = suppliers.reduce((acc, x) => acc + x.on_time_delivery_rate * x.demand, 0) / Math.max(demand, 1);
+      const balanceDays = monthSeries.reduce((sum, x) => sum + x.obsDays, 0);
+      const annualizationFactor = 365 / Math.max(balanceDays, 1);
+      const averageBalance = key => monthSeries.reduce((sum, x) => sum + x[key] * x.obsDays, 0) / Math.max(balanceDays, 1);
+      const inventory = averageBalance('inventory');
+      const excess = averageBalance('excess');
+      const trapped = averageBalance('trapped');
+      // The 12-month proxy is the sum of the two claimable components. Both are
+      // surfaced so the dashboard can show where the value actually comes from.
+      const lostMarginAnnual = lostMargin * annualizationFactor;
+      const marginRecovery = lostMarginAnnual * s.recoverableMarginRate;
+      const capitalRelease = trapped * s.releasableWcRate;
+      const opportunity12m = marginRecovery + capitalRelease;
+      return {
+        monthSeries, warehouses, categories, suppliers, segments, skuRows,
+        totals: {
+          demand, fulfilled, lost, lostSales, inventory, excess, trapped, lostMargin,
+          fillRate: demand > 0 ? fulfilled / demand : 1,
+          stockoutRate: demand > 0 ? lost / demand : 0,
+          weightedSupplierOTD,
+          annualizationFactor,
+          lostMarginAnnual,
+          marginRecovery,
+          capitalRelease,
+          opportunity12m,
+          recoverableMarginRate: s.recoverableMarginRate,
+          releasableWcRate: s.releasableWcRate,
+        }
+      };
+    }
+
+    function riskTone(value, good, warn, lowerIsBetter = false) {
+      if (lowerIsBetter) return value <= good ? 'good' : (value <= warn ? 'warn' : 'bad');
+      return value >= good ? 'good' : (value >= warn ? 'warn' : 'bad');
+    }
+
+    function sparklineSvg(values) {
+      const pts = values.filter(v => Number.isFinite(v));
+      if (pts.length < 2) return '';
+      const min = Math.min(...pts);
+      const max = Math.max(...pts);
+      const span = max - min || 1;
+      const w = 100, h = 30, pad = 3;
+      const step = w / (pts.length - 1);
+      const at = i => `${(i * step).toFixed(2)},${(h - pad - ((pts[i] - min) / span) * (h - pad * 2)).toFixed(2)}`;
+      const coords = pts.map((_, i) => at(i));
+      const lastX = (w).toFixed(2);
+      const lastY = (h - pad - ((pts[pts.length - 1] - min) / span) * (h - pad * 2)).toFixed(2);
+      return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+        <polygon class="spark-area" points="0,${h} ${coords.join(' ')} ${lastX},${h}"></polygon>
+        <polyline class="spark-line" points="${coords.join(' ')}" vector-effect="non-scaling-stroke"></polyline>
+        <circle class="spark-dot" cx="${lastX}" cy="${lastY}" r="1.6" vector-effect="non-scaling-stroke"></circle>
+      </svg>`;
+    }
+
+    /* Bullet gauge — qualitative bands, the measure, and the governed target tick.
+       Drawn in a 0-100 user space and stretched, so only non-scaling strokes are
+       used for anything that must stay a constant width. */
+    function gaugeSvg({ value, domain, bands, target }) {
+      const [lo, hi] = domain;
+      const pos = v => norm(v, lo, hi) * 100;
+      const rects = bands.map(b =>
+        `<rect x="${pos(b.from).toFixed(2)}" y="3" width="${Math.max(pos(b.to) - pos(b.from), 0).toFixed(2)}" height="8" fill="var(--${b.tone}-soft)" opacity="var(--band-alpha)"></rect>`
+      ).join('');
+      const measure = `<rect x="0" y="5" width="${pos(value).toFixed(2)}" height="4" fill="var(--ink)"></rect>`;
+      const tick = `<line x1="${pos(target).toFixed(2)}" x2="${pos(target).toFixed(2)}" y1="1" y2="13" stroke="var(--ink)" stroke-width="1.5" vector-effect="non-scaling-stroke"></line>`;
+      return `<svg viewBox="0 0 100 14" preserveAspectRatio="none" aria-hidden="true">${rects}${measure}${tick}</svg>`;
+    }
+
+    function gaugeBlock(spec, loLabel, hiLabel) {
+      return `<div class="gauge">${gaugeSvg(spec)}</div>
+        <div class="gauge-scale"><span>${escapeHtml(loLabel)}</span><span>${escapeHtml(hiLabel)}</span></div>`;
+    }
+
+    function splitHalves(monthSeries) {
+      if (monthSeries.length < 4) return null;
+      const mid = Math.ceil(monthSeries.length / 2);
+      const summarize = part => {
+        const demand = part.reduce((sum, x) => sum + x.demand, 0);
+        const fulfilled = part.reduce((sum, x) => sum + x.fulfilled, 0);
+        const lost = part.reduce((sum, x) => sum + x.lost, 0);
+        const days = part.reduce((sum, x) => sum + x.obsDays, 0);
+        return {
+          fill: demand > 0 ? fulfilled / demand : 1,
+          stockout: demand > 0 ? lost / demand : 0,
+          lostSalesMonthly: part.reduce((sum, x) => sum + x.lostSales, 0) / part.length,
+          trappedAvg: part.reduce((sum, x) => sum + x.trapped * x.obsDays, 0) / Math.max(days, 1),
+        };
+      };
+      return { first: summarize(monthSeries.slice(0, mid)), second: summarize(monthSeries.slice(mid)) };
+    }
+
+    function deltaSpan(diff, threshold, goodWhenDown, fmt) {
+      const up = diff > threshold;
+      const down = diff < -threshold;
+      if (!up && !down) return '<span class="delta-flat">— flat</span> vs first half';
+      const improving = goodWhenDown ? down : up;
+      const cls = improving ? 'delta-good' : 'delta-bad';
+      const arrow = up ? '▲' : '▼';
+      return `<span class="${cls}">${arrow} ${fmt(Math.abs(diff))}</span> vs first half`;
+    }
+
+    /* The decision frame follows where the value actually sits, not a single
+       threshold: a network can hold the service floor and still carry most of
+       its recoverable value in unmet demand. */
+    function decisionFrame(agg) {
+      const t = agg.totals;
+      const marginShare = t.opportunity12m > 0 ? t.marginRecovery / t.opportunity12m : 0;
+      const gap = TARGETS.fill.target - t.fillRate;
+      if (t.fillRate < TARGETS.fill.floor) {
+        return {
+          title: 'Service is under the floor. Recovery is the whole agenda.',
+          copy: `Fill is ${fmtPct(t.fillRate)}, below the ${fmtPct0(TARGETS.fill.floor)} critical line. ${fmtCompactEur(t.marginRecovery)} of recoverable margin sits behind that gap — release no capital until it closes.`,
+        };
+      }
+      if (marginShare >= 0.6) {
+        return {
+          title: gap > 0
+            ? `Service runs ${fmtPp(gap)} under the bar, and that gap holds the money.`
+            : 'Service holds the bar, but unmet demand still holds the money.',
+          copy: `${fmtPct0(marginShare)} of the twelve-month prize is recoverable margin, not released capital. Working the exception queue beats any network-wide inventory move.`,
+        };
+      }
+      return {
+        title: 'Service is controlled. The remaining prize is trapped capital.',
+        copy: `Fill clears the ${fmtPct0(TARGETS.fill.target)} bar and ${fmtPct0(1 - marginShare)} of the twelve-month prize is releasable capital. Free it where days of supply exceed the class cap, not across the board.`,
+      };
+    }
+
+    function renderHero(agg, range) {
+      const topSku = agg.skuRows[0];
+      const worstWarehouse = [...agg.warehouses].sort((a,b) => a.fill_rate - b.fill_rate)[0];
+      const topSupplier = [...agg.suppliers].sort((a,b) => (b.stockout_rate * b.lostSales) - (a.stockout_rate * a.lostSales))[0];
+      const topCategory = agg.categories[0];
+      const actionable = agg.skuRows.filter(x => x.risk_tier !== 'Low');
+      const frame = decisionFrame(agg);
+
+      document.getElementById('decision-title').textContent = frame.title;
+      document.getElementById('decision-copy').textContent = frame.copy;
+      document.getElementById('hero-action').textContent = topSku ? `${topSku.product_id} · ${topSku.warehouse_id}` : 'No priority item';
+      document.getElementById('hero-action-detail').textContent = topSku
+        ? `Priority ${topSku.governance_priority_score.toFixed(1)}, led by ${topSku.main_risk_driver.toLowerCase()} — ${topSku.recommended_action}.`
+        : 'No rows in current filter.';
+      document.getElementById('hero-value').textContent = fmtCompactEur(agg.totals.opportunity12m);
+      document.getElementById('hero-value-detail').textContent = topCategory
+        ? `${fmtCompactEur(agg.totals.marginRecovery)} from service, ${fmtCompactEur(agg.totals.capitalRelease)} from capital. Largest pocket: ${topCategory.category}.`
+        : 'No category exposure in scope.';
+      document.getElementById('hero-eyebrow').textContent = `Operating review · ${range.start.slice(0, 4)}–${range.end.slice(0, 4)}`;
+      document.getElementById('meta-refresh').textContent = dashboardData.generated_at;
+
+      const scope = [
+        ['SKU-locations', fmtNum(agg.skuRows.length)],
+        ['Warehouses', fmtNum(agg.warehouses.length)],
+        ['Suppliers', fmtNum(agg.suppliers.length)],
+        ['Categories', fmtNum(agg.categories.length)],
+        ['Months', fmtNum(agg.monthSeries.length)],
+      ];
+      document.getElementById('scope-strip').innerHTML = scope.map(([k, v]) => `
+        <div><dt>${escapeHtml(k)}</dt><dd class="num">${escapeHtml(v)}</dd></div>
+      `).join('');
+
+      document.getElementById('scope-readout').innerHTML =
+        `Scope: <b>${fmtNum(agg.skuRows.length)}</b> SKU-locations · <b>${range.start.slice(0, 7)}</b> to <b>${range.end.slice(0, 7)}</b> · <b>${fmtNum(actionable.length)}</b> above monitor-only tier`;
+
+      return { topSku, worstWarehouse, topSupplier, topCategory, actionable };
+    }
+
+    function renderSignals(agg) {
+      const t = agg.totals;
+      const series = agg.monthSeries;
+      const halves = splitHalves(series);
+      const gap = TARGETS.fill.target - t.fillRate;
+      const fillValues = series.map(x => x.fill_rate);
+      const fillTone = riskTone(t.fillRate, TARGETS.fill.target, TARGETS.fill.floor);
+      const trappedShare = t.inventory > 0 ? t.trapped / t.inventory : 0;
+
+      const fillGauge = gaugeBlock({
+        value: clamp(t.fillRate, TARGETS.fill.domain[0], TARGETS.fill.domain[1]),
+        domain: TARGETS.fill.domain,
+        target: TARGETS.fill.target,
+        bands: [
+          { from: 0.90, to: 0.95, tone: 'bad' },
+          { from: 0.95, to: 0.97, tone: 'warn' },
+          { from: 0.97, to: 1.0, tone: 'good' },
+        ],
+      }, '90%', '100%');
+
+      const gross = Math.max(t.lostMarginAnnual, t.trapped, 1);
+      const compRow = (k, sub, grossValue, claimValue, claimNote) => `
+        <div class="comp-row">
+          <div class="comp-k">${escapeHtml(k)}<span>${escapeHtml(sub)}</span></div>
+          <div class="comp-track" style="width:${(grossValue / gross * 100).toFixed(2)}%">
+            <div class="comp-claim" style="width:${(grossValue > 0 ? claimValue / grossValue * 100 : 0).toFixed(2)}%"></div>
+          </div>
+          <div class="comp-v">${escapeHtml(fmtCompactEur(claimValue))}<span>${escapeHtml(claimNote)}</span></div>
+        </div>`;
+
+      document.getElementById('signal-primary').innerHTML = `
+        <article class="metric metric-lead">
+          <span class="metric-label">Fill rate</span>
+          <div class="metric-value tone-${fillTone}">${escapeHtml(fmtPct(t.fillRate))}</div>
+          <div class="metric-sub">${gap > 0
+            ? `<b>${fmtPp(gap)}</b> under the ${fmtPct0(TARGETS.fill.target)} bar`
+            : `<b>${fmtPp(gap)}</b> clear of the ${fmtPct0(TARGETS.fill.target)} bar`}</div>
+          <div class="metric-gauge">${fillGauge}</div>
+          <div class="metric-trend"><div class="spark">${sparklineSvg(fillValues)}</div></div>
+          <div class="metric-foot metric-sub">${halves ? deltaSpan(halves.second.fill - halves.first.fill, 0.001, false, fmtPp) : 'Single-period scope'}</div>
+        </article>
+        <article class="metric metric-wide">
+          <span class="metric-label">Twelve-month opportunity — where it comes from</span>
+          <div class="comp">
+            ${compRow('Unmet demand', 'lost margin, 12-month run-rate', t.lostMarginAnnual, t.marginRecovery, `at ${fmtPct0(t.recoverableMarginRate)} recoverable`)}
+            ${compRow('Idle inventory', 'trapped capital, average balance', t.trapped, t.capitalRelease, `at ${fmtPct0(t.releasableWcRate)} releasable`)}
+          </div>
+          <div class="comp-total">
+            <span class="comp-total-k">Claimable over 12 months</span>
+            <span class="comp-total-v">${escapeHtml(fmtCompactEur(t.opportunity12m))}</span>
+          </div>
+          <div class="comp-legend">
+            <span><i class="swatch-claim"></i>Claimed under current assumptions</span>
+            <span><i class="swatch-gross"></i>Gross exposure</span>
+          </div>
+        </article>`;
+
+      const tiles = [
+        {
+          label: 'Stockout rate',
+          value: fmtPct(t.stockoutRate),
+          tone: riskTone(t.stockoutRate, TARGETS.stockout.target, TARGETS.stockout.ceiling, true),
+          body: gaugeBlock({
+            value: clamp(t.stockoutRate, TARGETS.stockout.domain[0], TARGETS.stockout.domain[1]),
+            domain: TARGETS.stockout.domain,
+            target: TARGETS.stockout.target,
+            bands: [
+              { from: 0, to: 0.02, tone: 'good' },
+              { from: 0.02, to: 0.05, tone: 'warn' },
+              { from: 0.05, to: 0.10, tone: 'bad' },
+            ],
+          }, '0%', '10%'),
+          note: halves ? deltaSpan(halves.second.stockout - halves.first.stockout, 0.001, true, fmtPp) : 'Healthy at <b>2%</b> or below',
+        },
+        {
+          label: 'Lost-sales exposure',
+          value: fmtCompactEur(t.lostSales),
+          tone: 'bad',
+          body: `<div class="spark">${sparklineSvg(series.map(x => x.lostSales))}</div>`,
+          note: halves
+            ? deltaSpan(halves.second.lostSalesMonthly - halves.first.lostSalesMonthly, t.lostSales * 0.002, true, fmtCompactEur)
+            : 'Unmet demand valued at selling price',
+        },
+        {
+          label: 'Trapped working capital',
+          value: fmtCompactEur(t.trapped),
+          tone: riskTone(trappedShare, TARGETS.trappedShare.target, TARGETS.trappedShare.ceiling, true),
+          body: gaugeBlock({
+            value: clamp(trappedShare, TARGETS.trappedShare.domain[0], TARGETS.trappedShare.domain[1]),
+            domain: TARGETS.trappedShare.domain,
+            target: TARGETS.trappedShare.target,
+            bands: [
+              { from: 0, to: 0.12, tone: 'good' },
+              { from: 0.12, to: 0.18, tone: 'warn' },
+              { from: 0.18, to: 0.25, tone: 'bad' },
+            ],
+          }, '0%', '25% of inventory'),
+          note: `<b>${fmtPct(trappedShare)}</b> of ${fmtCompactEur(t.inventory)} average inventory`,
+        },
+        {
+          label: 'Supplier OTD',
+          value: fmtPct(t.weightedSupplierOTD),
+          tone: riskTone(t.weightedSupplierOTD, TARGETS.otd.target, TARGETS.otd.floor),
+          body: gaugeBlock({
+            value: clamp(t.weightedSupplierOTD, TARGETS.otd.domain[0], TARGETS.otd.domain[1]),
+            domain: TARGETS.otd.domain,
+            target: TARGETS.otd.target,
+            bands: [
+              { from: 0.70, to: 0.88, tone: 'bad' },
+              { from: 0.88, to: 0.92, tone: 'warn' },
+              { from: 0.92, to: 1.0, tone: 'good' },
+            ],
+          }, '70%', '100%'),
+          note: `Demand-weighted across <b>${fmtNum(agg.suppliers.length)}</b> active suppliers`,
+        },
+      ];
+
+      document.getElementById('signal-ribbon').innerHTML = tiles.map(k => `
+        <article class="tile">
+          <span class="metric-label">${escapeHtml(k.label)}</span>
+          <div class="tile-value tone-${k.tone}">${escapeHtml(k.value)}</div>
+          <div class="tile-body">${k.body}</div>
+          <div class="tile-note">${k.note}</div>
+        </article>
+      `).join('');
+    }
+
+    function renderPriorities(agg, context) {
+      const capitalCategory = [...agg.categories].sort((a,b) => b.excess - a.excess)[0];
+      const imbalance = [...agg.segments].sort((a,b) => {
+        const as = (1 - a.fill_rate) * 0.65 + norm(a.avg_dos, 20, 70) * 0.35;
+        const bs = (1 - b.fill_rate) * 0.65 + norm(b.avg_dos, 20, 70) * 0.35;
+        return bs - as;
+      })[0];
+
+      const total = Math.max(agg.skuRows.length, 1);
+      const tiers = ['Low', 'Medium', 'High', 'Critical'].map(name => ({
+        name,
+        count: agg.skuRows.filter(x => x.risk_tier === name).length,
+      }));
+      const actionable = total - (tiers.find(x => x.name === 'Low')?.count || 0);
+
+      document.getElementById('triage-summary').innerHTML = `
+        <div class="triage-summary-head">
+          <span class="triage-summary-k">Governed triage · full-period baseline</span>
+          <span class="triage-summary-v"><b>${fmtNum(actionable)}</b> of ${fmtNum(total)} SKU-locations need an intervention · the rest hold at monitor-only</span>
+        </div>
+        <div class="tier-bar" role="img" aria-label="${tiers.map(x => `${x.name} ${x.count}`).join(', ')}">
+          ${tiers.filter(x => x.count > 0).map(x => `<div class="tier-seg seg-${x.name.toLowerCase()}" style="flex:${x.count}"></div>`).join('')}
+        </div>
+        <div class="tier-key">
+          ${tiers.map(x => `<span><i class="seg-${x.name.toLowerCase()}"></i>${escapeHtml(x.name)} <b>${fmtNum(x.count)}</b></span>`).join('')}
+        </div>`;
+
+      const moves = [
+        {
+          tone: 'bad',
+          label: 'Service recovery',
+          title: context.worstWarehouse ? context.worstWarehouse.warehouse_name : 'No warehouse in scope',
+          body: context.worstWarehouse
+            ? `Weakest service in scope at <b>${fmtPct(context.worstWarehouse.fill_rate)}</b> fill, carrying <b>${fmtCompactEur(context.worstWarehouse.lostSales)}</b> of lost sales. Run replenishment exceptions here before anywhere else.`
+            : 'The current filter returns no warehouse rows.',
+        },
+        {
+          tone: 'warn',
+          label: 'Supplier exposure',
+          title: context.topSupplier ? context.topSupplier.supplier_name : 'No supplier exposure',
+          body: context.topSupplier
+            ? `<b>${fmtCompactEur(context.topSupplier.lostSales)}</b> of downstream lost sales at <b>${fmtPct(context.topSupplier.on_time_delivery_rate)}</b> on-time delivery. Recover the SLA or qualify a second source before raising safety stock to cover it.`
+            : 'No supplier signal in the current scope.',
+        },
+        {
+          tone: 'accent',
+          label: 'Capital to release',
+          title: capitalCategory ? capitalCategory.category : 'No excess pocket',
+          body: capitalCategory
+            ? `<b>${fmtCompactEur(capitalCategory.excess)}</b> sits above the days-of-supply cap for its ABC class. Freeze avoidable replenishment here rather than cutting stock across the network.`
+            : 'No capital concentration in the current scope.',
+        },
+        {
+          tone: 'good',
+          label: 'Policy conflict',
+          title: imbalance ? `${imbalance.category} · ${imbalance.region}` : 'No segment',
+          body: imbalance
+            ? `<b>${fmtPct(imbalance.fill_rate)}</b> fill on <b>${imbalance.avg_dos.toFixed(0)} days</b> of supply — the stock is there and service still misses. This is a planning-rule defect, not a volume problem.`
+            : 'No segment imbalance found in the current scope.',
+        },
+      ];
+
+      document.getElementById('priority-list').innerHTML = moves.map((m, i) => `
+        <li class="move ${m.tone}">
+          <span class="move-no" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>
+          <div>
+            <div class="move-label"><i></i>${escapeHtml(m.label)}</div>
+            <div class="move-title">${escapeHtml(m.title)}</div>
+          </div>
+          <div class="move-body">${m.body}</div>
+        </li>
+      `).join('');
+    }
+
+    function setFinding(id, html) {
+      document.getElementById(id).innerHTML = html;
+    }
+
+    function renderCharts(agg) {
+      const c = palette();
+      const months = agg.monthSeries.map(x => monthLabel(x.month));
+      const monoTicks = { family: '"Spline Sans Mono", monospace', size: 10.5, color: c.faint };
+      const titleFont = { family: '"Hanken Grotesk", system-ui, sans-serif', size: 11, color: c.muted };
+      const panelFont = { family: '"Hanken Grotesk", system-ui, sans-serif', size: 11, color: c.muted };
+
+      /* --- Fill rate against the governed bar --- */
+      const fillValues = agg.monthSeries.map(x => x.fill_rate);
+      const fillFloor = Math.max(0, Math.min(...fillValues, TARGETS.fill.floor) - 0.015);
+      Plotly.react('chart-trend', [
+        { x: months, y: fillValues, name: 'Fill rate', type: 'scatter', mode: 'lines', line: { color: c.accent, width: 2, shape: 'spline', smoothing: 0.6 }, hovertemplate: '%{x}<br>Fill rate  %{y:.1%}<extra></extra>' },
+      ], {
+        ...baseLayout(),
+        yaxis: { tickformat: '.0%', range: [fillFloor, 1.004], gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
+        xaxis: { gridcolor: 'rgba(0,0,0,0)', nticks: 7, tickfont: monoTicks },
+        shapes: [
+          { type: 'line', xref: 'paper', x0: 0, x1: 1, y0: TARGETS.fill.target, y1: TARGETS.fill.target, line: { color: c.good, width: 1, dash: 'dot' }, layer: 'below' },
+          { type: 'rect', xref: 'paper', x0: 0, x1: 1, y0: fillFloor, y1: TARGETS.fill.floor, fillcolor: c.bad, opacity: 0.05, line: { width: 0 }, layer: 'below' },
+        ],
+        annotations: [
+          { xref: 'paper', x: 1, y: TARGETS.fill.target, xanchor: 'right', yanchor: 'bottom', text: 'target 97%', showarrow: false, font: { family: '"Spline Sans Mono", monospace', size: 10, color: c.good } },
+          { xref: 'paper', x: 0.005, y: TARGETS.fill.floor, xanchor: 'left', yanchor: 'top', text: 'critical below 95%', showarrow: false, font: { family: '"Spline Sans Mono", monospace', size: 10, color: c.bad } },
+        ],
+      }, plotConfig);
+      const monthsOnTarget = fillValues.filter(v => v >= TARGETS.fill.target).length;
+      setFinding('finding-trend', monthsOnTarget === fillValues.length && fillValues.length
+        ? `Fill holds the bar in <b>every one</b> of ${fmtNum(fillValues.length)} months`
+        : `Fill clears 97% in only <b>${fmtNum(monthsOnTarget)}</b> of ${fmtNum(fillValues.length)} months`);
+
+      /* --- Lost sales and trapped capital: a flow and a balance, so two panels
+             on a shared timeline rather than two y-scales on one plot. --- */
+      const lostSalesSeries = agg.monthSeries.map(x => x.lostSales);
+      const trappedSeries = agg.monthSeries.map(x => x.trapped);
+      Plotly.react('chart-value-trend', [
+        { x: months, y: lostSalesSeries, type: 'bar', name: 'Lost sales', marker: { color: c.accentDim, line: { color: c.accent, width: 1 } }, hovertemplate: '%{x}<br>Lost sales  €%{y:,.0f}<extra></extra>' },
+        { x: months, y: trappedSeries, type: 'scatter', mode: 'lines', name: 'Trapped capital', xaxis: 'x2', yaxis: 'y2', line: { color: c.slate, width: 2, shape: 'spline', smoothing: 0.6 }, fill: 'tozeroy', fillcolor: currentTheme === 'dark' ? 'rgba(124,139,161,0.16)' : 'rgba(100,116,139,0.14)', hovertemplate: '%{x}<br>Trapped capital  €%{y:,.0f}<extra></extra>' },
+      ], {
+        ...baseLayout(),
+        bargap: 0.45,
+        margin: { l: 62, r: 16, t: 32, b: 40 },
+        // Both panels are pinned to the same categorical range so the flow and
+        // the balance line up month for month.
+        xaxis: { domain: [0, 1], anchor: 'y', range: [-0.5, months.length - 0.5], showticklabels: false, gridcolor: 'rgba(0,0,0,0)' },
+        yaxis: { domain: [0.58, 1], ...euroAxisTicks(Math.max(...lostSalesSeries, 0), 3), gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
+        xaxis2: { domain: [0, 1], anchor: 'y2', range: [-0.5, months.length - 0.5], nticks: 7, gridcolor: 'rgba(0,0,0,0)', tickfont: monoTicks },
+        yaxis2: { domain: [0, 0.40], ...euroAxisTicks(Math.max(...trappedSeries, 0), 2), gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
+        annotations: [
+          { xref: 'paper', yref: 'paper', x: 0, y: 1.03, xanchor: 'left', yanchor: 'bottom', text: 'Lost sales, € per month', showarrow: false, font: panelFont },
+          { xref: 'paper', yref: 'paper', x: 0, y: 0.43, xanchor: 'left', yanchor: 'bottom', text: 'Trapped capital, € balance', showarrow: false, font: panelFont },
+        ],
+      }, plotConfig);
+      const lostPerMonth = lostSalesSeries.reduce((a, b) => a + b, 0) / Math.max(lostSalesSeries.length, 1);
+      setFinding('finding-value-trend',
+        `Unmet demand runs <b>${fmtCompactEur(lostPerMonth)}</b> a month against a <b>${fmtCompactEur(agg.totals.trapped)}</b> capital balance`);
+
+      /* --- Warehouse exposure --- */
+      const wh = [...agg.warehouses].sort((a,b) => b.lostSales - a.lostSales);
+      Plotly.react('chart-bottlenecks', [{
+        y: wh.map(x => short(x.warehouse_name, 26)).reverse(),
+        x: wh.map(x => x.lostSales).reverse(),
+        type: 'bar',
+        orientation: 'h',
+        // Sienna marks the sites breaching the service floor; everything that
+        // clears it recedes to slate. Sienna against the warmer bad red is not a
+        // distinction the eye can make, so emphasis carries the status instead.
+        marker: { color: wh.map(x => x.fill_rate < TARGETS.fill.floor ? c.accent : c.slate).reverse() },
+        text: wh.map(x => `${fmtCompactEur(x.lostSales)} · fill ${fmtPct(x.fill_rate)}`).reverse(),
+        textposition: 'outside',
+        cliponaxis: false,
+        textfont: { family: '"Spline Sans Mono", monospace', size: 10.5, color: c.muted },
+        customdata: wh.map(x => `${x.warehouse_id} · fill ${fmtPct(x.fill_rate)}`).reverse(),
+        hovertemplate: '%{customdata}<br>Lost sales  €%{x:,.0f}<extra></extra>',
+      }], { ...baseLayout(), bargap: 0.42, xaxis: { ...euroAxisTicks(Math.max(...wh.map(x => x.lostSales), 0), 4), gridcolor: c.grid, zeroline: false, tickfont: monoTicks, range: [0, Math.max(...wh.map(x => x.lostSales), 1) * 1.38] }, yaxis: { ticklabelstandoff: 10, tickfont: monoTicks }, margin: { l: 184, r: 16, t: 14, b: 40 } }, plotConfig);
+      const whTotal = wh.reduce((sum, x) => sum + x.lostSales, 0) || 1;
+      setFinding('finding-bottlenecks', wh.length
+        ? `${escapeHtml(short(wh[0].warehouse_name, 24))} carries <b>${fmtPct0(wh[0].lostSales / whTotal)}</b> of network lost sales`
+        : 'No warehouse rows in the current scope');
+
+      /* --- Category capital --- */
+      const cat = [...agg.categories].sort((a,b) => b.trapped - a.trapped);
+      Plotly.react('chart-category-capital', [{
+        y: cat.map(x => x.category).reverse(),
+        x: cat.map(x => x.trapped).reverse(),
+        type: 'bar',
+        orientation: 'h',
+        marker: { color: c.accent },
+        text: cat.map(x => fmtCompactEur(x.trapped)).reverse(),
+        textposition: 'outside',
+        cliponaxis: false,
+        textfont: { family: '"Spline Sans Mono", monospace', size: 10.5, color: c.muted },
+        hovertemplate: '%{y}<br>Trapped capital  €%{x:,.0f}<extra></extra>',
+      }], { ...baseLayout(), bargap: 0.42, xaxis: { ...euroAxisTicks(Math.max(...cat.map(x => x.trapped), 0), 4), gridcolor: c.grid, zeroline: false, tickfont: monoTicks, range: [0, Math.max(...cat.map(x => x.trapped), 1) * 1.22] }, yaxis: { ticklabelstandoff: 10, tickfont: monoTicks }, margin: { l: 124, r: 16, t: 14, b: 40 } }, plotConfig);
+      const catTotal = cat.reduce((sum, x) => sum + x.trapped, 0) || 1;
+      setFinding('finding-category-capital', cat.length
+        ? `${escapeHtml(cat[0].category)} holds <b>${fmtCompactEur(cat[0].trapped)}</b> — ${fmtPct0(cat[0].trapped / catTotal)} of trapped capital`
+        : 'No category rows in the current scope');
+
+      /* --- Service against days of supply --- */
+      const seg = agg.segments;
+      const isConflict = x => x.fill_rate < TARGETS.fill.target && x.avg_dos > 30;
+      Plotly.react('chart-tradeoff', [{
+        x: seg.map(x => x.avg_dos),
+        y: seg.map(x => x.fill_rate),
+        mode: 'markers',
+        marker: {
+          size: seg.map(x => clamp(x.lostSales / 180000, 9, 32)),
+          color: seg.map(x => isConflict(x) ? c.accent : c.slate),
+          line: { color: c.surface, width: 2 },
+          opacity: 0.85,
+        },
+        customdata: seg.map(x => `${x.category} · ${x.region} · excess ${fmtCompactEur(x.excess)}`),
+        hovertemplate: '%{customdata}<br>DOS %{x:.0f}  ·  Fill %{y:.1%}<extra></extra>',
+      }], {
+        ...baseLayout(),
+        xaxis: { title: { text: 'Average days of supply', font: titleFont }, gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
+        yaxis: { title: { text: 'Fill rate', font: titleFont }, tickformat: '.0%', gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
+        shapes: [
+          { type: 'line', x0: 30, x1: 30, y0: 0, y1: 1, yref: 'paper', line: { color: c.faint, dash: 'dot', width: 1 } },
+          { type: 'line', x0: 0, x1: 1, xref: 'paper', y0: TARGETS.fill.target, y1: TARGETS.fill.target, line: { color: c.faint, dash: 'dot', width: 1 } },
+        ],
+        annotations: [
+          { x: 30, y: 1, yref: 'paper', xanchor: 'left', yanchor: 'top', text: ' 30d', showarrow: false, font: { family: '"Spline Sans Mono", monospace', size: 10, color: c.faint } },
+          { xref: 'paper', x: 1, y: TARGETS.fill.target, xanchor: 'right', yanchor: 'bottom', text: '97% ', showarrow: false, font: { family: '"Spline Sans Mono", monospace', size: 10, color: c.faint } },
+        ],
+      }, plotConfig);
+      const conflicts = seg.filter(isConflict).length;
+      setFinding('finding-tradeoff', seg.length
+        ? `<b>${fmtNum(conflicts)}</b> of ${fmtNum(seg.length)} segments miss 97% while holding over 30 days of stock`
+        : 'No segments in the current scope');
+
+      /* --- Supplier exposure --- */
+      const sup = [...agg.suppliers].sort((a,b) => b.lostSales - a.lostSales).slice(0, 8).reverse();
+      Plotly.react('chart-supplier', [{
+        y: sup.map(x => short(x.supplier_name, 22)),
+        x: sup.map(x => x.lostSales),
+        type: 'bar',
+        orientation: 'h',
+        marker: { color: sup.map(x => x.on_time_delivery_rate < TARGETS.otd.floor ? c.accent : c.slate) },
+        text: sup.map(x => `OTD ${fmtPct(x.on_time_delivery_rate)}`),
+        textposition: 'outside',
+        cliponaxis: false,
+        textfont: { family: '"Spline Sans Mono", monospace', size: 10, color: c.muted },
+        customdata: sup.map(x => `OTD ${fmtPct(x.on_time_delivery_rate)} · delay ${x.average_delay_days.toFixed(1)}d`),
+        hovertemplate: '%{y}<br>%{customdata}<br>Lost sales  €%{x:,.0f}<extra></extra>',
+      }], { ...baseLayout(), bargap: 0.4, xaxis: { ...euroAxisTicks(Math.max(...sup.map(x => x.lostSales), 0), 3), gridcolor: c.grid, zeroline: false, tickfont: monoTicks, range: [0, Math.max(...sup.map(x => x.lostSales), 1) * 1.5] }, yaxis: { ticklabelstandoff: 10, tickfont: monoTicks }, margin: { l: 104, r: 16, t: 14, b: 40 } }, plotConfig);
+      const laggards = agg.suppliers.filter(x => x.on_time_delivery_rate < TARGETS.otd.floor);
+      setFinding('finding-supplier', laggards.length
+        ? `<b>${fmtNum(laggards.length)}</b> of ${fmtNum(agg.suppliers.length)} suppliers sit under the 88% delivery floor`
+        : `All <b>${fmtNum(agg.suppliers.length)}</b> suppliers clear the 88% delivery floor`);
+
+      /* --- Concentration: cumulative share against an even-spread reference.
+             One axis, so the gap between the curve and the diagonal is the
+             concentration itself. --- */
+      const ranked = [...agg.skuRows].sort((a,b) => b.lostSales - a.lostSales);
+      const totalLost = ranked.reduce((sum, x) => sum + x.lostSales, 0) || 1;
+      let running = 0;
+      const cumShare = ranked.map(x => (running += x.lostSales) / totalLost);
+      const n = ranked.length;
+      const markAt = Math.min(10, n);
+      const topShare = n ? cumShare[markAt - 1] : 0;
+      Plotly.react('chart-governance', [
+        {
+          x: [0, n],
+          y: [0, 1],
+          type: 'scatter',
+          mode: 'lines',
+          name: 'Even spread',
+          line: { color: c.faint, width: 1, dash: 'dot' },
+          hoverinfo: 'skip',
+        },
+        {
+          x: [0, ...ranked.map((_, i) => i + 1)],
+          y: [0, ...cumShare],
+          type: 'scatter',
+          mode: 'lines',
+          name: 'Observed',
+          line: { color: c.accent, width: 2, shape: 'spline', smoothing: 0.4 },
+          hovertemplate: 'Top %{x} SKU-locations<br>%{y:.0%} of lost sales<extra></extra>',
+        },
+        {
+          x: [markAt],
+          y: [topShare],
+          type: 'scatter',
+          mode: 'markers',
+          name: `Top ${markAt}`,
+          marker: { size: 9, color: c.accent, line: { color: c.surface, width: 2 } },
+          hovertemplate: `Top ${markAt} SKU-locations<br>%{y:.0%} of lost sales<extra></extra>`,
+        },
+      ], {
+        ...baseLayout(),
+        margin: { l: 54, r: 18, t: 14, b: 50 },
+        xaxis: { title: { text: 'SKU-locations ranked by lost sales', font: titleFont }, range: [0, n || 1], gridcolor: 'rgba(0,0,0,0)', zeroline: false, tickfont: monoTicks },
+        yaxis: { title: { text: 'Cumulative share of lost sales', font: titleFont }, tickformat: '.0%', range: [0, 1.02], gridcolor: c.grid, zeroline: false, tickfont: monoTicks },
+        shapes: n ? [
+          { type: 'line', x0: markAt, x1: markAt, y0: 0, y1: topShare, line: { color: c.accent, width: 1, dash: 'dot' }, layer: 'below' },
+        ] : [],
+        annotations: n ? [
+          { x: markAt, y: topShare, xanchor: 'left', yanchor: 'bottom', ax: 26, ay: -22, text: `top ${markAt} · ${fmtPct0(topShare)}`, showarrow: true, arrowhead: 0, arrowwidth: 1, arrowcolor: c.faint, font: { family: '"Spline Sans Mono", monospace', size: 10, color: c.accent } },
+          { x: n * 0.62, y: 0.62, xanchor: 'left', yanchor: 'top', text: 'even spread', textangle: 0, showarrow: false, font: { family: '"Spline Sans Mono", monospace', size: 10, color: c.faint } },
+        ] : [],
+      }, plotConfig);
+      setFinding('finding-governance', n
+        ? `The worst <b>${fmtNum(markAt)}</b> of ${fmtNum(n)} SKU-locations carry <b>${fmtPct0(topShare)}</b> of all lost sales`
+        : 'No SKU-locations in the current scope');
+    }
+
+    function renderTable(rows) {
+      const query = (tableSearch.value || '').toLowerCase().trim();
+      const data = rows.filter(r => {
+        if (!query) return true;
+        return `${r.product_id} ${r.product_name} ${r.warehouse_id} ${r.supplier_id} ${r.main_risk_driver} ${r.recommended_action}`.toLowerCase().includes(query);
+      });
+      data.sort((a,b) => {
+        const dir = tableSort.dir === 'asc' ? 1 : -1;
+        const av = a[tableSort.key], bv = b[tableSort.key];
+        if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+        return String(av).localeCompare(String(bv)) * dir;
+      });
+      const shown = data.slice(0, 250);
+      const maxScore = Math.max(...shown.map(r => r.governance_priority_score), 1);
+      tableBody.innerHTML = shown.map(r => `
+        <tr>
+          <td class="num"><span class="score-cell"><span class="score">${r.governance_priority_score.toFixed(1)}</span><span class="score-bar" aria-hidden="true"><i style="width:${Math.round(clamp(r.governance_priority_score / maxScore, 0, 1) * 100)}%"></i></span></span></td>
+          <td><b style="font-weight:700">${escapeHtml(r.product_id)}</b></td>
+          <td class="wrap">${escapeHtml(r.product_name)}</td>
+          <td>${escapeHtml(r.warehouse_id)}</td>
+          <td>${escapeHtml(r.supplier_id)}</td>
+          <td class="num">${fmtPct(r.fill_rate)}</td>
+          <td class="num">${fmtPct(r.stockout_rate)}</td>
+          <td class="num">${fmtCompactEur(r.lostSales)}</td>
+          <td><span class="badge tier-${escapeHtml(String(r.risk_tier).toLowerCase())}">${escapeHtml(r.risk_tier)}</span></td>
+          <td>${escapeHtml(r.main_risk_driver)}</td>
+          <td class="wrap">${escapeHtml(r.recommended_action)}</td>
+        </tr>
+      `).join('');
+      tableMeta.textContent = `Showing ${fmtNum(shown.length)} of ${fmtNum(data.length)} rows`;
+    }
+
+    function renderMemo(agg, context) {
+      const t = agg.totals;
+      const marginShare = t.opportunity12m > 0 ? t.marginRecovery / t.opportunity12m : 0;
+      const gap = TARGETS.fill.target - t.fillRate;
+      const total = Math.max(agg.skuRows.length, 1);
+      const actionable = context.actionable.length;
+      const topCategory = agg.categories[0];
+      const catTotal = agg.categories.reduce((sum, x) => sum + x.lostSales, 0) || 1;
+      const trappedShare = t.inventory > 0 ? t.trapped / t.inventory : 0;
+
+      const lead = gap > 0
+        ? `Fill sits at <b>${fmtPct(t.fillRate)}</b>, ${fmtPp(gap)} under the ${fmtPct0(TARGETS.fill.target)} bar. That gap is worth <b>${fmtCompactEur(t.marginRecovery)}</b> over twelve months — and ${fmtNum(actionable)} of ${fmtNum(total)} SKU-locations carry it.`
+        : `Fill clears the ${fmtPct0(TARGETS.fill.target)} bar at <b>${fmtPct(t.fillRate)}</b>. The remaining value is <b>${fmtCompactEur(t.opportunity12m)}</b>, and ${fmtNum(actionable)} of ${fmtNum(total)} SKU-locations carry it.`;
+
+      const blocks = [
+        ['What it says', topCategory
+          ? `Loss is not spread across the network. ${escapeHtml(topCategory.category)} alone accounts for <b>${fmtPct0(topCategory.lostSales / catTotal)}</b> of lost sales, and <b>${fmtPct0(1 - actionable / total)}</b> of SKU-locations need no action at all.`
+          : 'The current scope returns no category exposure to interpret.'],
+        ['What to do', `Work the queue top-down: ${fmtNum(actionable)} exceptions, not a network-wide stock change. ${marginShare >= 0.5
+          ? `Service recovery holds <b>${fmtPct0(marginShare)}</b> of the prize, so it goes first; capital release follows once demand risk is confirmed.`
+          : `Capital release holds <b>${fmtPct0(1 - marginShare)}</b> of the prize, so free the excess pockets first, then hold service steady.`}`],
+        ['What would change it', `A fill rate under <b>${fmtPct0(TARGETS.fill.floor)}</b> makes recovery the only agenda. Trapped capital above <b>${fmtPct0(TARGETS.trappedShare.target)}</b> of average inventory — it is <b>${fmtPct(trappedShare)}</b> today — reverses the sequence.`],
+      ];
+
+      document.getElementById('memo').innerHTML = `
+        <p class="memo-lead">${lead}</p>
+        <div class="memo-grid">
+          ${blocks.map(([k, copy]) => `<div><div class="memo-k">${escapeHtml(k)}</div><div class="memo-c">${copy}</div></div>`).join('')}
+        </div>`;
+    }
+
+    function renderStatus(agg, range, rows) {
+      const alert = document.getElementById('status-alert');
+      if (!rows.length) {
+        alert.style.display = 'block';
+        alert.textContent = 'No records match the current filters. Reset filters or widen the date range.';
+        return;
+      }
+      const fullRange = range.start === `${dashboardData.meta.date_min.slice(0, 7)}-01` && range.end === `${dashboardData.meta.date_max.slice(0, 7)}-01`;
+      const allFilters = Object.entries(filters).filter(([k]) => !['start', 'end'].includes(k)).every(([,el]) => el.value === 'ALL');
+      const snap = dashboardData.meta.official_snapshot || {};
+      const reconciles = Math.abs((snap.overall_fill_rate || 0) - agg.totals.fillRate) <= 0.0005 &&
+        Math.abs((snap.overall_stockout_rate || 0) - agg.totals.stockoutRate) <= 0.0005 &&
+        Math.abs((snap.total_lost_sales_revenue || 0) - agg.totals.lostSales) <= 1 &&
+        Math.abs((snap.trapped_working_capital_proxy_average || 0) - agg.totals.trapped) <= 1;
+      if (fullRange && allFilters && !reconciles) {
+        alert.style.display = 'block';
+        alert.textContent = 'QA warning: default dashboard KPIs do not reconcile to the official governed snapshot.';
+        return;
+      }
+      alert.style.display = 'none';
+      alert.textContent = '';
+    }
+
+    function updateDashboard() {
+      const range = getDateRange();
+      const rows = monthlyFact.filter(r => rowPasses(r, range));
+      const agg = aggregate(rows, readScenario());
+      currentAgg = agg;
+      const context = renderHero(agg, range);
+      renderSignals(agg);
+      renderPriorities(agg, context);
+      renderCharts(agg);
+      renderTable(agg.skuRows);
+      renderMemo(agg, context);
+      renderStatus(agg, range, rows);
+    }
+
+    function resetFilters() {
+      filters.region.value = 'ALL';
+      filters.warehouse.value = 'ALL';
+      filters.category.value = 'ALL';
+      filters.supplier.value = 'ALL';
+      filters.abc.value = 'ALL';
+      filters.start.value = dashboardData.meta.date_min.slice(0, 7);
+      filters.end.value = dashboardData.meta.date_max.slice(0, 7);
+      tableSearch.value = '';
+      tableSort = { key: 'governance_priority_score', dir: 'desc' };
+      document.querySelectorAll('#detail-table th').forEach(header => header.setAttribute('aria-sort', 'none'));
+      document.querySelector('#detail-table th[data-key="governance_priority_score"]').setAttribute('aria-sort', 'descending');
+      updateDashboard();
+    }
+
+    function togglePanel(id, button, openLabel, closedLabel) {
+      const panel = document.getElementById(id);
+      const open = panel.style.display !== 'block';
+      panel.style.display = open ? 'block' : 'none';
+      button.setAttribute('aria-expanded', open ? 'true' : 'false');
+      button.textContent = open ? openLabel : closedLabel;
+    }
+
+    function applyTheme(mode, redraw = true) {
+      currentTheme = mode === 'dark' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      localStorage.setItem('supply_chain_dashboard_theme', currentTheme);
+      document.getElementById('toggle-theme').textContent = currentTheme === 'dark' ? 'Light' : 'Dark';
+      if (redraw && currentAgg) renderCharts(currentAgg);
+    }
+
+    function initReveals() {
+      const sections = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        sections.forEach(el => el.classList.add('in'));
+        return;
+      }
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+      sections.forEach(el => observer.observe(el));
+    }
+
+    function initScrollSpy() {
+      const links = [...document.querySelectorAll('.site-nav a')];
+      if (!('IntersectionObserver' in window) || !links.length) return;
+      const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+      const seen = new Map();
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(e => seen.set(e.target.id, e.intersectionRatio));
+        let best = null;
+        seen.forEach((ratio, id) => {
+          if (ratio > 0 && (!best || ratio > seen.get(best))) best = id;
+        });
+        links.forEach(a => a.removeAttribute('aria-current'));
+        if (best && byId.has(best)) byId.get(best).setAttribute('aria-current', 'true');
+      }, { rootMargin: '-70px 0px -55% 0px', threshold: [0, 0.5, 1] });
+      byId.forEach((_, id) => {
+        const target = document.getElementById(id);
+        if (target) observer.observe(target);
+      });
+    }
+
+    function initEvents() {
+      Object.values(filters).forEach(el => el.addEventListener('change', updateDashboard));
+      [scenario.marginRate, scenario.wcRate, scenario.slowWeight].forEach(el => {
+        el.addEventListener('input', () => {
+          updateScenarioLabels();
+          updateDashboard();
+        });
+      });
+      tableSearch.addEventListener('input', () => currentAgg && renderTable(currentAgg.skuRows));
+      document.getElementById('reset-filters').addEventListener('click', resetFilters);
+      document.getElementById('print-dashboard').addEventListener('click', () => window.print());
+      document.getElementById('toggle-scenario').addEventListener('click', e => togglePanel('scenario-panel', e.currentTarget, 'Hide assumptions', 'Assumptions'));
+      document.getElementById('toggle-method').addEventListener('click', e => togglePanel('method-panel', e.currentTarget, 'Hide method', 'Method'));
+      document.getElementById('toggle-theme').addEventListener('click', () => applyTheme(currentTheme === 'dark' ? 'light' : 'dark'));
+      document.querySelectorAll('#detail-table th').forEach(th => {
+        const sort = () => {
+          const key = th.dataset.key;
+          tableSort = tableSort.key === key ? { key, dir: tableSort.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' };
+          document.querySelectorAll('#detail-table th').forEach(header => header.setAttribute('aria-sort', 'none'));
+          th.setAttribute('aria-sort', tableSort.dir === 'asc' ? 'ascending' : 'descending');
+          if (currentAgg) renderTable(currentAgg.skuRows);
+        };
+        th.addEventListener('click', sort);
+        th.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            sort();
+          }
+        });
+      });
+      window.addEventListener('resize', () => {
+        if (!currentAgg) return;
+        CHART_IDS.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) Plotly.Plots.resize(el);
+        });
+      });
+    }
+
+    initializeControls();
+    document.getElementById('foot-provenance').textContent =
+      `Dataset ${dashboardData.dashboard_version} · ${dashboardData.generated_at} · ${fmtNum(dashboardData.meta.row_count_monthly_sku)} monthly records`;
+    const savedTheme = localStorage.getItem('supply_chain_dashboard_theme');
+    const preferredTheme = savedTheme || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(preferredTheme, false);
+    initEvents();
+    initReveals();
+    initScrollSpy();
+    updateDashboard();
+  </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "actions": [
+    {
+      "action_id": "ACT-001",
+      "entity_type": "sku_warehouse",
+      "product_id": "SKU-0016",
+      "warehouse_id": "WH-LIS",
+      "supplier_id": "SUP-002",
+      "action_type": "reorder_policy_reset",
+      "owner": "Supply Planning",
+      "status": "implemented",
+      "decision_date": "2025-06-15",
+      "implementation_date": "2025-07-01",
+      "target_metric": "fill_rate",
+      "target_value": 0.97
+    },
+    {
+      "action_id": "ACT-002",
+      "entity_type": "sku_warehouse",
+      "product_id": "SKU-0003",
+      "warehouse_id": "WH-MAD",
+      "supplier_id": "SUP-002",
+      "action_type": "inventory_rebalance",
+      "owner": "Network Operations",
+      "status": "implemented",
+      "decision_date": "2025-06-20",
+      "implementation_date": "2025-07-01",
+      "target_metric": "stockout_rate",
+      "target_value": 0.08
+    },
+    {
+      "action_id": "ACT-003",
+      "entity_type": "supplier",
+      "product_id": null,
+      "warehouse_id": null,
+      "supplier_id": "SUP-002",
+      "action_type": "supplier_recovery_plan",
+      "owner": "Procurement",
+      "status": "implemented",
+      "decision_date": "2025-06-10",
+      "implementation_date": "2025-07-01",
+      "target_metric": "fill_rate",
+      "target_value": 0.95
+    },
+    {
+      "action_id": "ACT-004",
+      "entity_type": "sku_warehouse",
+      "product_id": "SKU-0016",
+      "warehouse_id": "WH-MAD",
+      "supplier_id": "SUP-002",
+      "action_type": "service_policy_review",
+      "owner": "Supply Planning",
+      "status": "planned",
+      "decision_date": "2025-12-15",
+      "implementation_date": "2026-01-15",
+      "target_metric": "fill_rate",
+      "target_value": 0.97
+    }
+  ]
+}

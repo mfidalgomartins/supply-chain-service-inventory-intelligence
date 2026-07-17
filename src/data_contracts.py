@@ -12,11 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-try:
-    from src.config import PROJECT_ROOT
-except ModuleNotFoundError:
-    from config import PROJECT_ROOT  # type: ignore[no-redef]
-
+from src.config import PROJECT_ROOT
 
 CONTRACT_FILE = PROJECT_ROOT / "configs" / "table_contracts.json"
 OUTPUT_TABLES_DIR = PROJECT_ROOT / "outputs" / "tables"

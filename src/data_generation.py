@@ -13,10 +13,7 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 
-try:
-    from src.config import DATA_RAW, END_DATE, RANDOM_SEED, START_DATE
-except ModuleNotFoundError:
-    from config import DATA_RAW, END_DATE, RANDOM_SEED, START_DATE  # type: ignore[no-redef]
+from src.config import DATA_RAW, END_DATE, RANDOM_SEED, START_DATE
 
 
 @dataclass(frozen=True)
@@ -28,6 +25,14 @@ class SimulationConfig:
     end_date: str = END_DATE
     n_products: int = 120
     n_suppliers: int = 12
+
+    def __post_init__(self) -> None:
+        if pd.Timestamp(self.start_date) > pd.Timestamp(self.end_date):
+            raise ValueError("start_date must be on or before end_date")
+        if self.n_products < 1:
+            raise ValueError("n_products must be at least 1")
+        if self.n_suppliers < 1:
+            raise ValueError("n_suppliers must be at least 1")
 
 
 def _bounded(value: float, low: float, high: float) -> float:
@@ -149,10 +154,10 @@ def build_products_and_classification(
     supplier_weights = supplier_weights / supplier_weights.sum()
 
     chronic_profiles = np.array(["normal"] * cfg.n_products, dtype=object)
-    overstock_count = max(8, int(cfg.n_products * 0.12))
-    stockout_count = max(8, int(cfg.n_products * 0.12))
+    overstock_count = min(cfg.n_products, max(1, int(cfg.n_products * 0.12)))
     overstock_idx = rng.choice(np.arange(cfg.n_products), size=overstock_count, replace=False)
     remaining = np.setdiff1d(np.arange(cfg.n_products), overstock_idx)
+    stockout_count = min(len(remaining), max(1, int(cfg.n_products * 0.12)))
     stockout_idx = rng.choice(remaining, size=stockout_count, replace=False)
     chronic_profiles[overstock_idx] = "chronic_overstock"
     chronic_profiles[stockout_idx] = "chronic_stockout"
@@ -276,6 +281,229 @@ def seasonality_index(date: pd.Timestamp) -> float:
     return round(month_factor * weekday_factor, 3)
 
 
+def build_intervention_assignments(
+    products: pd.DataFrame,
+    product_classification: pd.DataFrame,
+    warehouses: pd.DataFrame,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
+    """Assign units to a randomized policy pilot and a supplier DiD cohort."""
+    product_columns = {"product_id", "category", "supplier_id"}
+    if not product_columns.issubset(products.columns):
+        raise ValueError("Products are missing intervention-assignment fields")
+    if not {"product_id", "abc_class"}.issubset(product_classification.columns):
+        raise ValueError("Product classification is missing assignment fields")
+    if "warehouse_id" not in warehouses.columns:
+        raise ValueError("Warehouses are missing intervention-assignment fields")
+
+    eligible = products[sorted(product_columns)].merge(
+        product_classification[["product_id", "abc_class"]],
+        on="product_id",
+        validate="one_to_one",
+    )
+    eligible = eligible.merge(warehouses[["warehouse_id"]], how="cross")
+    eligible["unit_id"] = eligible["product_id"] + "|" + eligible["warehouse_id"]
+    eligible["stratum"] = eligible["warehouse_id"] + "|" + eligible["abc_class"]
+    eligible = eligible.sort_values(["stratum", "unit_id"]).reset_index(drop=True)
+    eligible["treatment_flag"] = 0
+    for indices in eligible.groupby("stratum", sort=True).groups.values():
+        group_indices = np.asarray(list(indices), dtype=int)
+        treated_indices = rng.permutation(group_indices)[: len(group_indices) // 2]
+        eligible.loc[treated_indices, "treatment_flag"] = 1
+
+    common = {
+        "assignment_date": "2025-04-01",
+        "intervention_date": "2025-07-01",
+        "outcome_metric": "fill_rate",
+        "status": "completed",
+    }
+    rct = eligible[
+        [
+            "unit_id",
+            "product_id",
+            "warehouse_id",
+            "supplier_id",
+            "stratum",
+            "treatment_flag",
+        ]
+    ].copy()
+    rct.insert(0, "experiment_id", "EXP-RCT-001")
+    rct.insert(1, "design", "randomized_controlled_trial")
+    rct.insert(2, "assignment_method", "stratified_randomization")
+    rct["treatment_group"] = np.where(
+        rct["treatment_flag"].eq(1), "policy_reset", "business_as_usual"
+    )
+    for column, value in common.items():
+        rct[column] = value
+
+    did = eligible[eligible["supplier_id"].isin({"SUP-001", "SUP-002", "SUP-003"})][
+        ["unit_id", "product_id", "warehouse_id", "supplier_id", "category"]
+    ].copy()
+    did.insert(0, "experiment_id", "EXP-DID-001")
+    did.insert(1, "design", "difference_in_differences")
+    did.insert(2, "assignment_method", "matched_supplier_comparison")
+    did["stratum"] = did.pop("category")
+    did["treatment_flag"] = did["supplier_id"].eq("SUP-002").astype(int)
+    did["treatment_group"] = np.where(
+        did["treatment_flag"].eq(1), "supplier_recovery", "comparison_suppliers"
+    )
+    for column, value in common.items():
+        did[column] = value
+
+    columns = [
+        "experiment_id",
+        "design",
+        "assignment_method",
+        "unit_id",
+        "product_id",
+        "warehouse_id",
+        "supplier_id",
+        "stratum",
+        "treatment_group",
+        "treatment_flag",
+        "assignment_date",
+        "intervention_date",
+        "outcome_metric",
+        "status",
+    ]
+    return (
+        pd.concat([rct[columns], did[columns]], ignore_index=True)
+        .sort_values(["experiment_id", "unit_id"])
+        .reset_index(drop=True)
+    )
+
+
+def build_network_tables(
+    products: pd.DataFrame,
+    suppliers: pd.DataFrame,
+    warehouses: pd.DataFrame,
+    rng: np.random.Generator,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Build a constrained supplier-gateway-regional planning network."""
+    gateway_id = "WH-LYON"
+    if gateway_id not in set(warehouses["warehouse_id"]):
+        raise ValueError(f"Network gateway is missing: {gateway_id}")
+    supplier_nodes = pd.DataFrame(
+        {
+            "node_id": suppliers["supplier_id"],
+            "node_type": "supplier",
+            "region": suppliers["supplier_region"],
+            "storage_capacity_units": 0,
+        }
+    )
+    warehouse_nodes = warehouses[["warehouse_id", "region", "storage_capacity_units"]].rename(
+        columns={"warehouse_id": "node_id"}
+    )
+    warehouse_nodes["node_type"] = np.where(
+        warehouse_nodes["node_id"].eq(gateway_id), "gateway", "regional_dc"
+    )
+    nodes = pd.concat(
+        [
+            supplier_nodes,
+            warehouse_nodes[["node_id", "node_type", "region", "storage_capacity_units"]],
+        ],
+        ignore_index=True,
+    ).sort_values("node_id", ignore_index=True)
+
+    lane_rows: list[dict] = []
+    for supplier in suppliers.sort_values("supplier_id").itertuples(index=False):
+        lane_rows.append(
+            {
+                "lane_id": f"LANE-{supplier.supplier_id}-{gateway_id}",
+                "source_node_id": supplier.supplier_id,
+                "destination_node_id": gateway_id,
+                "lane_type": "inbound",
+                "lead_time_days": int(supplier.average_lead_time_days),
+                "unit_transport_cost": round(
+                    0.06 + (1.0 - float(supplier.reliability_score)) * 0.15, 4
+                ),
+                "daily_capacity_units": int(
+                    max(1_000, round(25_000 * float(supplier.reliability_score)))
+                ),
+                "enabled": 1,
+            }
+        )
+    transfer_profiles = {
+        "WH-LIS": (3, 0.11, 45_000),
+        "WH-PORTO": (3, 0.12, 35_000),
+        "WH-MAD": (2, 0.09, 50_000),
+    }
+    for destination in sorted(set(warehouses["warehouse_id"]) - {gateway_id}):
+        if destination not in transfer_profiles:
+            raise ValueError(f"Missing transfer profile for {destination}")
+        lead_time, unit_cost, capacity = transfer_profiles[destination]
+        lane_rows.append(
+            {
+                "lane_id": f"LANE-{gateway_id}-{destination}",
+                "source_node_id": gateway_id,
+                "destination_node_id": destination,
+                "lane_type": "transfer",
+                "lead_time_days": lead_time,
+                "unit_transport_cost": unit_cost,
+                "daily_capacity_units": capacity,
+                "enabled": 1,
+            }
+        )
+    lanes = pd.DataFrame(lane_rows).sort_values("lane_id", ignore_index=True)
+
+    supplier_lookup = suppliers.set_index("supplier_id")
+    ranked_suppliers = suppliers.sort_values(
+        ["reliability_score", "supplier_id"], ascending=[False, True]
+    )["supplier_id"].tolist()
+    source_rows: list[dict] = []
+    for product in products.sort_values("product_id").itertuples(index=False):
+        primary = str(product.supplier_id)
+        if primary not in supplier_lookup.index:
+            raise ValueError(f"Unknown primary source for {product.product_id}: {primary}")
+        alternate = next((supplier for supplier in ranked_suppliers if supplier != primary), None)
+        if alternate is None:
+            raise ValueError(f"No alternate source available for {product.product_id}")
+        for supplier_id, is_primary in ((primary, 1), (alternate, 0)):
+            supplier = supplier_lookup.loc[supplier_id]
+            premium = 1.0 if is_primary else float(rng.uniform(1.05, 1.12))
+            minimum_order_qty = int(supplier["minimum_order_qty"])
+            source_rows.append(
+                {
+                    "product_id": product.product_id,
+                    "supplier_id": supplier_id,
+                    "is_primary": is_primary,
+                    "unit_purchase_cost": round(float(product.unit_cost) * premium, 2),
+                    "minimum_order_qty": minimum_order_qty,
+                    "max_horizon_units": max(10_000, minimum_order_qty * 20),
+                    "source_lead_time_days": int(supplier["average_lead_time_days"]),
+                    "enabled": 1,
+                }
+            )
+    sources = pd.DataFrame(source_rows).sort_values(
+        ["product_id", "is_primary"], ascending=[True, False], ignore_index=True
+    )
+    return nodes, lanes, sources
+
+
+def intervention_policy_levels(
+    reorder_point: int,
+    order_up_to: int,
+    is_treated: bool,
+    current_date: pd.Timestamp,
+    intervention_date: pd.Timestamp,
+) -> tuple[int, int]:
+    """Return policy levels after the randomized treatment becomes active."""
+    if not is_treated or current_date < intervention_date:
+        return reorder_point, order_up_to
+    return int(round(reorder_point * 1.20)), int(round(order_up_to * 1.15))
+
+
+def supplier_recovery_profile(
+    reliability_score: float,
+    lead_time_variability: float,
+    is_active: bool,
+) -> tuple[float, float]:
+    """Apply the simulated supplier-recovery mechanism when active."""
+    if not is_active:
+        return reliability_score, lead_time_variability
+    return min(0.98, reliability_score + 0.18), max(0.05, lead_time_variability * 0.50)
+
+
 def simulate_actual_arrival(
     current_date: pd.Timestamp,
     planned_lead_time_days: int,
@@ -325,9 +553,41 @@ def simulate_operations(
     warehouses: pd.DataFrame,
     sim_attrs: pd.DataFrame,
     rng: np.random.Generator,
+    intervention_assignments: pd.DataFrame | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Simulate daily demand, inventory states, and purchase order execution."""
     dates = pd.date_range(cfg.start_date, cfg.end_date, freq="D")
+    assignments = (
+        intervention_assignments.copy()
+        if intervention_assignments is not None
+        else pd.DataFrame(
+            columns=[
+                "experiment_id",
+                "unit_id",
+                "supplier_id",
+                "treatment_flag",
+                "intervention_date",
+            ]
+        )
+    )
+    required_assignment_columns = {
+        "experiment_id",
+        "unit_id",
+        "supplier_id",
+        "treatment_flag",
+        "intervention_date",
+    }
+    if not required_assignment_columns.issubset(assignments.columns):
+        raise ValueError("Intervention assignments are missing simulation fields")
+    assignments["intervention_date"] = pd.to_datetime(
+        assignments["intervention_date"], errors="raise"
+    )
+    rct = assignments[assignments["experiment_id"] == "EXP-RCT-001"]
+    rct_treated_units = set(rct.loc[rct["treatment_flag"].eq(1), "unit_id"])
+    rct_intervention_date = rct["intervention_date"].min() if not rct.empty else pd.Timestamp.max
+    did = assignments[assignments["experiment_id"] == "EXP-DID-001"]
+    did_treated_suppliers = set(did.loc[did["treatment_flag"].eq(1), "supplier_id"])
+    did_intervention_date = did["intervention_date"].min() if not did.empty else pd.Timestamp.max
 
     warehouse_profile = {
         "WH-LIS": {"demand_factor": 1.15, "planning_factor": 1.12, "volatility_factor": 0.95},
@@ -354,6 +614,7 @@ def simulate_operations(
         for _, wh_row in warehouses.iterrows():
             wh_id = wh_row["warehouse_id"]
             wh_prof = warehouse_profile[wh_id]
+            unit_id = f"{product}|{wh_id}"
 
             local_demand_mean = (
                 sa["base_daily_demand"] * wh_prof["demand_factor"] * float(rng.uniform(0.92, 1.12))
@@ -399,26 +660,45 @@ def simulate_operations(
                 stockout_flag = int(units_lost_sales > 0)
 
                 on_hand -= units_fulfilled
-                on_order_units = int(sum(o["received_units"] for o in open_orders))
+                # Open-order visibility is based on quantities ordered. Using
+                # eventual receipt quantities here would leak future supplier
+                # underfill into the replenishment decision.
+                on_order_units = int(sum(o["ordered_units"] for o in open_orders))
                 inventory_position = on_hand + on_order_units
+                active_reorder_point, active_order_up_to = intervention_policy_levels(
+                    reorder_point,
+                    order_up_to,
+                    unit_id in rct_treated_units,
+                    current_date,
+                    rct_intervention_date,
+                )
 
-                if inventory_position <= reorder_point:
+                if inventory_position <= active_reorder_point:
                     moq_multiplier = 1.4 if sa["chronic_profile"] == "chronic_overstock" else 1.0
                     effective_moq = int(round(s["minimum_order_qty"] * moq_multiplier))
-                    ordered_units = int(max(order_up_to - inventory_position, effective_moq))
+                    ordered_units = int(max(active_order_up_to - inventory_position, effective_moq))
 
                     planned_lt = int(p["lead_time_days"])
                     expected_arrival = current_date + timedelta(days=planned_lt)
+                    recovery_active = (
+                        p["supplier_id"] in did_treated_suppliers
+                        and current_date >= did_intervention_date
+                    )
+                    reliability_score, lead_time_variability = supplier_recovery_profile(
+                        float(s["reliability_score"]),
+                        float(s["lead_time_variability"]),
+                        recovery_active,
+                    )
                     actual_arrival, late_flag = simulate_actual_arrival(
                         current_date=current_date,
                         planned_lead_time_days=planned_lt,
-                        reliability_score=float(s["reliability_score"]),
-                        lead_time_variability=float(s["lead_time_variability"]),
+                        reliability_score=reliability_score,
+                        lead_time_variability=lead_time_variability,
                         rng=rng,
                     )
 
                     receipt_fill_rate = _bounded(rng.normal(0.985, 0.015), 0.9, 1.0)
-                    if s["reliability_score"] < 0.80:
+                    if reliability_score < 0.80:
                         receipt_fill_rate = _bounded(rng.normal(0.93, 0.06), 0.78, 1.0)
                     received_units = int(max(1, round(ordered_units * receipt_fill_rate)))
 
@@ -440,7 +720,7 @@ def simulate_operations(
                     po_rows.append(po_entry)
                     open_orders.append(po_entry)
 
-                    on_order_units = int(sum(o["received_units"] for o in open_orders))
+                    on_order_units = int(sum(o["ordered_units"] for o in open_orders))
 
                 reserved_units = int(
                     min(on_hand, round(local_demand_mean * rng.uniform(0.04, 0.22)))
@@ -496,6 +776,10 @@ def write_raw_tables(
     demand_history: pd.DataFrame,
     purchase_orders: pd.DataFrame,
     product_classification: pd.DataFrame,
+    intervention_assignments: pd.DataFrame,
+    network_nodes: pd.DataFrame,
+    network_lanes: pd.DataFrame,
+    product_sources: pd.DataFrame,
 ) -> None:
     """Persist required raw tables to /data/raw/."""
     DATA_RAW.mkdir(parents=True, exist_ok=True)
@@ -507,6 +791,10 @@ def write_raw_tables(
     demand_history.to_csv(DATA_RAW / "demand_history.csv", index=False)
     purchase_orders.to_csv(DATA_RAW / "purchase_orders.csv", index=False)
     product_classification.to_csv(DATA_RAW / "product_classification.csv", index=False)
+    intervention_assignments.to_csv(DATA_RAW / "intervention_assignments.csv", index=False)
+    network_nodes.to_csv(DATA_RAW / "network_nodes.csv", index=False)
+    network_lanes.to_csv(DATA_RAW / "network_lanes.csv", index=False)
+    product_sources.to_csv(DATA_RAW / "product_sources.csv", index=False)
 
 
 def print_summary(
@@ -575,6 +863,18 @@ def generate_all_tables() -> None:
     products, product_classification, sim_attrs = build_products_and_classification(
         cfg, suppliers, rng
     )
+    intervention_assignments = build_intervention_assignments(
+        products,
+        product_classification,
+        warehouses,
+        np.random.default_rng(cfg.seed + 10_001),
+    )
+    network_nodes, network_lanes, product_sources = build_network_tables(
+        products,
+        suppliers,
+        warehouses,
+        np.random.default_rng(cfg.seed + 20_003),
+    )
 
     demand_history, inventory_snapshots, purchase_orders = simulate_operations(
         cfg=cfg,
@@ -583,6 +883,7 @@ def generate_all_tables() -> None:
         warehouses=warehouses,
         sim_attrs=sim_attrs,
         rng=rng,
+        intervention_assignments=intervention_assignments,
     )
 
     write_raw_tables(
@@ -593,6 +894,10 @@ def generate_all_tables() -> None:
         demand_history=demand_history,
         purchase_orders=purchase_orders,
         product_classification=product_classification,
+        intervention_assignments=intervention_assignments,
+        network_nodes=network_nodes,
+        network_lanes=network_lanes,
+        product_sources=product_sources,
     )
 
     print_summary(
