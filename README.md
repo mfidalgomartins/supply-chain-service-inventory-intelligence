@@ -15,7 +15,8 @@ optimizes constrained multi-echelon flows.
 [![Open the live dashboard](https://img.shields.io/badge/▶_Open_the_live_dashboard-0071e3?style=for-the-badge&logoColor=white)](https://mfidalgomartins.github.io/supply-chain-service-inventory-intelligence/)
 [![Read the analytical report](https://img.shields.io/badge/Read_the_analytical_report-1d1d1f?style=for-the-badge)](https://github.com/mfidalgomartins/supply-chain-service-inventory-intelligence/blob/main/outputs/reports/service_inventory_intelligence_report.pdf)
 
-**[Dashboard](#dashboard--the-interactive-operating-review) ·
+**[Executive summary](#executive-summary) ·
+[Dashboard](#dashboard--the-interactive-operating-review) ·
 [Report](#report--the-executive-decision-support-deliverable) ·
 [Decisions supported](#decisions-supported) ·
 [Analytical flow](#analytical-flow) ·
@@ -23,9 +24,30 @@ optimizes constrained multi-echelon flows.
 [Documentation](#documentation)**
 
 The reproducible synthetic dataset covers **120 products, 12 suppliers, 4
-warehouses, and 731 days from 2024-01-01 to 2025-12-31**. The current scenario
-reports a **95.94% fill rate**, **€19.3M observed lost-sales exposure**, and a
-**€1.56M directional 12-month opportunity proxy**.
+warehouses, and 731 days from 2024-01-01 to 2025-12-31**.
+
+## Executive Summary
+
+Service quality across the four-warehouse network eroded steadily over two
+years while inventory settled in the wrong places. That reads as a capacity
+problem until the data is filtered — it is a concentration problem, traceable
+to two suppliers and one product family, and it doesn't require new inventory
+investment to fix.
+
+| | |
+|---|---|
+| **Fill-rate decline** | 99.6% (Jan 2024) → 92.0% (Dec 2025) — a 7.6pp drop, with stockouts climbing from 0.4% to 7.9% |
+| **Lost-sales exposure** | €19.3M of demand lost to stockouts over 24 months, €8.3M of it gross margin |
+| **Supplier concentration** | 81% of that lost-sales value traces to 2 of 12 suppliers — the only two in the High risk tier |
+| **Root-cause candidate** | 1 product, stocked in all 4 warehouses, drives 58% of the ranked opportunity |
+| **12-month value pool** | €1.6M — €1.5M recoverable margin, €112K releasable working capital |
+
+**The call:** fix two suppliers and one product family first. Together they
+carry 81% of lost-sales value and the largest single SKU opportunity, and
+neither fix needs new inventory investment. That prioritization — not a raw
+data dump — is what the dashboard surfaces interactively and the report lays
+out page by page, and it's reproducible against any governed dataset the
+ingestion adapters point at.
 
 ## Dashboard — the interactive operating review
 
